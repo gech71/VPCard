@@ -16,11 +16,14 @@ import {
 } from '@/components/ui/carousel';
 import { CardDetails } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import CardDetailsView from '@/components/card-details-view';
 
 export default function Home() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+
+  const selectedCard = cards[current];
 
   React.useEffect(() => {
     if (!api) {
@@ -57,39 +60,44 @@ export default function Home() {
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 flex flex-col gap-4">
-             <div className="flex justify-end">
-              {count > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  {current + 1} / {count}
-                </div>
-              )}
-            </div>
-            <Carousel setApi={setApi} className="w-full">
-              <CarouselContent>
-                {cards.map((card, index) => (
-                  <CarouselItem key={index}>
-                    <CardDisplay card={card} />
-                  </CarouselItem>
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-end">
+                {count > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {current + 1} / {count}
+                  </div>
+                )}
+              </div>
+              <Carousel setApi={setApi} className="w-full">
+                <CarouselContent>
+                  {cards.map((card, index) => (
+                    <CarouselItem key={index}>
+                      <CardDisplay card={card} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+              <div className="flex justify-center gap-2">
+                {cards.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleDotClick(index)}
+                    className={cn(
+                      'h-2 w-2 rounded-full transition-all',
+                      current === index ? 'w-4 bg-primary' : 'bg-muted'
+                    )}
+                  />
                 ))}
-              </CarouselContent>
-            </Carousel>
-            <div className="flex justify-center gap-2">
-              {cards.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleDotClick(index)}
-                  className={cn(
-                    'h-2 w-2 rounded-full transition-all',
-                    current === index ? 'w-4 bg-primary' : 'bg-muted'
-                  )}
-                />
-              ))}
+              </div>
             </div>
+            {selectedCard && <CardDetailsView card={selectedCard} />}
           </div>
-          <div className="lg:col-span-2">
+
+          <div className="lg:col-span-3">
             <TransactionHistory transactions={transactions} />
           </div>
+
           <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
             <LimitManager
               title="POS Limit"
