@@ -1,4 +1,5 @@
 export type CardDetails = {
+  fullNumber: string;
   maskedNumber: string;
   expiryDate: string;
   cardholderName: string;
@@ -21,6 +22,7 @@ export type Limit = {
 };
 
 export const cardDetails: CardDetails = {
+  fullNumber: '4242 4242 4242 4242',
   maskedNumber: '**** **** **** 4242',
   expiryDate: '12/26',
   cardholderName: 'Jane Doe',

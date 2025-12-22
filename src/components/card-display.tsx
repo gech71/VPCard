@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Cpu, CircleDot, KeyRound, CreditCard } from "lucide-react";
+import { Cpu, CircleDot, KeyRound, CreditCard, Eye, EyeOff } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
 import { VisaLogo, MastercardLogo } from "@/components/icons";
 import PinChangeDialog from "./pin-change-dialog";
@@ -17,6 +20,8 @@ type CardDisplayProps = {
 };
 
 export default function CardDisplay({ card }: CardDisplayProps) {
+  const [isRevealed, setIsRevealed] = useState(false);
+
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -51,9 +56,14 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             {card.type === 'Visa' ? <VisaLogo className="w-16" /> : <MastercardLogo className="w-16" />}
           </div>
           <div className="flex flex-col gap-4">
-            <p className="text-xl sm:text-2xl font-mono tracking-wider">
-              {card.maskedNumber}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xl sm:text-2xl font-mono tracking-wider">
+                {isRevealed ? card.fullNumber : card.maskedNumber}
+              </p>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-white/20" onClick={() => setIsRevealed(!isRevealed)}>
+                {isRevealed ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </Button>
+            </div>
             <div className="flex justify-between text-sm uppercase font-semibold">
               <span>{card.cardholderName}</span>
               <span>{card.expiryDate}</span>
