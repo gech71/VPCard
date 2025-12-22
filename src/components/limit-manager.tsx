@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import type { Limit } from "@/lib/data";
+import { Input } from "@/components/ui/input";
 
 type LimitManagerProps = {
   title: string;
@@ -39,6 +40,21 @@ export default function LimitManager({ title, description, icon, limitData }: Li
       description: `Your new ${title} has been set to ${currencyFormatter.format(currentLimit)}.`,
     });
   };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const numericValue = parseInt(value.replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numericValue)) {
+      if (numericValue > limitData.max) {
+        setCurrentLimit(limitData.max)
+      } else {
+        setCurrentLimit(numericValue);
+      }
+    } else if (value === '') {
+        setCurrentLimit(0)
+    }
+  };
+
 
   return (
     <Card className="shadow-lg">
@@ -50,11 +66,17 @@ export default function LimitManager({ title, description, icon, limitData }: Li
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex justify-between items-baseline">
-            <p className="text-sm text-muted-foreground">Your Limit</p>
-            <p className="text-2xl font-bold tracking-tight">
-            {currencyFormatter.format(currentLimit)}
-            </p>
+        <div className="flex justify-between items-baseline gap-4">
+          <p className="text-sm text-muted-foreground">Your Limit</p>
+            <div className="relative">
+                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                 <Input
+                    type="text"
+                    value={currentLimit.toLocaleString()}
+                    onChange={handleInputChange}
+                    className="w-36 text-right pr-4 pl-7 font-bold text-2xl h-auto border-0 focus-visible:ring-0 shadow-none"
+                  />
+            </div>
         </div>
         <Slider
           value={[currentLimit]}
