@@ -23,9 +23,6 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https'
-      },
-      {
         protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
@@ -40,8 +37,9 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    allowedDevOrigins: ["https://*.cloudworkstations.dev"],
+    
   },
+  allowedDevOrigins: ["https://*.cloudworkstations.dev"],
 };
 
 export default nextConfig;
