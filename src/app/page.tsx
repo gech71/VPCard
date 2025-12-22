@@ -20,20 +20,31 @@ import { cn } from '@/lib/utils';
 export default function Home() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   React.useEffect(() => {
     if (!api) {
       return;
     }
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
 
     const handleSelect = () => {
       setCurrent(api.selectedScrollSnap());
     };
 
     api.on('select', handleSelect);
+     api.on("reInit", () => {
+      setCount(api.scrollSnapList().length);
+      setCurrent(api.selectedScrollSnap());
+    });
 
     return () => {
       api.off('select', handleSelect);
+       api.off("reInit", () => {
+        setCount(api.scrollSnapList().length);
+        setCurrent(api.selectedScrollSnap());
+      });
     };
   }, [api]);
 
@@ -47,6 +58,13 @@ export default function Home() {
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-4">
+             <div className="flex justify-end">
+              {count > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {current + 1} / {count}
+                </div>
+              )}
+            </div>
             <Carousel setApi={setApi} className="w-full">
               <CarouselContent>
                 {cards.map((card, index) => (
