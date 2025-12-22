@@ -12,15 +12,14 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
   type CarouselApi,
 } from '@/components/ui/carousel';
 import { CardDetails } from '@/lib/data';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [api, setApi] = useState<CarouselApi>();
-  const [currentCard, setCurrentCard] = useState<CardDetails>(cards[0]);
+  const [current, setCurrent] = useState(0);
 
   React.useEffect(() => {
     if (!api) {
@@ -28,8 +27,7 @@ export default function Home() {
     }
 
     const handleSelect = () => {
-      const selectedCard = cards[api.selectedScrollSnap()];
-      setCurrentCard(selectedCard);
+      setCurrent(api.selectedScrollSnap());
     };
 
     api.on('select', handleSelect);
@@ -39,12 +37,16 @@ export default function Home() {
     };
   }, [api]);
 
+  const handleDotClick = (index: number) => {
+    api?.scrollTo(index);
+  };
+
   return (
     <div className="min-h-screen w-full">
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 flex flex-col gap-8">
+          <div className="lg:col-span-1 flex flex-col gap-4">
             <Carousel setApi={setApi} className="w-full">
               <CarouselContent>
                 {cards.map((card, index) => (
@@ -53,9 +55,19 @@ export default function Home() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className='-left-4 sm:-left-12' />
-              <CarouselNext className='-right-4 sm:-right-12' />
             </Carousel>
+            <div className="flex justify-center gap-2">
+              {cards.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleDotClick(index)}
+                  className={cn(
+                    'h-2 w-2 rounded-full transition-all',
+                    current === index ? 'w-4 bg-primary' : 'bg-muted'
+                  )}
+                />
+              ))}
+            </div>
           </div>
           <div className="lg:col-span-2">
             <TransactionHistory transactions={transactions} />
