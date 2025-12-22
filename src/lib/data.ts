@@ -25,7 +25,7 @@ export const cardDetails: CardDetails = {
   fullNumber: '4242 4242 4242 4242',
   maskedNumber: '**** **** **** 4242',
   expiryDate: '12/26',
-  cardholderName: 'Jane Doe',
+  cardholderName: 'Jhon Doe',
   status: 'Active',
   type: 'Visa',
   balance: 2548.75,
