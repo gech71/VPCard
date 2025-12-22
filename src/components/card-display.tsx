@@ -52,7 +52,10 @@ export default function CardDisplay({ card }: CardDisplayProps) {
       <CardContent className="flex flex-col flex-grow justify-between gap-6">
         <div className="w-full aspect-[1.586] bg-gradient-to-br from-primary via-blue-700 to-teal-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-primary-foreground shadow-2xl">
           <div className="flex justify-between items-start">
-            <Cpu className="w-8 h-8 opacity-80" />
+            <div className="flex flex-col">
+              <p className="font-bold text-lg">NIB INTERNATIONAL BANK</p>
+              <p className="text-xs">የላቀ የደንበኝነት አገልግሎት : ለጋራ ስኬት!</p>
+            </div>
             {card.type === 'Visa' ? <VisaLogo className="w-16" /> : <MastercardLogo className="w-16" />}
           </div>
           <div className="flex flex-col gap-4">
