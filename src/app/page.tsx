@@ -14,7 +14,6 @@ import {
   CarouselItem,
   type CarouselApi,
 } from '@/components/ui/carousel';
-import { CardDetails } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import CardDetailsView from '@/components/card-details-view';
 
@@ -91,7 +90,9 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            {selectedCard && <CardDetailsView card={selectedCard} />}
+            <div className="flex flex-col gap-4 h-full">
+                {selectedCard && <CardDetailsView card={selectedCard} />}
+            </div>
           </div>
 
           <div className="lg:col-span-3">
