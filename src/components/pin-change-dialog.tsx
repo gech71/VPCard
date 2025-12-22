@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -45,7 +46,7 @@ export default function PinChangeDialog({ children }: PinChangeDialogProps) {
               Enter your current PIN and a new 4-digit PIN for your card.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 mt-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="current-pin" className="text-right">
                 Current PIN
