@@ -1,4 +1,6 @@
+
 export type CardDetails = {
+  id: string;
   fullNumber: string;
   maskedNumber: string;
   expiryDate: string;
@@ -21,15 +23,38 @@ export type Limit = {
   max: number;
 };
 
-export const cardDetails: CardDetails = {
-  fullNumber: '4242 4242 4242 4242',
-  maskedNumber: '**** **** **** 4242',
-  expiryDate: '12/26',
-  cardholderName: 'Jhon Doe',
-  status: 'Active',
-  type: 'Visa',
-  balance: 2548.75,
-};
+export const cardDetails: CardDetails[] = [
+  {
+    id: 'card1',
+    fullNumber: '4242 4242 4242 4242',
+    maskedNumber: '**** **** **** 4242',
+    expiryDate: '12/26',
+    cardholderName: 'Jhon Doe',
+    status: 'Active',
+    type: 'Visa',
+    balance: 2548.75,
+  },
+  {
+    id: 'card2',
+    fullNumber: '5353 5353 5353 5353',
+    maskedNumber: '**** **** **** 5353',
+    expiryDate: '08/25',
+    cardholderName: 'Jhon Doe',
+    status: 'Active',
+    type: 'Mastercard',
+    balance: 5321.12,
+  },
+  {
+    id: 'card3',
+    fullNumber: '4012 3456 7890 1234',
+    maskedNumber: '**** **** **** 1234',
+    expiryDate: '11/27',
+    cardholderName: 'Jhon Doe',
+    status: 'Frozen',
+    type: 'Visa',
+    balance: 105.6,
+  }
+];
 
 export const transactions: Transaction[] = [
   { id: 'txn1', date: '2024-07-22', description: 'Amazon Purchase', amount: -75.50, status: 'Completed' },

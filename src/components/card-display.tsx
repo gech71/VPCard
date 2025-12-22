@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -52,6 +53,8 @@ export default function CardDisplay({ card }: CardDisplayProps) {
     }
   }
 
+  const CardLogo = card.type === 'Visa' ? VisaLogo : MastercardLogo;
+
   return (
     <Card className="flex flex-col h-full shadow-md">
       <CardHeader>
@@ -86,8 +89,8 @@ export default function CardDisplay({ card }: CardDisplayProps) {
                 <span className="text-[8px] block opacity-70">Holder Name</span>
                 <span>Jhon Doe</span>
               </div>
-              <div className="text-right flex items-baseline gap-2">
-                  <span className="text-[10px] block opacity-70">Expires</span>
+              <div className="text-right flex items-center gap-2">
+                  <span className="text-[8px] opacity-70">Expires</span>
                   <div className="text-right">
                     <span className="text-[8px] block opacity-70">Month/Year</span>
                     <span>{card.expiryDate}</span>

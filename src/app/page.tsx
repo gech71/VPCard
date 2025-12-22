@@ -1,18 +1,61 @@
-import { cardDetails, transactions, atmLimit, posLimit } from '@/lib/data';
+
+'use client';
+
+import React, { useState } from 'react';
+import { cardDetails as cards, transactions, atmLimit, posLimit } from '@/lib/data';
 import DashboardHeader from '@/components/dashboard-header';
 import CardDisplay from '@/components/card-display';
 import TransactionHistory from '@/components/transaction-history';
 import LimitManager from '@/components/limit-manager';
 import { Landmark, Store } from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '@/components/ui/carousel';
+import { CardDetails } from '@/lib/data';
 
 export default function Home() {
+  const [api, setApi] = useState<CarouselApi>();
+  const [currentCard, setCurrentCard] = useState<CardDetails>(cards[0]);
+
+  React.useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    const handleSelect = () => {
+      const selectedCard = cards[api.selectedScrollSnap()];
+      setCurrentCard(selectedCard);
+    };
+
+    api.on('select', handleSelect);
+
+    return () => {
+      api.off('select', handleSelect);
+    };
+  }, [api]);
+
   return (
     <div className="min-h-screen w-full">
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-8">
-            <CardDisplay card={cardDetails} />
+            <Carousel setApi={setApi} className="w-full">
+              <CarouselContent>
+                {cards.map((card, index) => (
+                  <CarouselItem key={index}>
+                    <CardDisplay card={card} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className='-left-4 sm:-left-12' />
+              <CarouselNext className='-right-4 sm:-right-12' />
+            </Carousel>
           </div>
           <div className="lg:col-span-2">
             <TransactionHistory transactions={transactions} />
