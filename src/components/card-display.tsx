@@ -65,7 +65,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         <CardDescription>View your card details and balance.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col flex-grow justify-between gap-6">
-        <div className="w-full aspect-[1.586] bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-white shadow-lg">
+        <div className="w-full max-w-md mx-auto aspect-[1.586] bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-white shadow-lg">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
                 <ChipIcon className="w-10 h-10 sm:w-12 sm:h-12" />
