@@ -50,7 +50,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         <CardDescription>View your card details and balance.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col flex-grow justify-between gap-6">
-        <div className="w-full aspect-[1.586] bg-gradient-to-br from-primary via-blue-700 to-teal-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-primary-foreground shadow-2xl">
+        <div className="w-full aspect-[1.586] bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-white shadow-2xl">
           <div className="flex justify-between items-start">
             <div className="flex flex-col">
               <p className="font-bold text-lg">NIB INTERNATIONAL BANK</p>
@@ -63,13 +63,16 @@ export default function CardDisplay({ card }: CardDisplayProps) {
               <p className="text-xl sm:text-2xl font-mono tracking-wider">
                 {isRevealed ? card.fullNumber : card.maskedNumber}
               </p>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-white/20" onClick={() => setIsRevealed(!isRevealed)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setIsRevealed(!isRevealed)}>
                 {isRevealed ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
-            <div className="flex justify-between text-sm uppercase font-semibold">
+            <div className="flex justify-between items-end text-sm uppercase font-semibold">
               <span>{card.cardholderName}</span>
-              <span>{card.expiryDate}</span>
+              <div className="text-right">
+                <span className="text-xs block">Expiry Date</span>
+                <span>{card.expiryDate}</span>
+              </div>
             </div>
           </div>
         </div>
