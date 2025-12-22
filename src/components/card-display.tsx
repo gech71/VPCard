@@ -32,6 +32,7 @@ type CardDisplayProps = {
 
 export default function CardDisplay({ card }: CardDisplayProps) {
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -61,7 +62,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         <CardDescription>View your card details and balance.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col flex-grow justify-between gap-6">
-        <div className="w-full aspect-[1.586] bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-white shadow-xl">
+        <div className="w-full aspect-[1.586] bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 rounded-xl p-4 sm:p-6 flex flex-col justify-between text-white shadow-lg">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
                 <ChipIcon className="w-10 h-10 sm:w-12 sm:h-12" />
@@ -82,12 +83,15 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             </div>
             <div className="flex justify-between items-end text-sm uppercase font-semibold">
               <div>
-                <span className="text-[10px] block opacity-70">Holder Name</span>
-                <span>{card.cardholderName}</span>
+                <span className="text-[8px] block opacity-70">Holder Name</span>
+                <span>Jhon Doe</span>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] block opacity-70">Expires</span>
-                <span>{card.expiryDate}</span>
+              <div className="text-right flex items-baseline gap-2">
+                  <span className="text-[10px] block opacity-70">Expires</span>
+                  <div className="text-right">
+                    <span className="text-[8px] block opacity-70">Month/Year</span>
+                    <span>{card.expiryDate}</span>
+                  </div>
               </div>
             </div>
           </div>
@@ -96,9 +100,14 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Current Balance</p>
-            <p className="text-4xl font-bold tracking-tight">
-              {currencyFormatter.format(card.balance)}
-            </p>
+            <div className="flex items-center gap-2">
+                <p className="text-4xl font-bold tracking-tight">
+                {isBalanceVisible ? currencyFormatter.format(card.balance) : '$•••••••'}
+                </p>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={() => setIsBalanceVisible(!isBalanceVisible)}>
+                    {isBalanceVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">Status:</p>
