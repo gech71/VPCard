@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Nib Virtual Cards',
+  title: 'Nib Virtual Card',
   description: 'Manage your virtual cards with ease.',
 };
 
