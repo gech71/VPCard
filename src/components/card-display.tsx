@@ -105,31 +105,6 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             </Badge>
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-2">
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
-                 Freeze Card
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action will temporarily freeze your card. You can unfreeze it at any time.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction>Confirm</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button variant="destructive" className="w-full">
-              Report Stolen
-            </Button>
-        </div>
         
         <PinChangeDialog>
             <Button variant="outline" className="w-full">
