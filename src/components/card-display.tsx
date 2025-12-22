@@ -12,8 +12,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Cpu, CircleDot, KeyRound, CreditCard, Eye, EyeOff } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
-import { VisaLogo, MastercardLogo } from "@/components/icons";
+import { VisaLogo, MastercardLogo, ChipIcon } from "@/components/icons";
 import PinChangeDialog from "./pin-change-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type CardDisplayProps = {
   card: CardDetails;
@@ -59,13 +70,16 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             {card.type === 'Visa' ? <VisaLogo className="w-16" /> : <MastercardLogo className="w-16" />}
           </div>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xl sm:text-2xl font-mono tracking-wider">
-                {isRevealed ? card.fullNumber : card.maskedNumber}
-              </p>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setIsRevealed(!isRevealed)}>
-                {isRevealed ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </Button>
+             <div className="flex items-center gap-4">
+                <ChipIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+                <div className="flex items-center justify-between w-full">
+                    <p className="text-xl sm:text-2xl font-mono tracking-wider">
+                        {isRevealed ? card.fullNumber : card.maskedNumber}
+                    </p>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setIsRevealed(!isRevealed)}>
+                        {isRevealed ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </Button>
+                </div>
             </div>
             <div className="flex justify-between items-end text-sm uppercase font-semibold">
               <span>{card.cardholderName}</span>
@@ -91,6 +105,31 @@ export default function CardDisplay({ card }: CardDisplayProps) {
                 {card.status}
             </Badge>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                 Freeze Card
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will temporarily freeze your card. You can unfreeze it at any time.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction>Confirm</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button variant="destructive" className="w-full">
+              Report Stolen
+            </Button>
         </div>
         
         <PinChangeDialog>
