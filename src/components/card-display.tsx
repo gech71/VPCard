@@ -32,7 +32,7 @@ type CardDisplayProps = {
 
 export default function CardDisplay({ card }: CardDisplayProps) {
   const [isRevealed, setIsRevealed] = useState(false);
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
