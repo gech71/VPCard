@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CircleDot, KeyRound, CreditCard, Eye, EyeOff } from "lucide-react";
+import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
 import PinChangeDialog from "./pin-change-dialog";
+import ViewLimitsDialog from "./view-limits-dialog";
 
 type CardDetailsViewProps = {
   card: CardDetails;
@@ -71,11 +72,18 @@ export default function CardDetailsView({ card }: CardDetailsViewProps) {
           </div>
         </div>
         
-        <PinChangeDialog>
-            <Button variant="outline" className="w-full">
-              <KeyRound className="mr-2 h-4 w-4" /> Change PIN
-            </Button>
-        </PinChangeDialog>
+        <div className="grid grid-cols-2 gap-2">
+            <ViewLimitsDialog>
+                <Button variant="outline" className="w-full">
+                    <ShieldCheck className="mr-2 h-4 w-4" /> View Limits
+                </Button>
+            </ViewLimitsDialog>
+            <PinChangeDialog>
+                <Button variant="outline" className="w-full">
+                  <KeyRound className="mr-2 h-4 w-4" /> Change PIN
+                </Button>
+            </PinChangeDialog>
+        </div>
       </CardContent>
     </Card>
   );
