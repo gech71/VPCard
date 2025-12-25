@@ -3,13 +3,14 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { headers } from 'next/headers';
+import { getDecryptedPhoneFromCookie, setEncryptedPhoneCookie } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Nib Virtual Card',
   description: 'Manage your virtual cards with ease.',
 };
 
-async function getPhoneNumber(token: string): Promise<string | null> {
+async function getPhoneNumberFromToken(token: string): Promise<string | null> {
   try {
     const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
     if (!validationUrl) {
@@ -27,8 +28,11 @@ async function getPhoneNumber(token: string): Promise<string | null> {
 
     if (response.ok) {
       const data = await response.json();
-      // Assuming the API returns a JSON object with a 'phone' property
-      return data.phone || null;
+      const phoneNumber = data.phone || null;
+      if (phoneNumber) {
+        await setEncryptedPhoneCookie(phoneNumber);
+      }
+      return phoneNumber;
     }
     return null;
   } catch (error) {
@@ -42,14 +46,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
-  const authHeader = headersList.get('Authorization');
-  
-  let phoneNumber: string | null = null;
+  let phoneNumber = await getDecryptedPhoneFromCookie();
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
-    phoneNumber = await getPhoneNumber(token);
+  if (!phoneNumber) {
+    const headersList = await headers();
+    const authHeader = headersList.get('Authorization');
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      phoneNumber = await getPhoneNumberFromToken(token);
+    }
   }
 
   if (!phoneNumber) {
@@ -65,7 +71,7 @@ export default async function RootLayout({
             <div className="text-center p-8 bg-card rounded-lg shadow-md">
               <h1 className="text-2xl font-bold text-destructive mb-4">Authentication Failed</h1>
               <p className="text-muted-foreground">
-                Could not validate your token. Please ensure you have a valid session.
+                Could not validate your session. Please try again.
               </p>
             </div>
           </div>
