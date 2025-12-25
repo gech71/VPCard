@@ -11,14 +11,15 @@ export const metadata: Metadata = {
   description: 'Manage your virtual cards with ease.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
+  const headersList = await headers();
   const authFailed = headersList.get('x-auth-failed');
-  const hasCookie = cookies().has(COOKIE_NAME);
+  const cookieStore = await cookies();
+  const hasCookie = cookieStore.has(COOKIE_NAME);
 
   // If middleware signaled failure OR there's no cookie, show auth error.
   if (authFailed || !hasCookie) {
