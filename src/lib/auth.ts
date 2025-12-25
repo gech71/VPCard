@@ -1,8 +1,6 @@
 
-'use server';
-
-import { cookies } from 'next/headers';
 import * as crypto from 'crypto';
+import { cookies } from 'next/headers';
 
 const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
 const ENCRYPTION_IV = process.env.ENCRYPTION_IV;
@@ -16,14 +14,14 @@ const ALGORITHM = 'aes-256-cbc';
 const KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY, 'salt', 32);
 const IV = crypto.scryptSync(ENCRYPTION_IV, 'salt', 16);
 
-function encrypt(text: string): string {
+export function encrypt(text: string): string {
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, IV);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return encrypted;
 }
 
-function decrypt(encryptedText: string): string {
+export function decrypt(encryptedText: string): string {
   try {
     const decipher = crypto.createDecipheriv(ALGORITHM, KEY, IV);
     let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
