@@ -45,7 +45,7 @@ async function getCardData(): Promise<CardDetails[]> {
     }
 
     const accountsData = await accountsResponse.json();
-    const accountNumber = accountsData?.accounts?.[0]?.AccountNumber;
+    const accountNumber = accountsData?.details?.[0]?.AccountNumber;
 
     if (!accountNumber) {
       console.error("No account number found in response.");
@@ -106,11 +106,7 @@ async function getCardData(): Promise<CardDetails[]> {
     return cardsFromApi.map((card: any, index: number) => {
         const status = card.cardstatus;
         let cardStatus: CardDetails['status'] = 'Inactive';
-        if (status === 'Active') {
-            cardStatus = 'Active';
-        } else if (status === 'Frozen' || status === 'Locked' || status === 'Cancelled') {
-            cardStatus = 'Frozen';
-        }
+        cardStatus = status;
 
         return {
             id: card.card || `card${index + 1}`,
