@@ -25,10 +25,15 @@ function encrypt(text: string): string {
 }
 
 function decrypt(encryptedText: string): string {
-  const decipher = crypto.createDecipheriv(ALGORITHM, KEY, IV);
-  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
+  try {
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, IV);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (error) {
+    console.error('Decryption failed:', error);
+    return '';
+  }
 }
 
 export function getCookieConfig(encryptedPhone: string): ResponseCookie {
@@ -58,6 +63,11 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
 
   try {
     const decryptedPhone = decrypt(cookie.value);
+    if (!decryptedPhone) {
+        // This means decryption failed. Clear the invalid cookie.
+        cookies().set(COOKIE_NAME, '', { maxAge: 0 });
+        return null;
+    }
     return decryptedPhone;
   } catch (error) {
     console.error('Failed to decrypt cookie:', error);
