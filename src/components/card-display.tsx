@@ -43,7 +43,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             <div className="flex justify-between items-end text-sm uppercase font-semibold">
               <div>
                 <span className="text-[8px] block opacity-70">Holder Name</span>
-                <span>Jhon Doe</span>
+                <span>{card.cardholderName}</span>
               </div>
               <div className="text-right flex items-center gap-2">
                   <span className="text-[8px] opacity-70">Expires</span>

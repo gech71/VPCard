@@ -6,8 +6,11 @@ export type CardDetails = {
   expiryDate: string;
   cardholderName: string;
   status: 'Active' | 'Inactive' | 'Frozen';
-  type: 'Visa' | 'Mastercard' | 'Unknown';
+  type: 'Visa' | 'Mastercard' | 'Unknown' | string;
   balance: number;
+  accountNumber: string;
+  currency: string;
+  cardTypeNetwork: string;
 };
 
 export type Transaction = {

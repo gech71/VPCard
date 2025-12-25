@@ -119,8 +119,11 @@ async function getCardData(): Promise<CardDetails[]> {
             expiryDate: card.expiry,
             cardholderName: card.name_on_card,
             status: cardStatus,
-            type: card.cardtype === 'Debit' ? 'Visa' : 'Unknown', // Example mapping
+            type: card.cardtype,
             balance: 0, // Not in response, placeholder
+            accountNumber: card.accountnumber,
+            currency: card.cardcurrency,
+            cardTypeNetwork: card.cardtypenetwork,
         };
     });
 
