@@ -39,7 +39,7 @@ export function ChipIcon(props: SVGProps<SVGSVGElement>) {
         viewBox="0 0 50 50"
         {...props}
     >
-        <image href="https://play-lh.googleusercontent.com/HR87m6M2_7ZmPGrSp_MSlmfG5uyx94iYthItSzrmWVgFWkJ3FPTOYCLPw0F_ul4mYg"
+        <image href="../assets/logo.png"
         width="50"
         height="50"
         clipPath="url(#clip)"
