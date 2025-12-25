@@ -6,7 +6,6 @@ import LimitManager from '@/components/limit-manager';
 import { Landmark, Store } from 'lucide-react';
 import DashboardClient from '@/components/dashboard-client';
 import { getDecryptedPhoneFromCookie } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
 
 async function getCardData(): Promise<CardDetails[]> {
   try {
@@ -54,8 +53,11 @@ async function getCardData(): Promise<CardDetails[]> {
     // Step 2: Get Card List
     const cardListUrl = process.env.CARD_LIST_URL;
     const cardListApiKey = process.env.CARD_LIST_API_KEY;
+    const cardListIdMsg = process.env.CARD_LIST_ID_MSG;
+    const cardListInstitution = process.env.CARD_LIST_INSTITUTION;
 
-    if (!cardListUrl || !cardListApiKey) {
+
+    if (!cardListUrl || !cardListApiKey || !cardListIdMsg || !cardListInstitution) {
       console.error("Missing environment variables for getting card list.");
       return [];
     }
@@ -67,14 +69,18 @@ async function getCardData(): Promise<CardDetails[]> {
         'ApiKey': cardListApiKey,
       },
       body: JSON.stringify({
-        idmsg: uuidv4(),
+        header: {
+          idmsg: cardListIdMsg
+        },
         filter: {
           account: accountNumber,
-          institution: "7601",
-          page: {
-            number: 1,
-            size: 10
-          }
+          card: "",
+          pan: "",
+          customer: "",
+          name_on_card: "",
+          institution: cardListInstitution,
+          start: "1",
+          end: "10"
         }
       }),
       cache: 'no-store',
@@ -87,21 +93,34 @@ async function getCardData(): Promise<CardDetails[]> {
     
     const cardListData = await cardListResponse.json();
     
-    if (!cardListData?.cards) {
+    const cardsFromApi = cardListData?.response?.body?.cards;
+
+    if (!cardsFromApi || !Array.isArray(cardsFromApi)) {
+        console.log("No cards array in the response body.");
         return [];
     }
 
     // Map API response to CardDetails[]
-    return cardListData.cards.map((card: any, index: number) => ({
-      id: `card${index + 1}`,
-      fullNumber: card.pan, // Assuming the API returns the full PAN
-      maskedNumber: card.maskedPan,
-      expiryDate: card.expiry, // Format: MM/YY
-      cardholderName: "Jhon Doe", // Not in response, using placeholder
-      status: card.status === 'A' ? 'Active' : (card.status === 'F' ? 'Frozen' : 'Inactive'),
-      type: 'Unknown', // Not in response, placeholder
-      balance: 0, // Not in response, placeholder
-    }));
+    return cardsFromApi.map((card: any, index: number) => {
+        const status = card.cardstatus;
+        let cardStatus: CardDetails['status'] = 'Inactive';
+        if (status === 'Active') {
+            cardStatus = 'Active';
+        } else if (status === 'Frozen' || status === 'Locked') { // Assuming 'Locked' might be a status
+            cardStatus = 'Frozen';
+        }
+
+        return {
+            id: card.card || `card${index + 1}`,
+            fullNumber: card.clearpan,
+            maskedNumber: card.pan,
+            expiryDate: card.expiry,
+            cardholderName: card.name_on_card,
+            status: cardStatus,
+            type: card.cardtype === 'Debit' ? 'Visa' : 'Unknown', // Example mapping
+            balance: 0, // Not in response, placeholder
+        };
+    });
 
   } catch (error) {
     console.error("Error fetching card data:", error);
