@@ -1,3 +1,4 @@
+
 import type { SVGProps } from "react";
 
 export function VisaLogo(props: SVGProps<SVGSVGElement>) {
@@ -41,7 +42,13 @@ export function ChipIcon(props: SVGProps<SVGSVGElement>) {
         <image href="https://play-lh.googleusercontent.com/HR87m6M2_7ZmPGrSp_MSlmfG5uyx94iYthItSzrmWVgFWkJ3FPTOYCLPw0F_ul4mYg"
         width="50"
         height="50"
+        clipPath="url(#clip)"
     />
+     <defs>
+        <clipPath id="clip">
+            <rect width="50" height="50" rx="10" />
+        </clipPath>
+    </defs>
     </svg>
   );
 }
