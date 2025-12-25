@@ -16,17 +16,20 @@ import type { CardDetails } from "@/lib/data";
 import PinChangeDialog from "./pin-change-dialog";
 import ViewLimitsDialog from "./view-limits-dialog";
 import { Separator } from "./ui/separator";
+import { Skeleton } from "./ui/skeleton";
 
 type CardDetailsViewProps = {
   card: CardDetails;
+  balance: number | null;
+  isLoading: boolean;
 };
 
-export default function CardDetailsView({ card }: CardDetailsViewProps) {
+export default function CardDetailsView({ card, balance, isLoading }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: card.currency || "USD",
   });
 
   const getStatusVariant = (status: CardDetails['status']) => {
@@ -57,9 +60,13 @@ export default function CardDetailsView({ card }: CardDetailsViewProps) {
             <div>
                 <p className="text-sm text-muted-foreground">Current Balance</p>
                 <div className="flex items-center gap-2">
-                    <p className="text-4xl font-bold tracking-tight">
-                    {isBalanceVisible ? currencyFormatter.format(card.balance) : '$•••••••'}
-                    </p>
+                    {isLoading ? (
+                        <Skeleton className="h-10 w-48" />
+                    ) : (
+                        <p className="text-4xl font-bold tracking-tight">
+                        {isBalanceVisible ? currencyFormatter.format(balance ?? 0) : '•••••••'}
+                        </p>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={() => setIsBalanceVisible(!isBalanceVisible)}>
                         {isBalanceVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </Button>

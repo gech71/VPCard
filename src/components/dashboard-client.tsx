@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
+import { useFormState } from 'react-dom';
 import {
   Carousel,
   CarouselContent,
@@ -11,22 +12,56 @@ import {
 import { cn } from '@/lib/utils';
 import CardDisplay from '@/components/card-display';
 import CardDetailsView from '@/components/card-details-view';
-import type { CardDetails } from '@/lib/data';
+import type { CardDetails, Transaction } from '@/lib/data';
+import TransactionHistory from '@/components/transaction-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { getCardTransactions } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 type DashboardClientProps = {
     cards: CardDetails[];
+};
+
+const initialState = {
+  transactions: [] as Transaction[],
+  balance: null as number | null,
+  error: null as string | null,
 };
 
 export default function DashboardClient({ cards }: DashboardClientProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
-
+  
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [formState, formAction] = useFormState(getCardTransactions, initialState);
+  
   const selectedCard = cards[current];
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (selectedCard) {
+      const formData = new FormData();
+      formData.append('card_numb', selectedCard.fullNumber);
+      startTransition(() => {
+        formAction(formData);
+      });
+    }
+  }, [current, cards]);
+
+  useEffect(() => {
+    if (formState.error) {
+        toast({
+            variant: "destructive",
+            title: "Error fetching transactions",
+            description: formState.error,
+        });
+    }
+  }, [formState.error, toast]);
+
+
+  useEffect(() => {
     if (!api) {
       return;
     }
@@ -69,40 +104,45 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-end">
-          {count > 0 && (
-            <div className="text-sm text-muted-foreground">
-              {current + 1} / {count}
+    <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="flex flex-col gap-4">
+                <div className="flex justify-end">
+                {count > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                    {current + 1} / {count}
+                    </div>
+                )}
+                </div>
+                <Carousel setApi={setApi} className="w-full">
+                <CarouselContent>
+                    {cards.map((card, index) => (
+                    <CarouselItem key={index}>
+                        <CardDisplay card={card} />
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                </Carousel>
+                <div className="flex justify-center gap-2">
+                {cards.map((_, index) => (
+                    <button
+                    key={index}
+                    onClick={() => handleDotClick(index)}
+                    className={cn(
+                        'h-2 w-2 rounded-full transition-all',
+                        current === index ? 'w-4 bg-primary' : 'bg-muted'
+                    )}
+                    />
+                ))}
+                </div>
             </div>
-          )}
+            <div className="flex flex-col gap-4 h-full">
+                {selectedCard && <CardDetailsView card={selectedCard} balance={formState.balance} isLoading={isPending} />}
+            </div>
         </div>
-        <Carousel setApi={setApi} className="w-full">
-          <CarouselContent>
-            {cards.map((card, index) => (
-              <CarouselItem key={index}>
-                <CardDisplay card={card} />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-        <div className="flex justify-center gap-2">
-          {cards.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => handleDotClick(index)}
-              className={cn(
-                'h-2 w-2 rounded-full transition-all',
-                current === index ? 'w-4 bg-primary' : 'bg-muted'
-              )}
-            />
-          ))}
+        <div className="lg:col-span-3 mt-8">
+            <TransactionHistory transactions={formState.transactions} isLoading={isPending} />
         </div>
-      </div>
-      <div className="flex flex-col gap-4 h-full">
-          {selectedCard && <CardDetailsView card={selectedCard} />}
-      </div>
-    </div>
+    </>
   );
 }

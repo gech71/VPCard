@@ -1,11 +1,11 @@
 
-import { transactions, atmLimit, posLimit, type CardDetails } from '@/lib/data';
+import { type CardDetails } from '@/lib/data';
 import DashboardHeader from '@/components/dashboard-header';
-import TransactionHistory from '@/components/transaction-history';
 import LimitManager from '@/components/limit-manager';
 import { Landmark, Store } from 'lucide-react';
 import DashboardClient from '@/components/dashboard-client';
 import { getDecryptedPhoneFromCookie } from '@/lib/auth';
+import { atmLimit, posLimit } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,7 +106,12 @@ async function getCardData(): Promise<CardDetails[]> {
     return cardsFromApi.map((card: any, index: number) => {
         const status = card.cardstatus;
         let cardStatus: CardDetails['status'] = 'Inactive';
-        cardStatus = status;
+        // A simple mapping, can be expanded
+        if (status === 'Active' || status === 'OK') {
+            cardStatus = 'Active';
+        } else if (status === 'Cancelled' || status === 'Lost') {
+            cardStatus = 'Inactive';
+        }
 
         return {
             id: card.card || `card${index + 1}`,
@@ -116,7 +121,7 @@ async function getCardData(): Promise<CardDetails[]> {
             cardholderName: card.name_on_card,
             status: cardStatus,
             type: card.cardtype,
-            balance: 0, // Not in response, placeholder
+            balance: 0, // Initial balance, will be updated by client
             accountNumber: card.accountnumber,
             currency: card.cardcurrency,
             cardTypeNetwork: card.cardtypenetwork,
@@ -139,10 +144,6 @@ export default async function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-3">
              <DashboardClient cards={cards} />
-          </div>
-
-          <div className="lg:col-span-3">
-            <TransactionHistory transactions={transactions} />
           </div>
 
           <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
