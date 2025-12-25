@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { History } from "lucide-react";
+import { History, Info } from "lucide-react";
 import type { Transaction } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 type TransactionHistoryProps = {
   transactions: Transaction[];
@@ -78,66 +79,106 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
         <CardDescription>Your last transactions for the selected card.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="hidden md:block">
-            <ScrollArea className="h-[420px]">
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {isLoading ? renderSkeleton(false) : transactions.map((tx) => (
-                    <TableRow key={tx.id}>
-                    <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-                    <TableCell className="font-medium">{tx.description}</TableCell>
-                    <TableCell>
-                        <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
-                    </TableCell>
-                    <TableCell
-                        className={cn(
-                        "text-right font-semibold",
-                        tx.amount > 0 ? "text-green-600" : "text-foreground"
-                        )}
-                    >
-                        {tx.amount > 0 ? "+" : ""}
-                        {currencyFormatter.format(tx.amount)}
-                    </TableCell>
+        {isLoading ? (
+          <>
+            <div className="hidden md:block">
+              <ScrollArea className="h-[420px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
-                ))}
-                </TableBody>
-            </Table>
-            </ScrollArea>
-        </div>
-
-        <div className="md:hidden">
-            <ScrollArea className="h-[420px]">
+                  </TableHeader>
+                  <TableBody>
+                    {renderSkeleton(false)}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
+            <div className="md:hidden">
+              <ScrollArea className="h-[420px]">
                 <div className="space-y-4">
-                {isLoading ? renderSkeleton(true) : transactions.map((tx) => (
+                  {renderSkeleton(true)}
+                </div>
+              </ScrollArea>
+            </div>
+          </>
+        ) : transactions.length === 0 ? (
+          <div className="h-[420px] flex items-center justify-center">
+            <Alert className="max-w-md">
+              <Info className="h-4 w-4" />
+              <AlertTitle>No Transactions</AlertTitle>
+              <AlertDescription>
+                No recent transactions were found for this card.
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          <>
+            <div className="hidden md:block">
+              <ScrollArea className="h-[420px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="text-muted-foreground">{tx.date}</TableCell>
+                        <TableCell className="font-medium">{tx.description}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right font-semibold",
+                            tx.amount > 0 ? "text-green-600" : "text-foreground"
+                          )}
+                        >
+                          {tx.amount > 0 ? "+" : ""}
+                          {currencyFormatter.format(tx.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
+
+            <div className="md:hidden">
+              <ScrollArea className="h-[420px]">
+                <div className="space-y-4">
+                  {transactions.map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between p-2 border-b">
-                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1">
                         <p className="font-medium">{tx.description}</p>
                         <p className="text-sm text-muted-foreground">{tx.date}</p>
                         <Badge variant={getStatusVariant(tx.status)} className="w-fit">{tx.status}</Badge>
-                    </div>
-                    <p
+                      </div>
+                      <p
                         className={cn(
-                        "font-semibold",
-                        tx.amount > 0 ? "text-green-600" : "text-foreground"
+                          "font-semibold",
+                          tx.amount > 0 ? "text-green-600" : "text-foreground"
                         )}
-                    >
+                      >
                         {tx.amount > 0 ? "+" : ""}
                         {currencyFormatter.format(tx.amount)}
-                    </p>
+                      </p>
                     </div>
-                ))}
+                  ))}
                 </div>
-            </ScrollArea>
-        </div>
-
+              </ScrollArea>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
