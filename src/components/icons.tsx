@@ -1,5 +1,6 @@
 
 import type { SVGProps } from "react";
+import logo from "../assets/logo.png";
 
 export function VisaLogo(props: SVGProps<SVGSVGElement>) {
   return (
@@ -39,11 +40,11 @@ export function ChipIcon(props: SVGProps<SVGSVGElement>) {
         viewBox="0 0 50 50"
         {...props}
     >
-        <image href="../assets/logo.png"
+        <image href={logo.src}
         width="50"
         height="50"
         clipPath="url(#clip)"
-    />
+      />
      <defs>
         <clipPath id="clip">
             <rect width="50" height="50" rx="10" />
