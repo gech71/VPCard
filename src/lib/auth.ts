@@ -31,7 +31,7 @@ function decrypt(encryptedText: string): string {
 }
 
 export async function setEncryptedPhoneCookie(phoneNumber: string) {
-  const c = await cookies();
+  const c = cookies();
   const encryptedPhone = encrypt(phoneNumber);
   c.set(COOKIE_NAME, encryptedPhone, {
     httpOnly: true,
@@ -43,7 +43,7 @@ export async function setEncryptedPhoneCookie(phoneNumber: string) {
 }
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
-  const c = await cookies();
+  const c = cookies();
   const cookie = c.get(COOKIE_NAME);
   if (!cookie?.value) {
     return null;

@@ -49,7 +49,7 @@ export default async function RootLayout({
   let phoneNumber = await getDecryptedPhoneFromCookie();
 
   if (!phoneNumber) {
-    const headersList = await headers();
+    const headersList = headers();
     const authHeader = headersList.get('Authorization');
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
