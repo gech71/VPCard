@@ -7,6 +7,8 @@ import { Landmark, Store } from 'lucide-react';
 import DashboardClient from '@/components/dashboard-client';
 import { getDecryptedPhoneFromCookie } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 async function getCardData(): Promise<CardDetails[]> {
   try {
     const phoneNumber = await getDecryptedPhoneFromCookie();
@@ -106,7 +108,7 @@ async function getCardData(): Promise<CardDetails[]> {
         let cardStatus: CardDetails['status'] = 'Inactive';
         if (status === 'Active') {
             cardStatus = 'Active';
-        } else if (status === 'Frozen' || status === 'Locked') { // Assuming 'Locked' might be a status
+        } else if (status === 'Frozen' || status === 'Locked' || status === 'Cancelled') {
             cardStatus = 'Frozen';
         }
 
