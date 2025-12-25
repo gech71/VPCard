@@ -70,7 +70,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
   );
 
   return (
-    <Card className="h-full shadow-lg">
+    <Card className="shadow-lg flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
           <History className="h-6 w-6 text-primary" />
@@ -107,7 +107,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
             </div>
           </>
         ) : transactions.length === 0 ? (
-          <div className="h-[420px] flex items-center justify-center">
+          <div className="flex items-center justify-center py-10">
             <Alert className="max-w-md">
               <Info className="h-4 w-4" />
               <AlertTitle>No Transactions</AlertTitle>
