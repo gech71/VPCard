@@ -2,12 +2,52 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { getDecryptedPhoneFromCookie } from '@/lib/auth';
+import { getDecryptedPhoneFromCookie, setEncryptedPhoneCookie } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'Nib Virtual Card',
   description: 'Manage your virtual cards with ease.',
 };
+
+async function getPhoneNumberFromToken(): Promise<string | null> {
+  const headersList = headers();
+  const authHeader = headersList.get('x-authorization');
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
+      if (!validationUrl) {
+        console.error('Token validation endpoint is not configured.');
+        return null;
+      }
+
+      const response = await fetch(validationUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const phoneNumber = data.phone || null;
+        if (phoneNumber) {
+          await setEncryptedPhoneCookie(phoneNumber);
+        }
+        return phoneNumber;
+      }
+      console.error('Token validation failed with status:', response.status);
+      return null;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return null;
+    }
+  }
+  return null;
+}
 
 
 export default async function RootLayout({
@@ -15,7 +55,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const phoneNumber = await getDecryptedPhoneFromCookie();
+  let phoneNumber = await getDecryptedPhoneFromCookie();
+
+  if (!phoneNumber) {
+    phoneNumber = await getPhoneNumberFromToken();
+  }
 
   if (!phoneNumber) {
     return (
