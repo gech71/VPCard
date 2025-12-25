@@ -31,9 +31,9 @@ function decrypt(encryptedText: string): string {
 }
 
 export async function setEncryptedPhoneCookie(phoneNumber: string) {
-  const c = await cookies();
+  const cookieStore = cookies();
   const encryptedPhone = encrypt(phoneNumber);
-  c.set(COOKIE_NAME, encryptedPhone, {
+  cookieStore.set(COOKIE_NAME, encryptedPhone, {
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
     sameSite: 'strict',
@@ -43,8 +43,8 @@ export async function setEncryptedPhoneCookie(phoneNumber: string) {
 }
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
-  const c = await cookies();
-  const cookie = c.get(COOKIE_NAME);
+  const cookieStore = cookies();
+  const cookie = cookieStore.get(COOKIE_NAME);
   if (!cookie?.value) {
     return null;
   }
@@ -55,7 +55,7 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
   } catch (error) {
     console.error('Failed to decrypt cookie:', error);
     // Clear the corrupted cookie
-    c.set(COOKIE_NAME, '', { maxAge: 0 });
+    cookies().set(COOKIE_NAME, '', { maxAge: 0 });
     return null;
   }
 }

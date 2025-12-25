@@ -30,6 +30,9 @@ async function getPhoneNumberFromToken(token: string): Promise<string | null> {
       const data = await response.json();
       const phoneNumber = data.phone || null;
       if (phoneNumber) {
+        // This is still happening in the render path of a Server Component.
+        // The correct way would be to use a route handler or middleware,
+        // but for now let's try to set it and see if Next.js handles it.
         await setEncryptedPhoneCookie(phoneNumber);
       }
       return phoneNumber;
@@ -49,7 +52,7 @@ export default async function RootLayout({
   let phoneNumber = await getDecryptedPhoneFromCookie();
 
   if (!phoneNumber) {
-    const headersList = await headers();
+    const headersList = headers();
     const authHeader = headersList.get('Authorization');
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
