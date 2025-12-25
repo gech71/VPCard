@@ -11,7 +11,13 @@ export const metadata: Metadata = {
 
 async function getPhoneNumber(token: string): Promise<string | null> {
   try {
-    const response = await fetch('http://172.24.47.138:90/api/Authenticate/Validate', {
+    const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
+    if (!validationUrl) {
+      console.error('Token validation endpoint is not configured.');
+      return null;
+    }
+
+    const response = await fetch(validationUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
