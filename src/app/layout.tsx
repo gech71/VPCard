@@ -27,8 +27,8 @@ async function getPhoneNumber(token: string): Promise<string | null> {
 
     if (response.ok) {
       const data = await response.json();
-      // Assuming the API returns a JSON object with a 'phoneNumber' property
-      return data.phoneNumber || null;
+      // Assuming the API returns a JSON object with a 'phone' property
+      return data.phone || null;
     }
     return null;
   } catch (error) {
@@ -42,7 +42,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
+  const headersList = await headers();
   const authHeader = headersList.get('Authorization');
   
   let phoneNumber: string | null = null;
