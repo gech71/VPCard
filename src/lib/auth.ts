@@ -2,11 +2,12 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import type {ResponseCookie} from 'next/dist/compiled/@edge-runtime/cookies';
 import * as crypto from 'crypto';
 
 const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
 const ENCRYPTION_IV = process.env.ENCRYPTION_IV;
-const COOKIE_NAME = 'user-phone';
+export const COOKIE_NAME = 'user-phone';
 
 if (!ENCRYPTION_SECRET_KEY || !ENCRYPTION_IV) {
   throw new Error('ENCRYPTION_SECRET_KEY and ENCRYPTION_IV must be set in .env');
@@ -30,17 +31,23 @@ function decrypt(encryptedText: string): string {
   return decrypted;
 }
 
-export async function setEncryptedPhoneCookie(phoneNumber: string) {
-  const cookieStore = cookies();
-  const encryptedPhone = encrypt(phoneNumber);
-  cookieStore.set(COOKIE_NAME, encryptedPhone, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'strict',
-    maxAge: 60 * 60 * 24, // 1 day
-    path: '/',
-  });
+export function getCookieConfig(encryptedPhone: string): ResponseCookie {
+    return {
+        name: COOKIE_NAME,
+        value: encryptedPhone,
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24, // 1 day
+        path: '/',
+    }
 }
+
+
+export function getEncryptedPhone(phoneNumber: string) {
+    return encrypt(phoneNumber);
+}
+
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
   const cookieStore = cookies();

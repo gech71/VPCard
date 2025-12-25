@@ -2,64 +2,20 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { headers } from 'next/headers';
-import { getDecryptedPhoneFromCookie, setEncryptedPhoneCookie } from '@/lib/auth';
+import { getDecryptedPhoneFromCookie } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Nib Virtual Card',
   description: 'Manage your virtual cards with ease.',
 };
 
-async function getPhoneNumberFromToken(token: string): Promise<string | null> {
-  try {
-    const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
-    if (!validationUrl) {
-      console.error('Token validation endpoint is not configured.');
-      return null;
-    }
-
-    const response = await fetch(validationUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const phoneNumber = data.phone || null;
-      if (phoneNumber) {
-        // This is still happening in the render path of a Server Component.
-        // The correct way would be to use a route handler or middleware,
-        // but for now let's try to set it and see if Next.js handles it.
-        await setEncryptedPhoneCookie(phoneNumber);
-      }
-      return phoneNumber;
-    }
-    return null;
-  } catch (error) {
-    console.error('Token validation error:', error);
-    return null;
-  }
-}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let phoneNumber = await getDecryptedPhoneFromCookie();
-
-  if (!phoneNumber) {
-    const headersList = headers();
-    const authHeader = headersList.get('Authorization');
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      phoneNumber = await getPhoneNumberFromToken(token);
-    }
-  }
+  const phoneNumber = await getDecryptedPhoneFromCookie();
 
   if (!phoneNumber) {
     return (
