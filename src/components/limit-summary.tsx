@@ -45,7 +45,6 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
           <TableRow key={index}>
               <TableCell><Skeleton className="h-4 w-24" /></TableCell>
               <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-16" /></TableCell>
               <TableCell><Skeleton className="h-4 w-20" /></TableCell>
               <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
           </TableRow>
@@ -69,10 +68,6 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                           <Skeleton className="h-4 w-1/3" />
                            <Skeleton className="h-4 w-1/3" />
                        </div>
-                       <div className="flex justify-between">
-                           <Skeleton className="h-4 w-1/3" />
-                           <Skeleton className="h-4 w-1/3" />
-                       </div>
                   </div>
               </CardContent>
           </Card>
@@ -92,7 +87,6 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                             <TableHead>Channel</TableHead>
                             <TableHead>Transaction Type</TableHead>
                             <TableHead>Periodicity</TableHead>
-                            <TableHead>Risk Code</TableHead>
                             <TableHead className="text-right">Limit</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -107,7 +101,6 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                                     </TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{limit.transaction_type}</TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{limit.periodicity_id}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">{limit.risk_code}</TableCell>
                                     <TableCell className="text-right font-medium">{currencyFormatter.format(limit.mnt_limite)}</TableCell>
                                 </TableRow>
                             ))
@@ -135,10 +128,6 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                                     <div className="flex justify-between">
                                         <p>Periodicity:</p>
                                         <p>{limit.periodicity_id}</p>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <p>Risk Code:</p>
-                                        <p>{limit.risk_code}</p>
                                     </div>
                                 </div>
                             </CardContent>
