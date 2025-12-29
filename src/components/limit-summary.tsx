@@ -35,7 +35,8 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
         acc.push(current);
       }
       return acc;
-    }, [] as LimitApiResponse[]);
+    }, [] as LimitApiResponse[])
+    .sort((a, b) => a.transaction_type.localeCompare(b.transaction_type));
 
 
   return (
@@ -78,4 +79,3 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
       </div>
   );
 }
-
