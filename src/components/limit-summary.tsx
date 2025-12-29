@@ -36,7 +36,7 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
       }
       return acc;
     }, [] as LimitApiResponse[])
-    .sort((a, b) => a.transaction_type.localeCompare(b.transaction_type));
+    .sort((a, b) => a.channel.localeCompare(b.channel));
 
 
   return (
