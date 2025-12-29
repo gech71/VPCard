@@ -13,44 +13,33 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import type { Limit } from "@/lib/data";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "./ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { LimitApiResponse } from "@/app/actions";
-import { Separator } from "./ui/separator";
 
 type LimitManagerProps = {
   allLimits: LimitApiResponse[];
+  channel: 'ATM CHANNEL' | 'POS CHANNEL';
 };
 
-export default function LimitManager({ allLimits }: LimitManagerProps) {
-  const [selectedChannel, setSelectedChannel] = useState<string>('');
+export default function LimitManager({ allLimits, channel }: LimitManagerProps) {
   const [selectedTxType, setSelectedTxType] = useState<string>('');
-  const [availableTxTypes, setAvailableTxTypes] = useState<string[]>([]);
   const [currentLimit, setCurrentLimit] = useState(0);
   const [maxLimit, setMaxLimit] = useState(0);
 
   const { toast } = useToast();
 
-  const channels = Array.from(new Set(allLimits.map(l => l.channel))).filter(c => ['POS CHANNEL', 'ATM CHANNEL'].includes(c));
+  const availableTxTypes = Array.from(new Set(allLimits.map(l => l.transaction_type)));
 
   useEffect(() => {
-    if (selectedChannel) {
-        const txTypes = Array.from(new Set(allLimits.filter(l => l.channel === selectedChannel).map(l => l.transaction_type)));
-        setAvailableTxTypes(txTypes);
-        setSelectedTxType(''); // Reset tx type
-        setCurrentLimit(0);
-        setMaxLimit(0);
-    } else {
-        setAvailableTxTypes([]);
-        setSelectedTxType('');
-    }
-  }, [selectedChannel, allLimits]);
+    setSelectedTxType('');
+    setCurrentLimit(0);
+    setMaxLimit(0);
+  }, [channel]);
 
   useEffect(() => {
-    if (selectedChannel && selectedTxType) {
-        const relevantLimits = allLimits.filter(l => l.channel === selectedChannel && l.transaction_type === selectedTxType);
+    if (selectedTxType) {
+        const relevantLimits = allLimits.filter(l => l.transaction_type === selectedTxType);
         const max = Math.max(...relevantLimits.map(l => l.mnt_limite));
         if (isFinite(max)) {
             setMaxLimit(max);
@@ -60,7 +49,7 @@ export default function LimitManager({ allLimits }: LimitManagerProps) {
             setCurrentLimit(0);
         }
     }
-  }, [selectedChannel, selectedTxType, allLimits]);
+  }, [selectedTxType, allLimits]);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -70,10 +59,10 @@ export default function LimitManager({ allLimits }: LimitManagerProps) {
 
   const handleSave = () => {
     // In a real app, this would be an API call
-    console.log(`Saving new limit for ${selectedChannel} - ${selectedTxType}:`, currentLimit);
+    console.log(`Saving new limit for ${channel} - ${selectedTxType}:`, currentLimit);
     toast({
       title: "Limit Updated",
-      description: `Your new limit has been set to ${currencyFormatter.format(currentLimit)}.`,
+      description: `Your new limit for ${selectedTxType} has been set to ${currencyFormatter.format(currentLimit)}.`,
     });
   };
   
@@ -93,41 +82,26 @@ export default function LimitManager({ allLimits }: LimitManagerProps) {
 
 
   return (
-    <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Channel</p>
-                <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {channels.map(channel => (
-                            <SelectItem key={channel} value={channel}>{channel}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="space-y-2">
-                 <p className="text-sm font-medium text-muted-foreground">Transaction Type</p>
-                <Select value={selectedTxType} onValueChange={setSelectedTxType} disabled={!selectedChannel}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select transaction type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableTxTypes.map(txType => (
-                            <SelectItem key={txType} value={txType}>{txType}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+    <div className="space-y-6 mt-6">
+        <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Select transaction type to manage</p>
+            <Select value={selectedTxType} onValueChange={setSelectedTxType}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Select transaction type" />
+                </SelectTrigger>
+                <SelectContent>
+                    {availableTxTypes.map(txType => (
+                        <SelectItem key={txType} value={txType}>{txType}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
 
-        {selectedChannel && selectedTxType && (
+        {selectedTxType && (
              <Card className="bg-muted/50">
                 <CardHeader>
                     <CardTitle className="text-lg">Set New Limit</CardTitle>
-                    <CardDescription>Adjust the limit for the selected transaction type.</CardDescription>
+                    <CardDescription>Adjust the limit for {selectedTxType}.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <>
