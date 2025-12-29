@@ -2,19 +2,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { Skeleton } from "./ui/skeleton";
 import { type LimitApiResponse, setCardLimit } from "@/app/actions";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "./ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -41,7 +31,6 @@ const initialSetLimitState = {
 
 export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps) {
   const { toast } = useToast();
-  const router = useRouter();
   const [formState, formAction] = useFormState(setCardLimit, initialSetLimitState);
   const [pending, setPending] = useState(false);
   const [newLimit, setNewLimit] = useState<number | string>("");
@@ -79,37 +68,16 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
     });
     setPending(false);
     if (result.success) {
-      router.refresh();
+      window.location.reload();
     }
   };
 
-  const renderDesktopSkeleton = () => (
-    Array.from({ length: 5 }).map((_, index) => (
-      <TableRow key={index}>
-        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-        <TableCell className="text-right"><Skeleton className="h-4 w-24" /></TableCell>
-      </TableRow>
-    ))
-  );
-
-  const renderMobileSkeleton = () => (
+  const renderSkeleton = () => (
     Array.from({ length: 3 }).map((_, index) => (
-      <Card key={index} className="bg-muted/30">
-        <CardContent className="p-4 space-y-3">
-          <Skeleton className="h-6 w-28" />
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-4 w-2/3" />
-            </div>
-            <div className="flex justify-between">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-4 w-1/3" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div key={index} className="border rounded-md p-3 bg-muted/30">
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
     ))
   );
 
@@ -117,25 +85,14 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
     <div className="py-4 space-y-4">
       <Accordion type="single" collapsible className="w-full space-y-2">
         {isLoading ? (
-          <>
-            <div className="hidden md:block">
-              <Table>
-                <TableBody>{renderDesktopSkeleton()}</TableBody>
-              </Table>
-            </div>
-            <div className="md:hidden p-2 space-y-2">{renderMobileSkeleton()}</div>
-          </>
+          renderSkeleton()
         ) : (
           summary.map((limit) => (
             <AccordionItem value={limit.originalData.risk_code} key={limit.originalData.risk_code} className="border rounded-md bg-muted/30">
-              <AccordionTrigger className="p-3 hover:no-underline">
-                <div className="w-full text-left">
+              <AccordionTrigger className="p-3 hover:no-underline text-left">
+                <div className="w-full">
                   <p className="font-semibold text-base text-foreground mb-2">{limit.transaction_type}</p>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <p>Periodicity:</p>
-                    <p>{limit.periodicity_id}</p>
-                  </div>
-                  <div className="flex justify-between border-t pt-2 mt-2 text-sm">
+                   <div className="flex justify-between border-t pt-2 mt-2 text-sm">
                     <p className="font-medium text-foreground">Limit:</p>
                     <p className="font-semibold text-foreground">{currencyFormatter(limit.limit)}</p>
                   </div>
