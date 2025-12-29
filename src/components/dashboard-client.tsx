@@ -61,7 +61,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
         limitsFormAction(formData);
       })
     }
-  }, [current, cards]);
+  }, [current, cards, txFormAction, limitsFormAction]);
 
   useEffect(() => {
     if (txFormState.error) {
