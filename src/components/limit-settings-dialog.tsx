@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { type Limit } from "@/lib/data";
 import { type LimitApiResponse } from "@/app/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LimitManager from "./limit-manager";
 import LimitSummary from "./limit-summary";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -39,7 +38,7 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
           <DialogHeader>
             <DialogTitle>Limit Settings</DialogTitle>
             <DialogDescription>
-              View and manage the transaction limits for your card.
+              View the transaction limits for your card.
             </DialogDescription>
           </DialogHeader>
           <Tabs defaultValue="atm" className="flex-grow flex flex-col min-h-0">
@@ -50,11 +49,9 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
             <ScrollArea className="flex-grow">
                 <TabsContent value="atm" className="mt-0 pt-4">
                     <LimitSummary allLimits={atmLimits} isLoading={isLoading} />
-                    <LimitManager allLimits={atmLimits} channel="ATM CHANNEL" />
                 </TabsContent>
                 <TabsContent value="pos" className="mt-0 pt-4">
                     <LimitSummary allLimits={posLimits} isLoading={isLoading} />
-                    <LimitManager allLimits={posLimits} channel="POS CHANNEL" />
                 </TabsContent>
             </ScrollArea>
           </Tabs>
