@@ -44,7 +44,7 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
                 <TabsTrigger value="set-limit">Set Limit</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
-                <LimitSummary posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading} />
+                <LimitSummary allLimits={allLimits} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="set-limit">
                 <LimitManager allLimits={allLimits} />
