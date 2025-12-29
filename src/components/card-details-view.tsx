@@ -117,7 +117,7 @@ export default function CardDetailsView({ card, balance, isLoading, allLimits, p
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>
             </LimitSettingsDialog>
-            <PinChangeDialog>
+            <PinChangeDialog cardNumber={card.fullNumber}>
                 <Button variant="outline" className="w-full">
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN
                 </Button>

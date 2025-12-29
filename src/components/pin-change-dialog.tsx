@@ -15,31 +15,56 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { changePin } from "@/app/actions";
+import { Loader2 } from "lucide-react";
 
 type PinChangeDialogProps = {
   children: React.ReactNode;
+  cardNumber: string;
 };
 
-export default function PinChangeDialog({ children }: PinChangeDialogProps) {
+const initialFormState = {
+  success: false,
+  message: "",
+  errors: {},
+};
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Change PIN
+        </Button>
+    )
+}
+
+export default function PinChangeDialog({ children, cardNumber }: PinChangeDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [formState, formAction] = useFormState(changePin, initialFormState);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // In a real app, add validation and an API call
-    toast({
-      title: "PIN Change Successful",
-      description: "Your card PIN has been updated securely.",
-    });
-    setOpen(false);
-  };
+  useEffect(() => {
+    if (formState.message) {
+      toast({
+        title: formState.success ? "Success" : "Error",
+        description: formState.message,
+        variant: formState.success ? "default" : "destructive",
+      });
+      if (formState.success) {
+        setOpen(false);
+      }
+    }
+  }, [formState, toast]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
+        <form action={formAction}>
+          <input type="hidden" name="pan_number" value={cardNumber} />
           <DialogHeader>
             <DialogTitle>Change Your PIN</DialogTitle>
             <DialogDescription>
@@ -47,41 +72,53 @@ export default function PinChangeDialog({ children }: PinChangeDialogProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 mt-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="current-pin" className="text-right">
+            <div className="space-y-2">
+              <Label htmlFor="old_pin">
                 Current PIN
               </Label>
               <Input
-                id="current-pin"
+                id="old_pin"
+                name="old_pin"
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
-                className="col-span-3 font-mono"
+                className="font-mono"
                 required
               />
+              {formState.errors?.old_pin && <p className="text-destructive text-sm">{formState.errors.old_pin[0]}</p>}
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="new-pin" className="text-right">
+            <div className="space-y-2">
+              <Label htmlFor="new_pin">
                 New PIN
               </Label>
               <Input
-                id="new-pin"
+                id="new_pin"
+                name="new_pin"
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
-                className="col-span-3 font-mono"
+                className="font-mono"
                 required
               />
+               {formState.errors?.new_pin && <p className="text-destructive text-sm">{formState.errors.new_pin[0]}</p>}
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="confirm-pin" className="text-right">
+            <div className="space-y-2">
+              <Label htmlFor="confirm_pin">
                 Confirm PIN
               </Label>
               <Input
-                id="confirm-pin"
+                id="confirm_pin"
+                name="confirm_pin"
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
-                className="col-span-3 font-mono"
+                className="font-mono"
                 required
               />
+              {formState.errors?.confirm_pin && <p className="text-destructive text-sm">{formState.errors.confirm_pin[0]}</p>}
             </div>
           </div>
           <DialogFooter>
@@ -90,7 +127,7 @@ export default function PinChangeDialog({ children }: PinChangeDialogProps) {
                 Cancel
                 </Button>
             </DialogClose>
-            <Button type="submit">Change PIN</Button>
+            <SubmitButton />
           </DialogFooter>
         </form>
       </DialogContent>

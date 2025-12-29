@@ -3,6 +3,7 @@
 
 import type { Transaction, Limit } from '@/lib/data';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 
 const CardNumbSchema = z.object({
   card_numb: z.string(),
@@ -281,4 +282,78 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
         console.error('Error setting limit:', error);
         return { success: false, message: 'An unexpected error occurred while setting the limit.' };
     }
+}
+
+const ChangePinSchema = z.object({
+  pan_number: z.string().min(1, 'Card number is required.'),
+  old_pin: z.string().length(4, 'PIN must be 4 digits.'),
+  new_pin: z.string().length(4, 'PIN must be 4 digits.'),
+  confirm_pin: z.string().length(4, 'PIN must be 4 digits.'),
+}).refine(data => data.new_pin === data.confirm_pin, {
+  message: "New PINs don't match.",
+  path: ['confirm_pin'],
+});
+
+export async function changePin(prevState: any, formData: FormData): Promise<{ success: boolean; message: string; errors?: any }> {
+  const validatedFields = ChangePinSchema.safeParse({
+    pan_number: formData.get('pan_number'),
+    old_pin: formData.get('old_pin'),
+    new_pin: formData.get('new_pin'),
+    confirm_pin: formData.get('confirm_pin'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: "Invalid data provided.",
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+  
+  const { pan_number, old_pin, new_pin } = validatedFields.data;
+
+  const pinChangeUrl = process.env.PIN_CHANGE_URL;
+  const apiKey = process.env.CARD_LIST_API_KEY;
+  const institution = process.env.PIN_CHANGE_INSTITUTION;
+
+  if (!pinChangeUrl || !apiKey || !institution) {
+    console.error('Missing environment variables for changing PIN.');
+    return { success: false, message: 'Server configuration error.' };
+  }
+
+  try {
+    const response = await fetch(pinChangeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ApiKey': apiKey,
+      },
+      body: JSON.stringify({
+        header: {
+          idmsg: uuidv4(),
+        },
+        initiator: {
+          pan_number,
+          new_pin: String(new_pin),
+          old_pin: String(old_pin),
+          institution,
+        },
+      }),
+      cache: 'no-store',
+    });
+    
+    const data = await response.json();
+
+    if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
+      const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
+      console.error(`Failed to change PIN: ${errorDesc}`);
+      return { success: false, message: `API error: ${errorDesc}` };
+    }
+
+    return { success: true, message: 'PIN changed successfully.' };
+
+  } catch (error) {
+    console.error('Error changing PIN:', error);
+    return { success: false, message: 'An unexpected error occurred while changing the PIN.' };
+  }
 }
