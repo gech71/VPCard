@@ -2,15 +2,14 @@
 import * as crypto from 'crypto';
 import { cookies } from 'next/headers';
 
-const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
-const ENCRYPTION_IV = process.env.ENCRYPTION_IV;
+const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY || "default_secret_key_for_dev_32_bytes";
+const ENCRYPTION_IV = process.env.ENCRYPTION_IV || "default_iv_for_dev_16_bytes";
 export const COOKIE_NAME = 'user-phone';
 
 if (!ENCRYPTION_SECRET_KEY || !ENCRYPTION_IV) {
   throw new Error('ENCRYPTION_SECRET_KEY and ENCRYPTION_IV must be set in .env');
 }
 
-const ALGORITHM = 'aes-256-cbc';
 const KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY, 'salt', 32);
 const IV = crypto.scryptSync(ENCRYPTION_IV, 'salt', 16);
 
@@ -68,3 +67,5 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
     return null;
   }
 }
+
+const ALGORITHM = 'aes-256-cbc';

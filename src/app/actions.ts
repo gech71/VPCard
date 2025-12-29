@@ -21,6 +21,12 @@ export type LimitApiResponse = {
     transaction_type: string;
     channel: string;
     mnt_limite: number;
+    periodicity_id: string;
+    periodicity_code: number;
+    domain_type: string;
+    transaction_mode: string;
+    tans_max: number;
+    limite_number: number;
 };
 
 
@@ -215,5 +221,62 @@ export async function getCardLimits(prevState: any, formData: FormData) {
             allLimits: [],
             error: 'An unexpected error occurred while fetching limits.' 
         };
+    }
+}
+
+const SetLimitSchema = z.object({
+  limitData: z.any(),
+  newLimit: z.number(),
+});
+
+export async function setCardLimit(prevState: any, formData: FormData): Promise<{ success: boolean; message: string }> {
+    const setLimitsUrl = process.env.SET_LIMITS_URL;
+    const apiKey = process.env.CARD_LIST_API_KEY;
+    const idMsg = process.env.CARD_LIST_ID_MSG;
+
+    if (!setLimitsUrl || !apiKey || !idMsg) {
+        console.error('Missing environment variables for setting limits.');
+        return { success: false, message: 'Server configuration error.' };
+    }
+    
+    const originalLimitData = JSON.parse(formData.get('limitData') as string) as LimitApiResponse;
+    const newLimit = Number(formData.get('newLimit'));
+
+    if (isNaN(newLimit) || newLimit < 0) {
+        return { success: false, message: 'Invalid limit amount provided.' };
+    }
+
+    const initiatorPayload = {
+        ...originalLimitData,
+        mnt_limite: newLimit,
+    };
+    
+    try {
+        const response = await fetch(setLimitsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ApiKey': apiKey,
+            },
+            body: JSON.stringify({
+                header: { idmsg: idMsg },
+                initiator: initiatorPayload,
+            }),
+            cache: 'no-store',
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
+             const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
+            console.error(`Failed to set limit: ${errorDesc}`);
+            return { success: false, message: `API error: ${errorDesc}` };
+        }
+
+        return { success: true, message: 'Limit updated successfully.' };
+
+    } catch (error) {
+        console.error('Error setting limit:', error);
+        return { success: false, message: 'An unexpected error occurred while setting the limit.' };
     }
 }
