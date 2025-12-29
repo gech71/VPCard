@@ -32,10 +32,14 @@ export default function LimitManager({ allLimits, channel }: LimitManagerProps) 
   const availableTxTypes = Array.from(new Set(allLimits.map(l => l.transaction_type)));
 
   useEffect(() => {
-    setSelectedTxType('');
+    if (availableTxTypes.length > 0) {
+      setSelectedTxType(availableTxTypes[0]);
+    } else {
+      setSelectedTxType('');
+    }
     setCurrentLimit(0);
     setMaxLimit(0);
-  }, [channel]);
+  }, [channel, allLimits]);
 
   useEffect(() => {
     if (selectedTxType) {
