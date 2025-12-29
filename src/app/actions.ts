@@ -16,7 +16,8 @@ type TransactionApiResponse = {
     'Reference number': string;
 }
 
-type LimitApiResponse = {
+export type LimitApiResponse = {
+    risk_code: string;
     transaction_type: string;
     channel: string;
     mnt_limite: number;
@@ -123,6 +124,7 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         return {
             posLimit: { current: 0, max: 0 },
             atmLimit: { current: 0, max: 0 },
+            allLimits: [],
             error: 'Invalid card number provided.',
         };
     }
@@ -139,6 +141,7 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         return { 
             posLimit: { current: 0, max: 0 }, 
             atmLimit: { current: 0, max: 0 },
+            allLimits: [],
             error: 'Server configuration error.' 
         };
     }
@@ -162,25 +165,27 @@ export async function getCardLimits(prevState: any, formData: FormData) {
             return { 
                 posLimit: { current: 0, max: 0 },
                 atmLimit: { current: 0, max: 0 },
+                allLimits: [],
                 error: `API error: ${response.statusText}` 
             };
         }
 
         const data = await response.json();
-        const limitsFromApi = data?.response?.body?.Risk;
+        const limitsFromApi: LimitApiResponse[] = data?.response?.body?.Risk;
 
         if (!limitsFromApi || !Array.isArray(limitsFromApi)) {
              return { 
                 posLimit: { current: 0, max: 0 },
                 atmLimit: { current: 0, max: 0 },
+                allLimits: [],
                 error: null 
             };
         }
         
         let posMax = 0;
         limitsFromApi
-            .filter((limit: LimitApiResponse) => limit.channel === 'POS CHANNEL' && limit.transaction_type === 'Sales draft')
-            .forEach((limit: LimitApiResponse) => {
+            .filter((limit) => limit.channel === 'POS CHANNEL')
+            .forEach((limit) => {
                 if (limit.mnt_limite > posMax) {
                     posMax = limit.mnt_limite;
                 }
@@ -188,8 +193,8 @@ export async function getCardLimits(prevState: any, formData: FormData) {
 
         let atmMax = 0;
         limitsFromApi
-            .filter((limit: LimitApiResponse) => limit.channel === 'ATM CHANNEL' && limit.transaction_type === 'Cash Disbursements (ATM)')
-            .forEach((limit: LimitApiResponse) => {
+            .filter((limit) => limit.channel === 'ATM CHANNEL')
+            .forEach((limit) => {
                 if (limit.mnt_limite > atmMax) {
                     atmMax = limit.mnt_limite;
                 }
@@ -198,6 +203,7 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         return {
             posLimit: { current: posMax, max: posMax }, // Assuming current is same as max for now
             atmLimit: { current: atmMax, max: atmMax },
+            allLimits: limitsFromApi,
             error: null,
         };
 
@@ -206,6 +212,7 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         return { 
             posLimit: { current: 0, max: 0 },
             atmLimit: { current: 0, max: 0 },
+            allLimits: [],
             error: 'An unexpected error occurred while fetching limits.' 
         };
     }

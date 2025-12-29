@@ -14,19 +14,21 @@ import { Button } from "@/components/ui/button";
 import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck, Hash, Banknote, Network } from "lucide-react";
 import type { CardDetails, Limit } from "@/lib/data";
 import PinChangeDialog from "./pin-change-dialog";
-import ViewLimitsDialog from "./view-limits-dialog";
+import LimitSettingsDialog from "./limit-settings-dialog";
 import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
+import { LimitApiResponse } from "@/app/actions";
 
 type CardDetailsViewProps = {
   card: CardDetails;
   balance: number | null;
   isLoading: boolean;
+  allLimits: LimitApiResponse[];
   posLimit: Limit;
   atmLimit: Limit;
 };
 
-export default function CardDetailsView({ card, balance, isLoading, posLimit, atmLimit }: CardDetailsViewProps) {
+export default function CardDetailsView({ card, balance, isLoading, allLimits, posLimit, atmLimit }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -85,7 +87,7 @@ export default function CardDetailsView({ card, balance, isLoading, posLimit, at
         
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
                 <Hash className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Account No:</span>
@@ -110,11 +112,11 @@ export default function CardDetailsView({ card, balance, isLoading, posLimit, at
         </div>
         
         <div className="grid grid-cols-2 gap-2 pt-4">
-            <ViewLimitsDialog posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading}>
+            <LimitSettingsDialog allLimits={allLimits} posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading}>
                 <Button variant="outline" className="w-full">
-                    <ShieldCheck className="mr-2 h-4 w-4" /> View Limits
+                    <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>
-            </ViewLimitsDialog>
+            </LimitSettingsDialog>
             <PinChangeDialog>
                 <Button variant="outline" className="w-full">
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN

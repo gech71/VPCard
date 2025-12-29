@@ -16,22 +16,51 @@ import { useToast } from "@/hooks/use-toast";
 import type { Limit } from "@/lib/data";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "./ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import type { LimitApiResponse } from "@/app/actions";
+import { Separator } from "./ui/separator";
 
 type LimitManagerProps = {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  limitData: Limit;
-  isLoading: boolean;
+  allLimits: LimitApiResponse[];
 };
 
-export default function LimitManager({ title, description, icon, limitData, isLoading }: LimitManagerProps) {
-  const [currentLimit, setCurrentLimit] = useState(limitData.current);
+export default function LimitManager({ allLimits }: LimitManagerProps) {
+  const [selectedChannel, setSelectedChannel] = useState<string>('');
+  const [selectedTxType, setSelectedTxType] = useState<string>('');
+  const [availableTxTypes, setAvailableTxTypes] = useState<string[]>([]);
+  const [currentLimit, setCurrentLimit] = useState(0);
+  const [maxLimit, setMaxLimit] = useState(0);
+
   const { toast } = useToast();
 
+  const channels = Array.from(new Set(allLimits.map(l => l.channel))).filter(c => ['POS CHANNEL', 'ATM CHANNEL'].includes(c));
+
   useEffect(() => {
-    setCurrentLimit(limitData.current);
-  }, [limitData]);
+    if (selectedChannel) {
+        const txTypes = Array.from(new Set(allLimits.filter(l => l.channel === selectedChannel).map(l => l.transaction_type)));
+        setAvailableTxTypes(txTypes);
+        setSelectedTxType(''); // Reset tx type
+        setCurrentLimit(0);
+        setMaxLimit(0);
+    } else {
+        setAvailableTxTypes([]);
+        setSelectedTxType('');
+    }
+  }, [selectedChannel, allLimits]);
+
+  useEffect(() => {
+    if (selectedChannel && selectedTxType) {
+        const relevantLimits = allLimits.filter(l => l.channel === selectedChannel && l.transaction_type === selectedTxType);
+        const max = Math.max(...relevantLimits.map(l => l.mnt_limite));
+        if (isFinite(max)) {
+            setMaxLimit(max);
+            setCurrentLimit(max); // Default to max
+        } else {
+            setMaxLimit(0);
+            setCurrentLimit(0);
+        }
+    }
+  }, [selectedChannel, selectedTxType, allLimits]);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -41,10 +70,10 @@ export default function LimitManager({ title, description, icon, limitData, isLo
 
   const handleSave = () => {
     // In a real app, this would be an API call
-    console.log(`Saving new ${title}:`, currentLimit);
+    console.log(`Saving new limit for ${selectedChannel} - ${selectedTxType}:`, currentLimit);
     toast({
       title: "Limit Updated",
-      description: `Your new ${title} has been set to ${currencyFormatter.format(currentLimit)}.`,
+      description: `Your new limit has been set to ${currencyFormatter.format(currentLimit)}.`,
     });
   };
   
@@ -52,8 +81,8 @@ export default function LimitManager({ title, description, icon, limitData, isLo
     const value = e.target.value;
     const numericValue = parseInt(value.replace(/[^0-9]/g, ''), 10);
     if (!isNaN(numericValue)) {
-      if (numericValue > limitData.max) {
-        setCurrentLimit(limitData.max)
+      if (numericValue > maxLimit) {
+        setCurrentLimit(maxLimit)
       } else {
         setCurrentLimit(numericValue);
       }
@@ -64,59 +93,75 @@ export default function LimitManager({ title, description, icon, limitData, isLo
 
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          {icon}
-          <CardTitle className="font-headline">{title}</CardTitle>
-        </div>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoading ? (
-            <div className="space-y-4">
-                <div className="flex justify-between items-baseline gap-4">
-                    <p className="text-sm text-muted-foreground">Your Limit</p>
-                    <Skeleton className="h-8 w-36" />
-                </div>
-                <Skeleton className="h-2 w-full" />
-                <div className="flex justify-between">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-20" />
-                </div>
+    <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Channel</p>
+                <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {channels.map(channel => (
+                            <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
-        ) : (
-            <>
-                <div className="flex justify-between items-baseline gap-4">
-                    <p className="text-sm text-muted-foreground">Your Limit</p>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input
-                            type="text"
-                            value={currentLimit.toLocaleString()}
-                            onChange={handleInputChange}
-                            className="w-36 text-right pr-4 pl-7 font-bold text-2xl h-auto border-0 focus-visible:ring-0 shadow-none"
+            <div className="space-y-2">
+                 <p className="text-sm font-medium text-muted-foreground">Transaction Type</p>
+                <Select value={selectedTxType} onValueChange={setSelectedTxType} disabled={!selectedChannel}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select transaction type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableTxTypes.map(txType => (
+                            <SelectItem key={txType} value={txType}>{txType}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
+        {selectedChannel && selectedTxType && (
+             <Card className="bg-muted/50">
+                <CardHeader>
+                    <CardTitle className="text-lg">Set New Limit</CardTitle>
+                    <CardDescription>Adjust the limit for the selected transaction type.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <>
+                        <div className="flex justify-between items-baseline gap-4">
+                            <p className="text-sm text-muted-foreground">Your Limit</p>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                                <Input
+                                    type="text"
+                                    value={currentLimit.toLocaleString()}
+                                    onChange={handleInputChange}
+                                    className="w-36 text-right pr-4 pl-7 font-bold text-2xl h-auto border-0 focus-visible:ring-0 shadow-none bg-transparent"
+                                />
+                            </div>
+                        </div>
+                        <Slider
+                        value={[currentLimit]}
+                        onValueChange={(value) => setCurrentLimit(value[0])}
+                        max={maxLimit}
+                        step={50}
                         />
-                    </div>
-                </div>
-                <Slider
-                value={[currentLimit]}
-                onValueChange={(value) => setCurrentLimit(value[0])}
-                max={limitData.max}
-                step={50}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{currencyFormatter.format(0)}</span>
-                    <span>{currencyFormatter.format(limitData.max)}</span>
-                </div>
-            </>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{currencyFormatter.format(0)}</span>
+                            <span>{currencyFormatter.format(maxLimit)}</span>
+                        </div>
+                    </>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleSave} className="w-full">
+                    Save Changes
+                    </Button>
+                </CardFooter>
+            </Card>
         )}
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading}>
-          Save Changes
-        </Button>
-      </CardFooter>
-    </Card>
+    </div>
   );
 }

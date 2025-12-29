@@ -16,10 +16,9 @@ import type { CardDetails, Transaction, Limit } from '@/lib/data';
 import TransactionHistory from '@/components/transaction-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Landmark, Store } from 'lucide-react';
-import { getCardTransactions, getCardLimits } from '@/app/actions';
+import { getCardTransactions, getCardLimits, type LimitApiResponse } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import LimitManager from './limit-manager';
-import ViewLimitsDialog from './view-limits-dialog';
+import LimitSettingsDialog from './limit-settings-dialog';
 
 type DashboardClientProps = {
     cards: CardDetails[];
@@ -34,6 +33,7 @@ const initialTransactionState = {
 const initialLimitsState = {
     posLimit: { current: 0, max: 0 } as Limit,
     atmLimit: { current: 0, max: 0 } as Limit,
+    allLimits: [] as LimitApiResponse[],
     error: null as string | null,
 };
 
@@ -163,28 +163,12 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
                     </div>
                 </div>
                 <div className="flex flex-col gap-4 h-full">
-                    {selectedCard && <CardDetailsView card={selectedCard} balance={txFormState.balance} isLoading={isLoading} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
+                    {selectedCard && <CardDetailsView card={selectedCard} balance={txFormState.balance} isLoading={isLoading} allLimits={limitsFormState.allLimits} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
                 </div>
             </div>
         </div>
         <div className="lg:col-span-3 mt-8">
             <TransactionHistory transactions={txFormState.transactions} isLoading={isLoading} />
-        </div>
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <LimitManager
-              title="POS Limit"
-              description="Set your daily Point of Sale transaction limit."
-              icon={<Store className="h-6 w-6 text-primary" />}
-              limitData={limitsFormState.posLimit}
-              isLoading={isLoading}
-            />
-            <LimitManager
-              title="ATM Limit"
-              description="Set your daily ATM withdrawal limit."
-              icon={<Landmark className="h-6 w-6 text-primary" />}
-              limitData={limitsFormState.atmLimit}
-              isLoading={isLoading}
-            />
         </div>
     </div>
   );
