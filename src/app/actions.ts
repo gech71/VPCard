@@ -248,6 +248,8 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
 
     const initiatorPayload = {
         ...originalLimitData,
+        risk_code: Number(originalLimitData.risk_code),
+        periodicity_code: Number(originalLimitData.periodicity_code),
         mnt_limite: newLimit,
     };
     

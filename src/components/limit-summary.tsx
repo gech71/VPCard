@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { Skeleton } from "./ui/skeleton";
 import { type LimitApiResponse, setCardLimit } from "@/app/actions";
@@ -40,6 +41,7 @@ const initialSetLimitState = {
 
 export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [formState, formAction] = useFormState(setCardLimit, initialSetLimitState);
   const [pending, setPending] = useState(false);
   const [newLimit, setNewLimit] = useState<number | string>("");
@@ -76,6 +78,9 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
       variant: result.success ? "default" : "destructive",
     });
     setPending(false);
+    if (result.success) {
+      router.refresh();
+    }
   };
 
   const renderDesktopSkeleton = () => (
