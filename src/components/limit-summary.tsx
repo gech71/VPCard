@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "./ui/scroll-area";
-import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
 
@@ -20,6 +19,13 @@ type LimitSummaryProps = {
   allLimits: LimitApiResponse[];
   isLoading: boolean;
 };
+
+type GroupedLimit = {
+    transaction_type: string;
+    periodicity_id: string;
+    current: number;
+    max: number;
+}
 
 export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps) {
   
@@ -29,16 +35,26 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
     maximumFractionDigits: 0,
   }).format(value);
 
-  const uniqueLimits = allLimits
-    .filter(limit => ['POS CHANNEL', 'ATM CHANNEL'].includes(limit.channel))
-    .reduce((acc, current) => {
-      const key = `${current.channel}-${current.transaction_type}-${current.mnt_limite}-${current.periodicity_id}-${current.risk_code}`;
-      if (!acc.find(item => `${item.channel}-${item.transaction_type}-${item.mnt_limite}-${item.periodicity_id}-${item.risk_code}` === key)) {
-        acc.push(current);
-      }
-      return acc;
-    }, [] as LimitApiResponse[])
-    .sort((a, b) => a.channel.localeCompare(b.channel));
+  const groupedLimits = allLimits.reduce((acc, limit) => {
+    if (!acc[limit.transaction_type]) {
+      acc[limit.transaction_type] = {
+        periodicity_id: limit.periodicity_id,
+        limits: [],
+        maxes: []
+      };
+    }
+    acc[limit.transaction_type].limits.push(limit.mnt_limite);
+    acc[limit.transaction_type].maxes.push(limit.tans_max);
+    return acc;
+  }, {} as Record<string, { periodicity_id: string, limits: number[], maxes: number[] }>);
+
+  const summary: GroupedLimit[] = Object.entries(groupedLimits).map(([transaction_type, data]) => ({
+    transaction_type,
+    periodicity_id: data.periodicity_id,
+    current: Math.min(...data.limits),
+    max: Math.max(...data.maxes)
+  }));
+
 
     const renderDesktopSkeleton = () => (
       Array.from({ length: 5 }).map((_, index) => (
@@ -87,14 +103,14 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                     </TableHeader>
                     <TableBody>
                         {isLoading ? renderDesktopSkeleton() : (
-                          uniqueLimits.map((limit, index) => (
-                                <TableRow key={`${limit.risk_code}-${index}`}>
+                          summary.map((limit, index) => (
+                                <TableRow key={`${limit.transaction_type}-${index}`}>
                                     <TableCell className="text-sm text-muted-foreground">{limit.transaction_type}</TableCell>
                                     <TableCell className="text-sm text-muted-foreground">{limit.periodicity_id}</TableCell>
                                     <TableCell className="text-right font-medium w-[200px]">
                                       <div className="flex flex-col items-end">
-                                        <span>{currencyFormatter(limit.mnt_limite)} / {currencyFormatter(limit.tans_max)}</span>
-                                        <Progress value={(limit.mnt_limite / limit.tans_max) * 100} className="h-2 mt-1" />
+                                        <span>{currencyFormatter(limit.current)} / {currencyFormatter(limit.max)}</span>
+                                        <Progress value={(limit.current / limit.max) * 100} className="h-2 mt-1" />
                                       </div>
                                     </TableCell>
                                 </TableRow>
@@ -106,8 +122,8 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
             {/* Mobile View */}
             <div className="md:hidden p-2 space-y-2">
                  {isLoading ? renderMobileSkeleton() : (
-                    uniqueLimits.map((limit, index) => (
-                        <Card key={`${limit.risk_code}-${index}`} className="bg-muted/30">
+                    summary.map((limit, index) => (
+                        <Card key={`${limit.transaction_type}-${index}`} className="bg-muted/30">
                             <CardContent className="p-3">
                                 <div className="space-y-2 text-sm text-muted-foreground">
                                     <div className="flex justify-between items-center mb-2">
@@ -119,10 +135,10 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
                                     </div>
                                      <div className="flex flex-col">
                                         <div className="flex justify-between font-medium text-foreground">
-                                            <span>Current: {currencyFormatter(limit.mnt_limite)}</span>
-                                            <span>Max: {currencyFormatter(limit.tans_max)}</span>
+                                            <span>Current: {currencyFormatter(limit.current)}</span>
+                                            <span>Max: {currencyFormatter(limit.max)}</span>
                                         </div>
-                                        <Progress value={(limit.mnt_limite / limit.tans_max) * 100} className="h-2 mt-1" />
+                                        <Progress value={(limit.current / limit.max) * 100} className="h-2 mt-1" />
                                     </div>
                                 </div>
                             </CardContent>
