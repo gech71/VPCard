@@ -1,10 +1,10 @@
 
 'use server';
 
-import type { Transaction } from '@/lib/data';
+import type { Transaction, Limit } from '@/lib/data';
 import { z } from 'zod';
 
-const ActionInputSchema = z.object({
+const CardNumbSchema = z.object({
   card_numb: z.string(),
 });
 
@@ -16,8 +16,15 @@ type TransactionApiResponse = {
     'Reference number': string;
 }
 
+type LimitApiResponse = {
+    transaction_type: string;
+    channel: string;
+    mnt_limite: number;
+};
+
+
 export async function getCardTransactions(prevState: any, formData: FormData) {
-  const validatedFields = ActionInputSchema.safeParse({
+  const validatedFields = CardNumbSchema.safeParse({
     card_numb: formData.get('card_numb'),
   });
 
@@ -73,15 +80,11 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
       return { transactions: [], balance: 0, error: null };
     }
 
-    let calculatedBalance = 0;
     const formattedTransactions: Transaction[] = transactionsFromApi.map((tx: TransactionApiResponse) => {
-        const amount = tx.Status === 'Approval' ? tx.Amount : -tx.Amount;
-        calculatedBalance += amount; // This is likely not the true balance, but summing up for now.
-
         let status: Transaction['status'] = 'Failed';
         if (tx.Status === 'Approval') {
             status = 'Completed';
-        } else if (tx.Status === 'Pending') { // Assuming there might be a pending status
+        } else if (tx.Status === 'Pending') { 
             status = 'Pending';
         }
 
@@ -89,22 +92,19 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
             id: tx['Reference number'],
             date: new Date(tx['transaction date']).toLocaleDateString(),
             description: tx['transaction type name'],
-            amount: tx.Status === 'Approval' ? -tx.Amount : tx.Amount, // Assuming amounts are expenses
+            amount: tx.Status === 'Approval' ? -tx.Amount : tx.Amount,
             status: status,
         };
     });
 
-    // The API gives a list of transactions, not a final balance.
-    // For now, we are calculating a balance from the sum of transaction amounts.
-    // This is likely incorrect and should be revisited if a proper balance API is available.
     const balanceFromTransactions = transactionsFromApi
         .filter((tx: TransactionApiResponse) => tx.Status === 'Approval')
-        .reduce((acc, tx) => acc + tx.Amount, 0);
+        .reduce((acc: number, tx: TransactionApiResponse) => acc + tx.Amount, 0);
 
 
     return { 
         transactions: formattedTransactions, 
-        balance: balanceFromTransactions, // Placeholder balance logic
+        balance: balanceFromTransactions,
         error: null 
     };
 
@@ -112,4 +112,101 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
     console.error('Error fetching transactions:', error);
     return { transactions: [], balance: 0, error: 'An unexpected error occurred.' };
   }
+}
+
+export async function getCardLimits(prevState: any, formData: FormData) {
+    const validatedFields = CardNumbSchema.safeParse({
+        card_numb: formData.get('card_numb'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            posLimit: { current: 0, max: 0 },
+            atmLimit: { current: 0, max: 0 },
+            error: 'Invalid card number provided.',
+        };
+    }
+
+    const { card_numb } = validatedFields.data;
+
+    const getLimitsUrl = process.env.GET_LIMITS_URL;
+    const apiKey = process.env.CARD_LIST_API_KEY;
+    const idMsg = process.env.CARD_LIST_ID_MSG;
+    const bankCode = process.env.CARD_LIST_BANK_CODE;
+
+    if (!getLimitsUrl || !apiKey || !idMsg || !bankCode) {
+        console.error('Missing environment variables for getting limits.');
+        return { 
+            posLimit: { current: 0, max: 0 }, 
+            atmLimit: { current: 0, max: 0 },
+            error: 'Server configuration error.' 
+        };
+    }
+
+    try {
+        const response = await fetch(getLimitsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ApiKey': apiKey,
+            },
+            body: JSON.stringify({
+                header: { idmsg: idMsg },
+                filter: { card: card_numb, bankcode: bankCode },
+            }),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            console.error(`Failed to get limits: ${response.statusText}`);
+            return { 
+                posLimit: { current: 0, max: 0 },
+                atmLimit: { current: 0, max: 0 },
+                error: `API error: ${response.statusText}` 
+            };
+        }
+
+        const data = await response.json();
+        const limitsFromApi = data?.response?.body?.Risk;
+
+        if (!limitsFromApi || !Array.isArray(limitsFromApi)) {
+             return { 
+                posLimit: { current: 0, max: 0 },
+                atmLimit: { current: 0, max: 0 },
+                error: null 
+            };
+        }
+        
+        let posMax = 0;
+        limitsFromApi
+            .filter((limit: LimitApiResponse) => limit.channel === 'POS CHANNEL' && limit.transaction_type === 'Sales draft')
+            .forEach((limit: LimitApiResponse) => {
+                if (limit.mnt_limite > posMax) {
+                    posMax = limit.mnt_limite;
+                }
+            });
+
+        let atmMax = 0;
+        limitsFromApi
+            .filter((limit: LimitApiResponse) => limit.channel === 'ATM CHANNEL' && limit.transaction_type === 'Cash Disbursements (ATM)')
+            .forEach((limit: LimitApiResponse) => {
+                if (limit.mnt_limite > atmMax) {
+                    atmMax = limit.mnt_limite;
+                }
+            });
+
+        return {
+            posLimit: { current: posMax, max: posMax }, // Assuming current is same as max for now
+            atmLimit: { current: atmMax, max: atmMax },
+            error: null,
+        };
+
+    } catch (error) {
+        console.error('Error fetching limits:', error);
+        return { 
+            posLimit: { current: 0, max: 0 },
+            atmLimit: { current: 0, max: 0 },
+            error: 'An unexpected error occurred while fetching limits.' 
+        };
+    }
 }

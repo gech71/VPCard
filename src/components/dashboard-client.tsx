@@ -12,21 +12,29 @@ import {
 import { cn } from '@/lib/utils';
 import CardDisplay from '@/components/card-display';
 import CardDetailsView from '@/components/card-details-view';
-import type { CardDetails, Transaction } from '@/lib/data';
+import type { CardDetails, Transaction, Limit } from '@/lib/data';
 import TransactionHistory from '@/components/transaction-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { getCardTransactions } from '@/app/actions';
+import { AlertTriangle, Landmark, Store } from 'lucide-react';
+import { getCardTransactions, getCardLimits } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import LimitManager from './limit-manager';
+import ViewLimitsDialog from './view-limits-dialog';
 
 type DashboardClientProps = {
     cards: CardDetails[];
 };
 
-const initialState = {
+const initialTransactionState = {
   transactions: [] as Transaction[],
   balance: null as number | null,
   error: null as string | null,
+};
+
+const initialLimitsState = {
+    posLimit: { current: 0, max: 0 } as Limit,
+    atmLimit: { current: 0, max: 0 } as Limit,
+    error: null as string | null,
 };
 
 export default function DashboardClient({ cards }: DashboardClientProps) {
@@ -35,8 +43,10 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   const [count, setCount] = useState(0);
   
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
-  const [formState, formAction] = useFormState(getCardTransactions, initialState);
+  const [isTxPending, startTxTransition] = useTransition();
+  const [isLimitsPending, startLimitsTransition] = useTransition();
+  const [txFormState, txFormAction] = useFormState(getCardTransactions, initialTransactionState);
+  const [limitsFormState, limitsFormAction] = useFormState(getCardLimits, initialLimitsState);
   
   const selectedCard = cards[current];
 
@@ -44,21 +54,34 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
     if (selectedCard) {
       const formData = new FormData();
       formData.append('card_numb', selectedCard.fullNumber);
-      startTransition(() => {
-        formAction(formData);
+      startTxTransition(() => {
+        txFormAction(formData);
       });
+      startLimitsTransition(() => {
+        limitsFormAction(formData);
+      })
     }
   }, [current, cards]);
 
   useEffect(() => {
-    if (formState.error) {
+    if (txFormState.error) {
         toast({
             variant: "destructive",
             title: "Error fetching transactions",
-            description: formState.error,
+            description: txFormState.error,
         });
     }
-  }, [formState.error, toast]);
+  }, [txFormState.error, toast]);
+
+  useEffect(() => {
+    if (limitsFormState.error) {
+        toast({
+            variant: "destructive",
+            title: "Error fetching limits",
+            description: limitsFormState.error,
+        });
+    }
+  }, [limitsFormState.error, toast]);
 
 
   useEffect(() => {
@@ -102,47 +125,67 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
         </Alert>
     )
   }
+  
+  const isLoading = isTxPending || isLimitsPending;
 
   return (
-    <>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div className="flex flex-col gap-4">
-                <div className="flex justify-end">
-                {count > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                    {current + 1} / {count}
-                    </div>
-                )}
-                </div>
-                <Carousel setApi={setApi} className="w-full">
-                <CarouselContent>
-                    {cards.map((card, index) => (
-                    <CarouselItem key={index}>
-                        <CardDisplay card={card} />
-                    </CarouselItem>
-                    ))}
-                </CarouselContent>
-                </Carousel>
-                <div className="flex justify-center gap-2">
-                {cards.map((_, index) => (
-                    <button
-                    key={index}
-                    onClick={() => handleDotClick(index)}
-                    className={cn(
-                        'h-2 w-2 rounded-full transition-all',
-                        current === index ? 'w-4 bg-primary' : 'bg-muted'
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div className="flex flex-col gap-4">
+                    <div className="flex justify-end">
+                    {count > 0 && (
+                        <div className="text-sm text-muted-foreground">
+                        {current + 1} / {count}
+                        </div>
                     )}
-                    />
-                ))}
+                    </div>
+                    <Carousel setApi={setApi} className="w-full">
+                    <CarouselContent>
+                        {cards.map((card, index) => (
+                        <CarouselItem key={index}>
+                            <CardDisplay card={card} />
+                        </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    </Carousel>
+                    <div className="flex justify-center gap-2">
+                    {cards.map((_, index) => (
+                        <button
+                        key={index}
+                        onClick={() => handleDotClick(index)}
+                        className={cn(
+                            'h-2 w-2 rounded-full transition-all',
+                            current === index ? 'w-4 bg-primary' : 'bg-muted'
+                        )}
+                        />
+                    ))}
+                    </div>
                 </div>
-            </div>
-            <div className="flex flex-col gap-4 h-full">
-                {selectedCard && <CardDetailsView card={selectedCard} balance={formState.balance} isLoading={isPending} />}
+                <div className="flex flex-col gap-4 h-full">
+                    {selectedCard && <CardDetailsView card={selectedCard} balance={txFormState.balance} isLoading={isLoading} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
+                </div>
             </div>
         </div>
         <div className="lg:col-span-3 mt-8">
-            <TransactionHistory transactions={formState.transactions} isLoading={isPending} />
+            <TransactionHistory transactions={txFormState.transactions} isLoading={isLoading} />
         </div>
-    </>
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <LimitManager
+              title="POS Limit"
+              description="Set your daily Point of Sale transaction limit."
+              icon={<Store className="h-6 w-6 text-primary" />}
+              limitData={limitsFormState.posLimit}
+              isLoading={isLoading}
+            />
+            <LimitManager
+              title="ATM Limit"
+              description="Set your daily ATM withdrawal limit."
+              icon={<Landmark className="h-6 w-6 text-primary" />}
+              limitData={limitsFormState.atmLimit}
+              isLoading={isLoading}
+            />
+        </div>
+    </div>
   );
 }

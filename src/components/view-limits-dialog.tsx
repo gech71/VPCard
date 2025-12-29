@@ -12,15 +12,19 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { atmLimit, posLimit } from "@/lib/data";
+import { type Limit } from "@/lib/data";
 import { Landmark, Store } from "lucide-react";
 import { Progress } from "./ui/progress";
+import { Skeleton } from "./ui/skeleton";
 
 type ViewLimitsDialogProps = {
   children: React.ReactNode;
+  posLimit: Limit;
+  atmLimit: Limit;
+  isLoading: boolean;
 };
 
-export default function ViewLimitsDialog({ children }: ViewLimitsDialogProps) {
+export default function ViewLimitsDialog({ children, posLimit, atmLimit, isLoading }: ViewLimitsDialogProps) {
   
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -39,28 +43,51 @@ export default function ViewLimitsDialog({ children }: ViewLimitsDialogProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                    <Store className="h-5 w-5 text-primary" />
-                    <span>POS Limit</span>
+            {isLoading ? (
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-2 w-full" />
+                        <div className="flex justify-between">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-2 w-full" />
+                        <div className="flex justify-between">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                    </div>
                 </div>
-                <Progress value={(posLimit.current / posLimit.max) * 100} className="h-2" />
-                <div className="flex justify-between text-sm">
-                    <span className="font-bold">{currencyFormatter.format(posLimit.current)}</span>
-                    <span className="text-muted-foreground">of {currencyFormatter.format(posLimit.max)}</span>
-                </div>
-            </div>
-             <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                    <Landmark className="h-5 w-5 text-primary" />
-                    <span>ATM Limit</span>
-                </div>
-                <Progress value={(atmLimit.current / atmLimit.max) * 100} className="h-2" />
-                <div className="flex justify-between text-sm">
-                    <span className="font-bold">{currencyFormatter.format(atmLimit.current)}</span>
-                    <span className="text-muted-foreground">of {currencyFormatter.format(atmLimit.max)}</span>
-                </div>
-            </div>
+            ) : (
+                <>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                            <Store className="h-5 w-5 text-primary" />
+                            <span>POS Limit</span>
+                        </div>
+                        <Progress value={(posLimit.current / posLimit.max) * 100} className="h-2" />
+                        <div className="flex justify-between text-sm">
+                            <span className="font-bold">{currencyFormatter.format(posLimit.current)}</span>
+                            <span className="text-muted-foreground">of {currencyFormatter.format(posLimit.max)}</span>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                            <Landmark className="h-5 w-5 text-primary" />
+                            <span>ATM Limit</span>
+                        </div>
+                        <Progress value={(atmLimit.current / atmLimit.max) * 100} className="h-2" />
+                        <div className="flex justify-between text-sm">
+                            <span className="font-bold">{currencyFormatter.format(atmLimit.current)}</span>
+                            <span className="text-muted-foreground">of {currencyFormatter.format(atmLimit.max)}</span>
+                        </div>
+                    </div>
+                </>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>

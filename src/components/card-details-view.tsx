@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck, Hash, Banknote, Network } from "lucide-react";
-import type { CardDetails } from "@/lib/data";
+import type { CardDetails, Limit } from "@/lib/data";
 import PinChangeDialog from "./pin-change-dialog";
 import ViewLimitsDialog from "./view-limits-dialog";
 import { Separator } from "./ui/separator";
@@ -22,9 +22,11 @@ type CardDetailsViewProps = {
   card: CardDetails;
   balance: number | null;
   isLoading: boolean;
+  posLimit: Limit;
+  atmLimit: Limit;
 };
 
-export default function CardDetailsView({ card, balance, isLoading }: CardDetailsViewProps) {
+export default function CardDetailsView({ card, balance, isLoading, posLimit, atmLimit }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -108,7 +110,7 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
         </div>
         
         <div className="grid grid-cols-2 gap-2 pt-4">
-            <ViewLimitsDialog>
+            <ViewLimitsDialog posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading}>
                 <Button variant="outline" className="w-full">
                     <ShieldCheck className="mr-2 h-4 w-4" /> View Limits
                 </Button>
