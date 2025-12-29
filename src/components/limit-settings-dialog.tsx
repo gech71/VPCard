@@ -17,6 +17,7 @@ import { type LimitApiResponse } from "@/app/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LimitManager from "./limit-manager";
 import LimitSummary from "./limit-summary";
+import { ScrollArea } from "./ui/scroll-area";
 
 type LimitSettingsDialogProps = {
   children: React.ReactNode;
@@ -34,28 +35,30 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Limit Settings</DialogTitle>
             <DialogDescription>
               View and manage the transaction limits for your card.
             </DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="atm">
+          <Tabs defaultValue="atm" className="flex-grow flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="atm">ATM Channel</TabsTrigger>
                 <TabsTrigger value="pos">POS Channel</TabsTrigger>
             </TabsList>
-            <TabsContent value="atm">
-                <LimitSummary allLimits={atmLimits} isLoading={isLoading} />
-                <LimitManager allLimits={atmLimits} channel="ATM CHANNEL" />
-            </TabsContent>
-            <TabsContent value="pos">
-                <LimitSummary allLimits={posLimits} isLoading={isLoading} />
-                <LimitManager allLimits={posLimits} channel="POS CHANNEL" />
-            </TabsContent>
+            <ScrollArea className="flex-grow">
+                <TabsContent value="atm" className="mt-0 pt-4">
+                    <LimitSummary allLimits={atmLimits} isLoading={isLoading} />
+                    <LimitManager allLimits={atmLimits} channel="ATM CHANNEL" />
+                </TabsContent>
+                <TabsContent value="pos" className="mt-0 pt-4">
+                    <LimitSummary allLimits={posLimits} isLoading={isLoading} />
+                    <LimitManager allLimits={posLimits} channel="POS CHANNEL" />
+                </TabsContent>
+            </ScrollArea>
           </Tabs>
-          <DialogFooter>
+          <DialogFooter className="mt-auto pt-4 border-t">
             <DialogClose asChild>
                 <Button type="button" variant="secondary">
                   Close
