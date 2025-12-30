@@ -42,7 +42,7 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl max-h-[90vh]">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Limit Settings</DialogTitle>
             <DialogDescription>
