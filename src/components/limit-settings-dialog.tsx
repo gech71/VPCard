@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,21 +25,28 @@ type LimitSettingsDialogProps = {
   posLimit: Limit;
   atmLimit: Limit;
   isLoading: boolean;
+  onLimitUpdate: () => void;
 };
 
-export default function LimitSettingsDialog({ children, allLimits, posLimit, atmLimit, isLoading }: LimitSettingsDialogProps) {
+export default function LimitSettingsDialog({ children, allLimits, posLimit, atmLimit, isLoading, onLimitUpdate }: LimitSettingsDialogProps) {
+  const [open, setOpen] = useState(false);
   
   const atmLimits = allLimits.filter(limit => limit.channel === 'ATM CHANNEL');
   const posLimits = allLimits.filter(limit => limit.channel === 'POS CHANNEL');
 
+  const handleLimitUpdateAndClose = () => {
+    onLimitUpdate();
+    setOpen(false);
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Limit Settings</DialogTitle>
             <DialogDescription>
-              View the transaction limits for your card.
+              View and manage the transaction limits for your card.
             </DialogDescription>
           </DialogHeader>
           <Tabs defaultValue="atm" className="flex-grow flex flex-col min-h-0">
@@ -48,10 +56,10 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
             </TabsList>
             <ScrollArea className="flex-grow">
                 <TabsContent value="atm" className="mt-0 pt-4">
-                    <LimitSummary allLimits={atmLimits} isLoading={isLoading} />
+                    <LimitSummary allLimits={atmLimits} isLoading={isLoading} onUpdate={handleLimitUpdateAndClose} />
                 </TabsContent>
                 <TabsContent value="pos" className="mt-0 pt-4">
-                    <LimitSummary allLimits={posLimits} isLoading={isLoading} />
+                    <LimitSummary allLimits={posLimits} isLoading={isLoading} onUpdate={handleLimitUpdateAndClose} />
                 </TabsContent>
             </ScrollArea>
           </Tabs>

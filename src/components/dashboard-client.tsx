@@ -41,6 +41,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const { toast } = useToast();
   const [isTxPending, startTxTransition] = useTransition();
@@ -61,7 +62,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
         limitsFormAction(formData);
       })
     }
-  }, [current, cards, txFormAction, limitsFormAction]);
+  }, [current, cards, txFormAction, limitsFormAction, refreshKey]);
 
   useEffect(() => {
     if (txFormState.error) {
@@ -113,6 +114,10 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   const handleDotClick = (index: number) => {
     api?.scrollTo(index);
   };
+
+  const handleLimitUpdate = () => {
+    setRefreshKey(prev => prev + 1);
+  }
   
   if (!cards || cards.length === 0) {
     return (
@@ -163,7 +168,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
                     </div>
                 </div>
                 <div className="flex flex-col gap-4 h-full">
-                    {selectedCard && <CardDetailsView card={selectedCard} balance={txFormState.balance} isLoading={isLoading} allLimits={limitsFormState.allLimits} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
+                    {selectedCard && <CardDetailsView onLimitUpdate={handleLimitUpdate} card={selectedCard} balance={txFormState.balance} isLoading={isLoading} allLimits={limitsFormState.allLimits} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
                 </div>
             </div>
         </div>

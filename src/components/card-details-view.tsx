@@ -26,9 +26,10 @@ type CardDetailsViewProps = {
   allLimits: LimitApiResponse[];
   posLimit: Limit;
   atmLimit: Limit;
+  onLimitUpdate: () => void;
 };
 
-export default function CardDetailsView({ card, balance, isLoading, allLimits, posLimit, atmLimit }: CardDetailsViewProps) {
+export default function CardDetailsView({ card, balance, isLoading, allLimits, posLimit, atmLimit, onLimitUpdate }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -112,7 +113,7 @@ export default function CardDetailsView({ card, balance, isLoading, allLimits, p
         </div>
         
         <div className="grid grid-cols-2 gap-2 pt-4">
-            <LimitSettingsDialog allLimits={allLimits} posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading}>
+            <LimitSettingsDialog allLimits={allLimits} posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading} onLimitUpdate={onLimitUpdate}>
                 <Button variant="outline" className="w-full">
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>

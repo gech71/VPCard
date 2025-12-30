@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 type LimitSummaryProps = {
   allLimits: LimitApiResponse[];
   isLoading: boolean;
+  onUpdate: () => void;
 };
 
 type GroupedLimit = {
@@ -29,11 +30,12 @@ const initialSetLimitState = {
 };
 
 
-export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps) {
+export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSummaryProps) {
   const { toast } = useToast();
   const [formState, formAction] = useFormState(setCardLimit, initialSetLimitState);
   const [pending, setPending] = useState(false);
   const [newLimit, setNewLimit] = useState<number | string>("");
+  const [activeAccordionItem, setActiveAccordionItem] = useState<string | null>(null);
 
   const currencyFormatter = (value: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -68,7 +70,8 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
     });
     setPending(false);
     if (result.success) {
-      window.location.reload();
+      setActiveAccordionItem(null); // Close accordion
+      onUpdate(); // Trigger re-fetch
     }
   };
 
@@ -83,7 +86,13 @@ export default function LimitSummary({ allLimits, isLoading }: LimitSummaryProps
 
   return (
     <div className="py-4 space-y-4">
-      <Accordion type="single" collapsible className="w-full space-y-2">
+      <Accordion 
+        type="single" 
+        collapsible 
+        className="w-full space-y-2"
+        value={activeAccordionItem ?? undefined}
+        onValueChange={(value) => setActiveAccordionItem(value)}
+      >
         {isLoading ? (
           renderSkeleton()
         ) : (
