@@ -54,14 +54,16 @@ export default function LimitSettingsDialog({ children, allLimits, posLimit, atm
                 <TabsTrigger value="atm">ATM Channel</TabsTrigger>
                 <TabsTrigger value="pos">POS Channel</TabsTrigger>
             </TabsList>
-            <ScrollArea className="flex-grow">
-                <TabsContent value="atm" className="mt-0 pt-4">
+            <TabsContent value="atm" className="mt-0 flex-grow overflow-hidden">
+                <ScrollArea className="h-full">
                     <LimitSummary allLimits={atmLimits} isLoading={isLoading} onUpdate={handleLimitUpdateAndClose} />
-                </TabsContent>
-                <TabsContent value="pos" className="mt-0 pt-4">
+                </ScrollArea>
+            </TabsContent>
+            <TabsContent value="pos" className="mt-0 flex-grow overflow-hidden">
+                <ScrollArea className="h-full">
                     <LimitSummary allLimits={posLimits} isLoading={isLoading} onUpdate={handleLimitUpdateAndClose} />
-                </TabsContent>
-            </ScrollArea>
+                </ScrollArea>
+            </TabsContent>
           </Tabs>
           <DialogFooter className="mt-auto pt-4 border-t">
             <DialogClose asChild>
