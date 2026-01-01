@@ -72,7 +72,7 @@ function LimitsPageContent() {
       <main className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="flex justify-end mb-4">
             <Button asChild variant="outline">
-                <Link href="/">
+                <Link href="/" prefetch={false}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Dashboard
                 </Link>
