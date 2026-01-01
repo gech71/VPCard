@@ -27,7 +27,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
                 <ChipIcon className="w-10 h-10 sm:w-12 sm:h-12" />
                 <div className="flex flex-col">
                   <p className="font-bold text-lg">NIB INTERNATIONAL BANK</p>
-                  <p className="text-xs">የላቀ የደንበኝነት አገልግሎት : ለጋራ ስኬት!</p>
+                  <p className="text-xs">የላቀ የደንበኝነት አገልግሎት ፣ ለጋራ ስኬት!</p>
                 </div>
             </div>
           </div>
