@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -12,24 +13,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck, Hash, Banknote, Network } from "lucide-react";
-import type { CardDetails, Limit } from "@/lib/data";
+import type { CardDetails } from "@/lib/data";
 import PinChangeDialog from "./pin-change-dialog";
-import LimitSettingsDialog from "./limit-settings-dialog";
 import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
-import { LimitApiResponse } from "@/app/actions";
 
 type CardDetailsViewProps = {
   card: CardDetails;
   balance: number | null;
   isLoading: boolean;
-  allLimits: LimitApiResponse[];
-  posLimit: Limit;
-  atmLimit: Limit;
-  onLimitUpdate: () => void;
 };
 
-export default function CardDetailsView({ card, balance, isLoading, allLimits, posLimit, atmLimit, onLimitUpdate }: CardDetailsViewProps) {
+export default function CardDetailsView({ card, balance, isLoading }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -113,11 +108,11 @@ export default function CardDetailsView({ card, balance, isLoading, allLimits, p
         </div>
         
         <div className="grid grid-cols-2 gap-2 pt-4">
-            <LimitSettingsDialog allLimits={allLimits} posLimit={posLimit} atmLimit={atmLimit} isLoading={isLoading} onLimitUpdate={onLimitUpdate}>
-                <Button variant="outline" className="w-full">
+            <Link href={`/limits?card_numb=${card.fullNumber}`} passHref>
+                 <Button variant="outline" className="w-full">
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>
-            </LimitSettingsDialog>
+            </Link>
             <PinChangeDialog cardNumber={card.fullNumber}>
                 <Button variant="outline" className="w-full">
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN

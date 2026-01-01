@@ -12,13 +12,12 @@ import {
 import { cn } from '@/lib/utils';
 import CardDisplay from '@/components/card-display';
 import CardDetailsView from '@/components/card-details-view';
-import type { CardDetails, Transaction, Limit } from '@/lib/data';
+import type { CardDetails, Transaction } from '@/lib/data';
 import TransactionHistory from '@/components/transaction-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Landmark, Store } from 'lucide-react';
-import { getCardTransactions, getCardLimits, type LimitApiResponse } from '@/app/actions';
+import { AlertTriangle } from 'lucide-react';
+import { getCardTransactions } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import LimitSettingsDialog from './limit-settings-dialog';
 
 type DashboardClientProps = {
     cards: CardDetails[];
@@ -30,24 +29,15 @@ const initialTransactionState = {
   error: null as string | null,
 };
 
-const initialLimitsState = {
-    posLimit: { current: 0, max: 0 } as Limit,
-    atmLimit: { current: 0, max: 0 } as Limit,
-    allLimits: [] as LimitApiResponse[],
-    error: null as string | null,
-};
 
 export default function DashboardClient({ cards }: DashboardClientProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
   
   const { toast } = useToast();
   const [isTxPending, startTxTransition] = useTransition();
-  const [isLimitsPending, startLimitsTransition] = useTransition();
   const [txFormState, txFormAction] = useFormState(getCardTransactions, initialTransactionState);
-  const [limitsFormState, limitsFormAction] = useFormState(getCardLimits, initialLimitsState);
   
   const selectedCard = cards[current];
 
@@ -58,11 +48,8 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
       startTxTransition(() => {
         txFormAction(formData);
       });
-      startLimitsTransition(() => {
-        limitsFormAction(formData);
-      })
     }
-  }, [current, cards, txFormAction, limitsFormAction, refreshKey]);
+  }, [current, cards, txFormAction]);
 
   useEffect(() => {
     if (txFormState.error) {
@@ -73,16 +60,6 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
         });
     }
   }, [txFormState.error, toast]);
-
-  useEffect(() => {
-    if (limitsFormState.error) {
-        toast({
-            variant: "destructive",
-            title: "Error fetching limits",
-            description: limitsFormState.error,
-        });
-    }
-  }, [limitsFormState.error, toast]);
 
 
   useEffect(() => {
@@ -114,10 +91,6 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   const handleDotClick = (index: number) => {
     api?.scrollTo(index);
   };
-
-  const handleLimitUpdate = () => {
-    setRefreshKey(prev => prev + 1);
-  }
   
   if (!cards || cards.length === 0) {
     return (
@@ -131,7 +104,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
     )
   }
   
-  const isLoading = isTxPending || isLimitsPending;
+  const isLoading = isTxPending;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -168,7 +141,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
                     </div>
                 </div>
                 <div className="flex flex-col gap-4 h-full">
-                    {selectedCard && <CardDetailsView onLimitUpdate={handleLimitUpdate} card={selectedCard} balance={txFormState.balance} isLoading={isLoading} allLimits={limitsFormState.allLimits} posLimit={limitsFormState.posLimit} atmLimit={limitsFormState.atmLimit} />}
+                    {selectedCard && <CardDetailsView card={selectedCard} balance={txFormState.balance} isLoading={isLoading} />}
                 </div>
             </div>
         </div>

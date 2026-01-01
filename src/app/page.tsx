@@ -135,7 +135,7 @@ export default async function Home() {
   const cards = await getCardData();
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-background">
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <DashboardClient cards={cards} />
