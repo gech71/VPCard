@@ -12,8 +12,8 @@ export async function middleware(request: NextRequest) {
   
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
-    style-src 'self' 'nonce-${nonce}' 'https://fonts.googleapis.com' 'unsafe-inline';
+    script-src 'self' 'nonce-${nonce}';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' https://picsum.photos https://play-lh.googleusercontent.com;
     font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
