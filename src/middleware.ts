@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { COOKIE_NAME, encrypt } from '@/lib/auth';
+import * as crypto from 'crypto';
 
 // Force middleware to run on Node.js runtime to use 'crypto'
 export const runtime = 'nodejs';
@@ -26,18 +27,19 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('Content-Security-Policy', cspHeader);
-
-  // Start with the base response
-  let response = NextResponse.next({
+  
+  // Start with the base response by calling NextResponse.next()
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
 
+  // Always set the CSP header on the response
+  response.headers.set('Content-Security-Policy', cspHeader);
+
   // If the phone number cookie already exists, we assume the user is authenticated.
   if (request.cookies.has(COOKIE_NAME)) {
-     response.headers.set('Content-Security-Policy', cspHeader);
     return response;
   }
   
@@ -47,7 +49,6 @@ export async function middleware(request: NextRequest) {
   if (!authHeader) {
     // Signal to layout that auth has failed
     response.headers.set('x-auth-failed', 'true');
-    response.headers.set('Content-Security-Policy', cspHeader);
     return response;
   }
 
@@ -78,20 +79,17 @@ export async function middleware(request: NextRequest) {
           maxAge: 60 * 60 * 24, // 1 day
           path: '/',
         });
-        response.headers.set('Content-Security-Policy', cspHeader);
         return response;
       }
     }
     
     // Token validation failed
     response.headers.set('x-auth-failed', 'true');
-    response.headers.set('Content-security-Policy', cspHeader);
     return response;
 
   } catch (error) {
     console.error('Middleware token validation error:', error);
     response.headers.set('x-auth-failed', 'true');
-    response.headers.set('Content-Security-Policy', cspHeader);
     return response;
   }
 }

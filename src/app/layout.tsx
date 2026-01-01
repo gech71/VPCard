@@ -16,9 +16,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
+  const headersList = headers();
   const authFailed = headersList.get('x-auth-failed');
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const hasCookie = cookieStore.has(COOKIE_NAME);
   const nonce = headersList.get('x-nonce') || '';
 

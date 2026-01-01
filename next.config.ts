@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -40,19 +41,6 @@ const nextConfig: NextConfig = {
     
   },
   allowedDevOrigins: ["https://*.cloudworkstations.dev"],
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'x-nonce',
-            value: '', // This will be overridden by middleware
-          },
-        ],
-      },
-    ];
-  },
 };
 
 export default nextConfig;
