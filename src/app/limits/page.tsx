@@ -60,22 +60,24 @@ function LimitsPageContent() {
   return (
     <div className="min-h-screen w-full bg-background">
       <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-start">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground font-headline">
               Limit Settings
             </h1>
           </div>
-           <Button asChild variant="outline">
+        </div>
+      </header>
+      <main className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+        <div className="flex justify-end mb-4">
+            <Button asChild variant="outline">
                 <Link href="/">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Dashboard
                 </Link>
             </Button>
         </div>
-      </header>
-      <main className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <Card>
             <CardHeader>
                 <CardTitle>Manage Limits</CardTitle>

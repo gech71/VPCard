@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck, Hash, Banknote, Network } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
-import PinChangeDialog from "./pin-change-dialog";
 import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
 
@@ -113,11 +112,11 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>
             </Link>
-            <PinChangeDialog cardNumber={card.fullNumber}>
+            <Link href={`/change-pin?card_numb=${card.fullNumber}`} passHref>
                 <Button variant="outline" className="w-full">
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN
                 </Button>
-            </PinChangeDialog>
+            </Link>
         </div>
       </CardContent>
     </Card>
