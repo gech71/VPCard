@@ -20,6 +20,7 @@ export default async function RootLayout({
   const authFailed = headersList.get('x-auth-failed');
   const cookieStore = await cookies();
   const hasCookie = cookieStore.has(COOKIE_NAME);
+  const nonce = headersList.get('x-nonce') || '';
 
   // If middleware signaled failure OR there's no cookie, show auth error.
   if (authFailed || !hasCookie) {
@@ -28,7 +29,7 @@ export default async function RootLayout({
          <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" nonce={nonce} />
         </head>
         <body className="font-body antialiased" suppressHydrationWarning>
           <div className="flex items-center justify-center min-h-screen bg-background">
@@ -51,7 +52,7 @@ export default async function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" nonce={nonce} />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         {children}
