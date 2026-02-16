@@ -88,7 +88,6 @@ export async function middleware(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Middleware token validation error:', error);
     response.headers.set('x-auth-failed', 'true');
     return response;
   }

@@ -51,7 +51,6 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
   const idMsg = process.env.CARD_LIST_ID_MSG;
 
   if (!getTransactionsUrl || !apiKey || !idMsg) {
-    console.error('Missing environment variables for getting transactions.');
     return { transactions: [], balance: 0, error: 'Server configuration error.' };
   }
 
@@ -76,7 +75,6 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
     });
 
     if (!response.ok) {
-        console.error(`Failed to get transactions: ${response.statusText}`);
         return { transactions: [], balance: 0, error: `API error: ${response.statusText}` };
     }
 
@@ -84,7 +82,6 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
     const transactionsFromApi = data?.response?.body?.Transactions;
 
     if (!transactionsFromApi || !Array.isArray(transactionsFromApi)) {
-      console.log('No transactions array in the response body.');
       return { transactions: [], balance: 0, error: null };
     }
 
@@ -117,7 +114,6 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
     };
 
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     return { transactions: [], balance: 0, error: 'An unexpected error occurred.' };
   }
 }
@@ -144,7 +140,6 @@ export async function getCardLimits(prevState: any, formData: FormData) {
     const bankCode = process.env.CARD_LIST_BANK_CODE;
 
     if (!getLimitsUrl || !apiKey || !idMsg || !bankCode) {
-        console.error('Missing environment variables for getting limits.');
         return { 
             posLimit: { current: 0, max: 0 }, 
             atmLimit: { current: 0, max: 0 },
@@ -168,7 +163,6 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         });
 
         if (!response.ok) {
-            console.error(`Failed to get limits: ${response.statusText}`);
             return { 
                 posLimit: { current: 0, max: 0 },
                 atmLimit: { current: 0, max: 0 },
@@ -215,7 +209,6 @@ export async function getCardLimits(prevState: any, formData: FormData) {
         };
 
     } catch (error) {
-        console.error('Error fetching limits:', error);
         return { 
             posLimit: { current: 0, max: 0 },
             atmLimit: { current: 0, max: 0 },
@@ -236,7 +229,6 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
     const idMsg = process.env.CARD_LIST_ID_MSG;
 
     if (!setLimitsUrl || !apiKey || !idMsg) {
-        console.error('Missing environment variables for setting limits.');
         return { success: false, message: 'Server configuration error.' };
     }
     
@@ -272,14 +264,12 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
         
         if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
              const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
-            console.error(`Failed to set limit: ${errorDesc}`);
             return { success: false, message: `API error: ${errorDesc}` };
         }
 
         return { success: true, message: 'Limit updated successfully.' };
 
     } catch (error) {
-        console.error('Error setting limit:', error);
         return { success: false, message: 'An unexpected error occurred while setting the limit.' };
     }
 }
@@ -317,7 +307,6 @@ export async function changePin(prevState: any, formData: FormData): Promise<{ s
   const institution = process.env.PIN_CHANGE_INSTITUTION;
 
   if (!pinChangeUrl || !apiKey || !institution) {
-    console.error('Missing environment variables for changing PIN.');
     return { success: false, message: 'Server configuration error.' };
   }
 
@@ -346,14 +335,12 @@ export async function changePin(prevState: any, formData: FormData): Promise<{ s
 
     if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
       const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
-      console.error(`Failed to change PIN: ${errorDesc}`);
       return { success: false, message: `API error: ${errorDesc}` };
     }
 
     return { success: true, message: 'PIN changed successfully.' };
 
   } catch (error) {
-    console.error('Error changing PIN:', error);
     return { success: false, message: 'An unexpected error occurred while changing the PIN.' };
   }
 }

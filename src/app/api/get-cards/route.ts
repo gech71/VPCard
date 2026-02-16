@@ -18,7 +18,6 @@ async function getCardData(): Promise<CardDetails[]> {
     const getAccountsPass = process.env.GET_ACCOUNTS_PASS;
 
     if (!getAccountsUrl || !getAccountsUser || !getAccountsPass) {
-      console.error("Missing environment variables for getting accounts.");
       throw new Error("Server configuration error for accounts.");
     }
     
@@ -36,7 +35,6 @@ async function getCardData(): Promise<CardDetails[]> {
 
     if (!accountsResponse.ok) {
         const errorText = await accountsResponse.text();
-      console.error(`Failed to get accounts: ${accountsResponse.statusText}`, errorText);
       throw new Error(`Failed to get accounts: ${accountsResponse.statusText}`);
     }
 
@@ -44,7 +42,6 @@ async function getCardData(): Promise<CardDetails[]> {
     const accountNumber = accountsData?.details?.[0]?.AccountNumber;
 
     if (!accountNumber) {
-      console.error("No account number found in response.");
       return []; // Not an error, user might just not have an account
     }
 
@@ -55,7 +52,6 @@ async function getCardData(): Promise<CardDetails[]> {
 
 
     if (!cardListUrl || !cardListApiKey || !cardListIdMsg || !cardListInstitution) {
-      console.error("Missing environment variables for getting card list.");
       throw new Error("Server configuration error for card list.");
     }
 
@@ -85,7 +81,6 @@ async function getCardData(): Promise<CardDetails[]> {
 
     if (!cardListResponse.ok) {
        const errorText = await cardListResponse.text();
-      console.error(`Failed to get card list: ${cardListResponse.statusText}`, errorText);
       throw new Error(`Failed to get card list: ${cardListResponse.statusText}`);
     }
     
@@ -94,7 +89,6 @@ async function getCardData(): Promise<CardDetails[]> {
     const cardsFromApi = cardListData?.response?.body?.cards;
 
     if (!cardsFromApi || !Array.isArray(cardsFromApi)) {
-        console.log("No cards array in the response body.");
         return [];
     }
 
@@ -123,7 +117,6 @@ async function getCardData(): Promise<CardDetails[]> {
     });
 
   } catch (error) {
-    console.error("Error fetching card data:", error);
     if (error instanceof Error) {
         throw error;
     }

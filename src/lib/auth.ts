@@ -27,7 +27,6 @@ export function decrypt(encryptedText: string): string {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error);
     return '';
   }
 }
@@ -61,7 +60,6 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
     }
     return decryptedPhone;
   } catch (error) {
-    console.error('Failed to decrypt cookie:', error);
     // Clear the corrupted cookie
     cookieStore.set(COOKIE_NAME, '', { maxAge: 0 });
     return null;
