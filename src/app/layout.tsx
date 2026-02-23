@@ -17,12 +17,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headersList = headers();
-  const authFailed = headersList.get('x-auth-failed');
-  const cookieStore = cookies();
-  const hasCookie = cookieStore.has(COOKIE_NAME);
+  const showAuthError = !!headersList.get('x-auth-failed');
   const nonce = headersList.get('x-nonce') || '';
-
-  const showAuthError = authFailed || !hasCookie;
 
   return (
     <html lang="en" suppressHydrationWarning>

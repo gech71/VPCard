@@ -24,81 +24,83 @@ export async function middleware(request: NextRequest) {
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
-
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   
-  // Start with the base response by calling NextResponse.next()
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
 
-  // Set all security headers in one place for consistency
+  // If the phone number cookie already exists, we assume the user is authenticated.
+  // We can proceed and just set the security headers.
+  if (request.cookies.has(COOKIE_NAME)) {
+    //
+  } else {
+      const authHeader = request.headers.get('Authorization');
+      let authFailed = false;
+
+      if (!authHeader) {
+          authFailed = true;
+      } else {
+          try {
+              const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
+              if (!validationUrl) {
+                  throw new Error('Token validation endpoint is not configured.');
+              }
+
+              const tokenResponse = await fetch(validationUrl, {
+                  method: 'GET',
+                  headers: { 'Authorization': authHeader },
+                  cache: 'no-store',
+              });
+
+              if (tokenResponse.ok) {
+                  const data = await tokenResponse.json();
+                  const phoneNumber = data.phone;
+                  
+                  if (phoneNumber) {
+                      const encryptedPhone = encrypt(phoneNumber);
+                      response.cookies.set(COOKIE_NAME, encryptedPhone, {
+                          httpOnly: true,
+                          secure: process.env.NODE_ENV !== 'development',
+                          sameSite: 'strict',
+                          maxAge: 60 * 60 * 24, // 1 day
+                          path: '/',
+                      });
+                  } else {
+                      authFailed = true; // Token valid but no phone number
+                  }
+              } else {
+                  authFailed = true; // Token validation failed
+              }
+          } catch (error) {
+              authFailed = true; // Error during validation
+          }
+      }
+
+      if (authFailed) {
+        requestHeaders.set('x-auth-failed', 'true');
+        // Re-create the response object with the modified headers
+        response = NextResponse.next({
+          request: {
+            headers: requestHeaders
+          }
+        });
+      }
+  }
+
+  // Set all security headers on the final response object
   response.headers.set('Content-Security-Policy', cspHeader);
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  // X-Frame-Options is redundant due to 'frame-ancestors' in CSP, but added for older browser compatibility
-  response.headers.set('X-Frame-Options', 'DENY'); 
-  // X-XSS-Protection is deprecated, but added for older browsers that don't support CSP fully
+  response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
 
-  // If the phone number cookie already exists, we assume the user is authenticated.
-  if (request.cookies.has(COOKIE_NAME)) {
-    return response;
-  }
-  
-  const authHeader = request.headers.get('Authorization');
-
-  // If there's no cookie and no auth header, let the layout handle showing an error.
-  if (!authHeader) {
-    // Signal to layout that auth has failed
-    response.headers.set('x-auth-failed', 'true');
-    return response;
-  }
-
-  try {
-    const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
-    if (!validationUrl) {
-      throw new Error('Token validation endpoint is not configured.');
-    }
-
-    const tokenResponse = await fetch(validationUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-      },
-      cache: 'no-store',
-    });
-
-    if (tokenResponse.ok) {
-      const data = await tokenResponse.json();
-      const phoneNumber = data.phone;
-      
-      if (phoneNumber) {
-        const encryptedPhone = encrypt(phoneNumber);
-        response.cookies.set(COOKIE_NAME, encryptedPhone, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV !== 'development',
-          sameSite: 'strict',
-          maxAge: 60 * 60 * 24, // 1 day
-          path: '/',
-        });
-        return response;
-      }
-    }
-    
-    // Token validation failed
-    response.headers.set('x-auth-failed', 'true');
-    return response;
-
-  } catch (error) {
-    response.headers.set('x-auth-failed', 'true');
-    return response;
-  }
+  return response;
 }
 
 export const config = {
