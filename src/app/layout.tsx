@@ -22,31 +22,8 @@ export default async function RootLayout({
   const hasCookie = cookieStore.has(COOKIE_NAME);
   const nonce = headersList.get('x-nonce') || '';
 
-  // If middleware signaled failure OR there's no cookie, show auth error.
-  if (authFailed || !hasCookie) {
-    return (
-      <html lang="en" suppressHydrationWarning>
-         <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" nonce={nonce} />
-        </head>
-        <body className="font-body antialiased" suppressHydrationWarning>
-          <div className="flex items-center justify-center min-h-screen bg-background">
-            <div className="text-center p-8 bg-card rounded-lg shadow-md">
-              <h1 className="text-2xl font-bold text-destructive mb-4">Authentication Failed</h1>
-              <p className="text-muted-foreground">
-                Could not validate your session. Please try again.
-              </p>
-            </div>
-          </div>
-          <Toaster />
-        </body>
-      </html>
-    );
-  }
+  const showAuthError = authFailed || !hasCookie;
 
-  // Otherwise, user is authenticated, render the app.
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -55,7 +32,18 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" nonce={nonce} />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        {children}
+        {showAuthError ? (
+            <div className="flex items-center justify-center min-h-screen bg-background">
+                <div className="text-center p-8 bg-card rounded-lg shadow-md">
+                <h1 className="text-2xl font-bold text-destructive mb-4">Authentication Failed</h1>
+                <p className="text-muted-foreground">
+                    Could not validate your session. Please try again.
+                </p>
+                </div>
+            </div>
+        ) : (
+            children
+        )}
         <Toaster />
       </body>
     </html>
