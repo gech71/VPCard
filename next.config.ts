@@ -1,4 +1,5 @@
 import type {NextConfig} from 'next';
+require('dotenv').config();
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -9,23 +10,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   poweredByHeader: false, // Disable the "X-Powered-By" header
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-        ],
-      },
-    ]
-  },
   images: {
     remotePatterns: [
       {

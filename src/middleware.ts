@@ -35,8 +35,16 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Always set the CSP header on the response
+  // Set all security headers in one place for consistency
   response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  // X-Frame-Options is redundant due to 'frame-ancestors' in CSP, but added for older browser compatibility
+  response.headers.set('X-Frame-Options', 'DENY'); 
+  // X-XSS-Protection is deprecated, but added for older browsers that don't support CSP fully
+  response.headers.set('X-XSS-Protection', '1; mode=block');
 
   // If the phone number cookie already exists, we assume the user is authenticated.
   if (request.cookies.has(COOKIE_NAME)) {
