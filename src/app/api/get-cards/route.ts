@@ -130,6 +130,6 @@ export async function GET(request: NextRequest) {
         const cards = await getCardData();
         return NextResponse.json({ cards });
     } catch(error: any) {
-        return NextResponse.json({ message: error.message || 'Failed to fetch cards.' }, { status: 500 });
+        return NextResponse.json({ message: 'Failed to fetch cards.' }, { status: 500 });
     }
 }
