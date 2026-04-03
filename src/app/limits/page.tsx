@@ -1,39 +1,54 @@
+"use client";
 
-'use client';
-
-import React, { useState, useEffect, useTransition, Suspense } from 'react';
-import { useFormState } from 'react-dom';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
-import { getCardLimits, type LimitApiResponse } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import LimitSummary from '@/components/limit-summary';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, {
+  useState,
+  useEffect,
+  useTransition,
+  Suspense,
+  useMemo,
+  useCallback,
+  useActionState,
+} from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { getCardLimits, type LimitApiResponse } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LimitSummary from "@/components/limit-summary";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const initialLimitsState = {
-    posLimit: { current: 0, max: 0 },
-    atmLimit: { current: 0, max: 0 },
-    allLimits: [] as LimitApiResponse[],
-    error: null as string | null,
+  posLimit: { current: 0, max: 0 },
+  atmLimit: { current: 0, max: 0 },
+  allLimits: [] as LimitApiResponse[],
+  error: null as string | null,
 };
 
 function LimitsPageContent() {
   const searchParams = useSearchParams();
-  const cardNumber = searchParams.get('card_numb');
+  const cardNumber = searchParams.get("card_numb");
   const { toast } = useToast();
-  
+
   const [isLimitsPending, startLimitsTransition] = useTransition();
-  const [limitsFormState, limitsFormAction] = useFormState(getCardLimits, initialLimitsState);
+  const [limitsFormState, limitsFormAction] = useActionState(
+    getCardLimits,
+    initialLimitsState,
+  );
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (cardNumber) {
       const formData = new FormData();
-      formData.append('card_numb', cardNumber);
+      formData.append("card_numb", cardNumber);
       startLimitsTransition(() => {
         limitsFormAction(formData);
       });
@@ -42,20 +57,32 @@ function LimitsPageContent() {
 
   useEffect(() => {
     if (limitsFormState.error) {
-        toast({
-            variant: "destructive",
-            title: "Error fetching limits",
-            description: limitsFormState.error,
-        });
+      toast({
+        variant: "destructive",
+        title: "Error fetching limits",
+        description: limitsFormState.error,
+      });
     }
   }, [limitsFormState.error, toast]);
 
-  const handleLimitUpdate = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-  
-  const atmLimits = limitsFormState.allLimits.filter(limit => limit.channel === 'ATM CHANNEL');
-  const posLimits = limitsFormState.allLimits.filter(limit => limit.channel === 'POS CHANNEL');
+  const handleLimitUpdate = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, []);
+
+  const atmLimits = useMemo(
+    () =>
+      limitsFormState.allLimits.filter(
+        (limit) => limit.channel === "ATM CHANNEL",
+      ),
+    [limitsFormState.allLimits],
+  );
+  const posLimits = useMemo(
+    () =>
+      limitsFormState.allLimits.filter(
+        (limit) => limit.channel === "POS CHANNEL",
+      ),
+    [limitsFormState.allLimits],
+  );
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -71,53 +98,68 @@ function LimitsPageContent() {
       </header>
       <main className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="flex justify-end mb-4">
-            <Button asChild variant="outline">
-                <Link href="/" prefetch={false}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Dashboard
-                </Link>
-            </Button>
+          <Button asChild variant="outline">
+            <Link href="/" prefetch={false}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
         </div>
         <Card>
-            <CardHeader>
-                <CardTitle>Manage Limits</CardTitle>
-                <CardDescription>View and manage the transaction limits for your card ending in {cardNumber ? `...${cardNumber.slice(-4)}` : ''}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Tabs defaultValue="atm" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="atm">ATM Channel</TabsTrigger>
-                        <TabsTrigger value="pos">POS Channel</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="atm">
-                        <LimitSummary allLimits={atmLimits} isLoading={isLimitsPending} onUpdate={handleLimitUpdate} />
-                    </TabsContent>
-                    <TabsContent value="pos">
-                        <LimitSummary allLimits={posLimits} isLoading={isLimitsPending} onUpdate={handleLimitUpdate} />
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
+          <CardHeader>
+            <CardTitle>Manage Limits</CardTitle>
+            <CardDescription>
+              View and manage the transaction limits for your card ending in{" "}
+              {cardNumber ? `...${cardNumber.slice(-4)}` : ""}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="atm" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="atm">ATM Channel</TabsTrigger>
+                <TabsTrigger value="pos">POS Channel</TabsTrigger>
+              </TabsList>
+              <TabsContent value="atm">
+                <LimitSummary
+                  allLimits={atmLimits}
+                  isLoading={isLimitsPending}
+                  onUpdate={handleLimitUpdate}
+                />
+              </TabsContent>
+              <TabsContent value="pos">
+                <LimitSummary
+                  allLimits={posLimits}
+                  isLoading={isLimitsPending}
+                  onUpdate={handleLimitUpdate}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
         {!cardNumber && !isLimitsPending && (
-             <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Card Number Missing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>Could not find card number. Please return to the dashboard and try again.</p>
-                </CardContent>
-             </Card>
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="text-destructive">
+                Card Number Missing
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>
+                Could not find card number. Please return to the dashboard and
+                try again.
+              </p>
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>
   );
 }
 
-
 export default function LimitsPage() {
-    return (
-        <Suspense fallback={<Skeleton className="w-full h-screen" />}>
-            <LimitsPageContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<Skeleton className="w-full h-screen" />}>
+      <LimitsPageContent />
+    </Suspense>
+  );
 }

@@ -1,5 +1,5 @@
-
-'use client';
+"use client";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -28,29 +28,39 @@ type TransactionHistoryProps = {
   isLoading: boolean;
 };
 
-export default function TransactionHistory({ transactions, isLoading }: TransactionHistoryProps) {
-  const currencyFormatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
+export default function TransactionHistory({
+  transactions,
+  isLoading,
+}: TransactionHistoryProps) {
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }),
+    [],
+  );
 
-  const getStatusVariant = (status: Transaction['status']) => {
+  const getStatusVariant = (status: Transaction["status"]) => {
     switch (status) {
-      case 'Completed':
-        return 'default';
-      case 'Pending':
-        return 'secondary';
-      case 'Failed':
-        return 'destructive';
+      case "Completed":
+        return "default";
+      case "Pending":
+        return "secondary";
+      case "Failed":
+        return "destructive";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
-  const renderSkeleton = (isMobile: boolean) => (
-    Array.from({ length: 5 }).map((_, index) => (
+  const renderSkeleton = (isMobile: boolean) =>
+    Array.from({ length: 5 }).map((_, index) =>
       isMobile ? (
-        <div key={index} className="flex items-center justify-between p-2 border-b">
+        <div
+          key={index}
+          className="flex items-center justify-between p-2 border-b"
+        >
           <div className="flex flex-col gap-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-24" />
@@ -60,14 +70,21 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
         </div>
       ) : (
         <TableRow key={index}>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-48" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-6 w-24" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="h-4 w-20 ml-auto" />
+          </TableCell>
         </TableRow>
-      )
-    ))
-  );
+      ),
+    );
 
   return (
     <Card className="shadow-lg flex flex-col">
@@ -76,7 +93,9 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
           <History className="h-6 w-6 text-primary" />
           <CardTitle className="font-headline">Transaction History</CardTitle>
         </div>
-        <CardDescription>Your last transactions for the selected card.</CardDescription>
+        <CardDescription>
+          Your last transactions for the selected card.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -92,17 +111,13 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {renderSkeleton(false)}
-                  </TableBody>
+                  <TableBody>{renderSkeleton(false)}</TableBody>
                 </Table>
               </ScrollArea>
             </div>
             <div className="md:hidden">
               <ScrollArea className="h-[420px]">
-                <div className="space-y-4">
-                  {renderSkeleton(true)}
-                </div>
+                <div className="space-y-4">{renderSkeleton(true)}</div>
               </ScrollArea>
             </div>
           </>
@@ -132,15 +147,23 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                   <TableBody>
                     {transactions.map((tx) => (
                       <TableRow key={tx.id}>
-                        <TableCell className="text-muted-foreground">{tx.date}</TableCell>
-                        <TableCell className="font-medium">{tx.description}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {tx.date}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {tx.description}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(tx.status)}>{tx.status}</Badge>
+                          <Badge variant={getStatusVariant(tx.status)}>
+                            {tx.status}
+                          </Badge>
                         </TableCell>
                         <TableCell
                           className={cn(
                             "text-right font-semibold",
-                            tx.amount > 0 ? "text-green-600" : "text-foreground"
+                            tx.amount > 0
+                              ? "text-green-600"
+                              : "text-foreground",
                           )}
                         >
                           {tx.amount > 0 ? "+" : ""}
@@ -157,16 +180,26 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
               <ScrollArea className="h-[420px]">
                 <div className="space-y-4">
                   {transactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between p-2 border-b">
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between p-2 border-b"
+                    >
                       <div className="flex flex-col gap-1">
                         <p className="font-medium">{tx.description}</p>
-                        <p className="text-sm text-muted-foreground">{tx.date}</p>
-                        <Badge variant={getStatusVariant(tx.status)} className="w-fit">{tx.status}</Badge>
+                        <p className="text-sm text-muted-foreground">
+                          {tx.date}
+                        </p>
+                        <Badge
+                          variant={getStatusVariant(tx.status)}
+                          className="w-fit"
+                        >
+                          {tx.status}
+                        </Badge>
                       </div>
                       <p
                         className={cn(
                           "font-semibold",
-                          tx.amount > 0 ? "text-green-600" : "text-foreground"
+                          tx.amount > 0 ? "text-green-600" : "text-foreground",
                         )}
                       >
                         {tx.amount > 0 ? "+" : ""}
