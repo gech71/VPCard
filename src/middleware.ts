@@ -38,9 +38,22 @@ export async function middleware(request: NextRequest) {
   // We can proceed and just set the security headers.
   const isMiniAppAuthEnabled = process.env.ENABLE_MINIAPP_AUTH === "true";
 
-  if (!isMiniAppAuthEnabled || request.cookies.has(COOKIE_NAME)) {
-    //
+  // If the phone number cookie already exists, we assume the user is authenticated.
+  if (request.cookies.has(COOKIE_NAME)) {
+    // Already authenticated, continue as normal
+  } else if (!isMiniAppAuthEnabled) {
+    // If mini app auth is disabled, use the default phone number
+    const phoneNumber = "251933704978";
+    const encryptedPhone = encrypt(phoneNumber);
+    response.cookies.set(COOKIE_NAME, encryptedPhone, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24, // 1 day
+      path: "/",
+    });
   } else {
+    // Mini app auth is enabled, proceed with normal auth flow
     const authHeader = request.headers.get("Authorization");
     let authFailed = false;
 
