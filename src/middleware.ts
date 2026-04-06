@@ -1,15 +1,14 @@
-
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { COOKIE_NAME, encrypt } from '@/lib/auth';
-import * as crypto from 'crypto';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { COOKIE_NAME, encrypt } from "@/lib/auth";
+import * as crypto from "crypto";
 
 // Force middleware to run on Node.js runtime to use 'crypto'
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 export async function middleware(request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomBytes(16)).toString('base64');
-  
+  const nonce = Buffer.from(crypto.randomBytes(16)).toString("base64");
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}';
@@ -22,11 +21,13 @@ export async function middleware(request: NextRequest) {
     frame-ancestors 'none';
     block-all-mixed-content;
     upgrade-insecure-requests;
-  `.replace(/\s{2,}/g, ' ').trim();
+  `
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-  
+  requestHeaders.set("x-nonce", nonce);
+
   let response = NextResponse.next({
     request: {
       headers: requestHeaders,
@@ -35,70 +36,78 @@ export async function middleware(request: NextRequest) {
 
   // If the phone number cookie already exists, we assume the user is authenticated.
   // We can proceed and just set the security headers.
-  if (request.cookies.has(COOKIE_NAME)) {
+  const isMiniAppAuthEnabled = process.env.ENABLE_MINIAPP_AUTH === "true";
+
+  if (!isMiniAppAuthEnabled || request.cookies.has(COOKIE_NAME)) {
     //
   } else {
-      const authHeader = request.headers.get('Authorization');
-      let authFailed = false;
+    const authHeader = request.headers.get("Authorization");
+    let authFailed = false;
 
-      if (!authHeader) {
-          authFailed = true;
-      } else {
-          try {
-              const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
-              if (!validationUrl) {
-                  throw new Error('Token validation endpoint is not configured.');
-              }
+    if (!authHeader) {
+      authFailed = true;
+    } else {
+      try {
+        const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
+        if (!validationUrl) {
+          throw new Error("Token validation endpoint is not configured.");
+        }
 
-              const tokenResponse = await fetch(validationUrl, {
-                  method: 'GET',
-                  headers: { 'Authorization': authHeader },
-                  cache: 'no-store',
-              });
-
-              if (tokenResponse.ok) {
-                  const data = await tokenResponse.json();
-                  const phoneNumber = data.phone;
-                  
-                  if (phoneNumber) {
-                      const encryptedPhone = encrypt(phoneNumber);
-                      response.cookies.set(COOKIE_NAME, encryptedPhone, {
-                          httpOnly: true,
-                          secure: process.env.NODE_ENV !== 'development',
-                          sameSite: 'strict',
-                          maxAge: 60 * 60 * 24, // 1 day
-                          path: '/',
-                      });
-                  } else {
-                      authFailed = true; // Token valid but no phone number
-                  }
-              } else {
-                  authFailed = true; // Token validation failed
-              }
-          } catch (error) {
-              authFailed = true; // Error during validation
-          }
-      }
-
-      if (authFailed) {
-        requestHeaders.set('x-auth-failed', 'true');
-        // Re-create the response object with the modified headers
-        response = NextResponse.next({
-          request: {
-            headers: requestHeaders
-          }
+        const tokenResponse = await fetch(validationUrl, {
+          method: "GET",
+          headers: { Authorization: authHeader },
+          cache: "no-store",
         });
+
+        if (tokenResponse.ok) {
+          const data = await tokenResponse.json();
+          const phoneNumber = data.phone;
+
+          if (phoneNumber) {
+            const encryptedPhone = encrypt(phoneNumber);
+            response.cookies.set(COOKIE_NAME, encryptedPhone, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV !== "development",
+              sameSite: "strict",
+              maxAge: 60 * 60 * 24, // 1 day
+              path: "/",
+            });
+          } else {
+            authFailed = true; // Token valid but no phone number
+          }
+        } else {
+          authFailed = true; // Token validation failed
+        }
+      } catch (error) {
+        authFailed = true; // Error during validation
       }
+    }
+
+    if (authFailed) {
+      requestHeaders.set("x-auth-failed", "true");
+      // Re-create the response object with the modified headers
+      response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    }
   }
 
   // Set all security headers on the final response object
-  response.headers.set('Content-Security-Policy', cspHeader);
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set("Content-Security-Policy", cspHeader);
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+  response.headers.set(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains; preload",
+  );
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
 
   return response;
 }
@@ -108,5 +117,5 @@ export const config = {
   // - _next/static (static files)
   // - _next/image (image optimization files)
   // - favicon.ico (favicon file)
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
