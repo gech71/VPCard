@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  MAKER
+  CHECKER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(MAKER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdRequests    CardRequest[] @relation("MakerRequests")
+  assignedRequests   CardRequest[] @relation("CheckerRequests")
+  auditLogs          AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model CardRequest {
+  id              String        @id @default(uuid())
+  accountNumber   String
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  status          RequestStatus @default(PENDING)
+  notes           String?
+  
+  // Maker who created the request
+  makerId         String
+  maker           User          @relation("MakerRequests", fields: [makerId], references: [id])
+  
+  // Checker assigned to review the request
+  checkerId       String?
+  checker         User?         @relation("CheckerRequests", fields: [checkerId], references: [id])
+  
+  // Checker action
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  auditLogs       AuditLog[]
+
+  @@map("card_requests")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  cardRequestId String?
+  cardRequest   CardRequest? @relation(fields: [cardRequestId], references: [id])
+
+  @@map("audit_logs")
+}
