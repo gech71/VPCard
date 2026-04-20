@@ -53,6 +53,8 @@ interface CardRequest {
   status: string;
   notes: string | null;
   createdAt: string;
+  reviewNotes?: string | null;
+  reviewedAt?: string | null;
   checker: {
     email: string;
   } | null;
@@ -170,15 +172,18 @@ export default function MakerDashboard() {
 
     // Extract customer details from the API response
     const accountNumber = searchAccount;
-    const customerName = (customerInfo.customerName ||
-      customerInfo.name ||
-      customerInfo.custName ||
+    const detail = (customerInfo.detail as Record<string, unknown>) || customerInfo;
+    const customerName = (detail.CustomerName ||
+      detail.customerName ||
+      detail.name ||
+      detail.custName ||
       "Unknown") as string;
-    const customerEmail = customerInfo.email as string | undefined;
+    const customerEmail = (detail.Email || detail.email) as string | undefined;
     const customerPhone =
-      customerInfo.phoneNumber ||
-      customerInfo.phone ||
-      (customerInfo.mobile as string | undefined);
+      (detail.PhoneNumber ||
+      detail.phoneNumber ||
+      detail.phone ||
+      detail.mobile) as string | undefined;
 
     try {
       const res = await fetch("/api/card-requests", {
@@ -290,23 +295,39 @@ export default function MakerDashboard() {
               </form>
 
               {customerInfo && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="font-semibold text-green-800 mb-2">
-                    Customer Found
-                  </h4>
-                  <div className="space-y-1 text-sm">
-                    {Object.entries(customerInfo).map(([key, value]) => (
-                      <p key={key}>
-                        <span className="font-medium">{key}:</span>{" "}
-                        {String(value)}
-                      </p>
+                <div className="mt-8 p-6 bg-white border border-green-200 shadow-sm rounded-xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-green-100 text-green-700 rounded-full flex-shrink-0">
+                      <UserCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-lg">
+                        Customer Found
+                      </h4>
+                      <p className="text-xs text-green-600 font-medium uppercase tracking-wider">Validation Successful</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5 text-sm mb-8 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    {Object.entries((customerInfo.detail as Record<string, unknown>) || customerInfo)
+                      .filter(([key, value]) => value !== null && typeof value !== 'object')
+                      .map(([key, value]) => (
+                      <div key={key} className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 font-semibold">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span className="font-medium text-gray-900 break-words">
+                          {String(value)}
+                        </span>
+                      </div>
                     ))}
                   </div>
+
                   <Button
-                    className="mt-4 bg-green-600 hover:bg-green-700"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-6 shadow-md transition-all"
                     onClick={startCreateRequest}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-5 h-5 mr-2" />
                     Create Card Request
                   </Button>
                 </div>
@@ -351,17 +372,29 @@ export default function MakerDashboard() {
                         </TableCell>
                         <TableCell>{req.customerName}</TableCell>
                         <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              req.status === "PENDING"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : req.status === "APPROVED"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {req.status}
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                req.status === "PENDING"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : req.status === "APPROVED"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                            {req.status === "REJECTED" && req.reviewNotes && (
+                              <details className="mt-1 w-full max-w-[200px] group cursor-pointer">
+                                <summary className="text-[11px] text-red-600 hover:text-red-800 font-medium select-none outline-none">
+                                  View Reason
+                                </summary>
+                                <div className="text-xs text-red-700 bg-red-50 p-2 rounded border border-red-100 mt-1 break-words shadow-sm">
+                                  {req.reviewNotes}
+                                </div>
+                              </details>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm">
                           {req.checker?.email || "-"}
@@ -387,12 +420,15 @@ export default function MakerDashboard() {
             <form onSubmit={handleCreateRequest} className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-medium mb-2">Customer Information</h4>
-                <p className="text-sm">Account: {searchAccount}</p>
-                <p className="text-sm">
+                <p className="text-sm">Account: <span className="font-mono bg-white px-2 py-1 rounded border">{searchAccount}</span></p>
+                <p className="text-sm mt-2">
                   Name:{" "}
-                  {customerInfo?.customerName ||
-                    customerInfo?.name ||
-                    customerInfo?.custName}
+                  <span className="font-semibold text-primary">
+                    {((customerInfo?.detail as Record<string, unknown>)?.CustomerName as string) || 
+                      ((customerInfo?.detail as Record<string, unknown>)?.customerName as string) ||
+                      (customerInfo?.customerName as string) ||
+                      (customerInfo?.name as string)}
+                  </span>
                 </p>
               </div>
 

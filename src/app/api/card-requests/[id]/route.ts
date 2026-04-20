@@ -25,8 +25,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const requestId = searchParams.get("id");
+    const requestId = request.nextUrl.pathname.split("/").pop();
 
     if (!requestId) {
       return NextResponse.json(
@@ -135,8 +134,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const requestId = searchParams.get("id");
+    const requestId = request.nextUrl.pathname.split("/").pop();
 
     if (!requestId) {
       return NextResponse.json(

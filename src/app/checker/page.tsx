@@ -90,7 +90,7 @@ export default function CheckerDashboard() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`/api/card-requests?id=${selectedRequest.id}`, {
+      const res = await fetch(`/api/card-requests/${selectedRequest.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
