@@ -2,8 +2,8 @@
 import * as crypto from 'crypto';
 import { cookies } from 'next/headers';
 
-const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY || "default_secret_key_for_dev_32_bytes";
-const ENCRYPTION_IV = process.env.ENCRYPTION_IV || "default_iv_for_dev_16_bytes";
+const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
+const ENCRYPTION_IV = process.env.ENCRYPTION_IV;
 export const COOKIE_NAME = 'user-phone';
 
 if (!ENCRYPTION_SECRET_KEY || !ENCRYPTION_IV) {

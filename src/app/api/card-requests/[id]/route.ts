@@ -107,8 +107,6 @@ export async function PATCH(request: NextRequest) {
         },
       };
 
-      console.log({pssPayload});
-
       try {
         const pssResponse = await fetch(pssUrl, {
           method: "POST",

@@ -11,15 +11,12 @@ async function main() {
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
-  console.log("Seeding database...");
-
   // Check if Super Admin already exists
   const existingAdmin = await prisma.user.findFirst({
     where: { role: "SUPER_ADMIN" },
   });
 
   if (existingAdmin) {
-    console.log("Super Admin already exists. Skipping...");
     await prisma.$disconnect();
     return;
   }
@@ -34,11 +31,6 @@ async function main() {
       role: "SUPER_ADMIN",
     },
   });
-
-  console.log("Super Admin created successfully!");
-  console.log("Email: admin@vpcard.com");
-  console.log("Password: admin123");
-  console.log("Role: SUPER_ADMIN");
 
   await prisma.$disconnect();
 }

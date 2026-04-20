@@ -115,7 +115,6 @@ export async function PUT(request: NextRequest) {
 
     // In production, send email with reset link
     // For now, return the token (development only)
-    console.log(`Password reset token for ${email}: ${token}`);
 
     return NextResponse.json({
       success: true,

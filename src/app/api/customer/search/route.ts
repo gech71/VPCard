@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const PREPAID_API_URL =
-  process.env.PREPAID_API_URL || "http://192.168.100.56:8280";
-const PREPAID_API_USER = process.env.PREPAID_API_USER || "test";
-const PREPAID_API_PASS = process.env.PREPAID_API_PASS || "123456";
+  process.env.PREPAID_API_URL;
+const PREPAID_API_USER = process.env.PREPAID_API_USER;
+const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
 export async function POST(request: NextRequest) {
   try {
