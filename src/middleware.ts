@@ -85,8 +85,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If this wasn't processed by the dashboard auth, fallback to the legacy phone token logic
-  if (!isDashboardAuthProcessed && !isPublicPath(pathname) && !isDashboardRoute) {
+  // If the requested route is not part of the dashboard and is not public,
+  // enforce the strict legacy phone token system even if they have an active auth-token
+  if (!isPublicPath(pathname) && !isDashboardRoute) {
     // If the phone number cookie already exists, we assume the user is authenticated in legacy app
     if (request.cookies.has(COOKIE_NAME)) {
       // Legacy auth - allow through
