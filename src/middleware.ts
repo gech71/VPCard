@@ -54,6 +54,12 @@ export async function middleware(request: NextRequest) {
 
   // Check for JWT auth token first (new Maker-Checker system)
   const authToken = request.cookies.get("auth-token")?.value;
+  let isDashboardAuthProcessed = false;
+
+  const isDashboardRoute =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/maker") ||
+    pathname.startsWith("/checker");
 
   if (authToken) {
     const payload = verifyToken(authToken);
@@ -67,22 +73,74 @@ export async function middleware(request: NextRequest) {
       response = NextResponse.next({
         request: { headers: requestHeaders },
       });
+      isDashboardAuthProcessed = true;
     } else {
-      // Invalid JWT - clear cookie and redirect to login
+      // Invalid JWT - clear cookie
       response.cookies.delete("auth-token");
-      if (!pathname.startsWith("/api/") && !isPublicPath(pathname)) {
+      if (isDashboardRoute) {
         return NextResponse.redirect(new URL("/login", request.url));
       }
     }
-  } else if (!isPublicPath(pathname)) {
-    // No JWT token and not a public path - check legacy phone auth or redirect
-    // If the phone number cookie already exists, we assume the user is authenticated.
+  } else if (isDashboardRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // If this wasn't processed by the dashboard auth, fallback to the legacy phone token logic
+  if (!isDashboardAuthProcessed && !isPublicPath(pathname) && !isDashboardRoute) {
+    // If the phone number cookie already exists, we assume the user is authenticated in legacy app
     if (request.cookies.has(COOKIE_NAME)) {
       // Legacy auth - allow through
     } else {
-      // No auth at all - redirect to login for non-API routes
-      if (!pathname.startsWith("/api/")) {
-        return NextResponse.redirect(new URL("/login", request.url));
+      const authHeader = request.headers.get("Authorization");
+      let authFailed = false;
+
+      if (!authHeader) {
+        authFailed = true;
+      } else {
+        try {
+          const validationUrl = process.env.TOKEN_VALIDATION_ENDPOINT;
+          if (!validationUrl) {
+            throw new Error("Token validation endpoint is not configured.");
+          }
+
+          const tokenResponse = await fetch(validationUrl, {
+            method: "GET",
+            headers: { Authorization: authHeader },
+            cache: "no-store",
+          });
+
+          if (tokenResponse.ok) {
+            const data = await tokenResponse.json();
+            const phoneNumber = data.phone;
+
+            if (phoneNumber) {
+              const encryptedPhone = encrypt(phoneNumber);
+              response.cookies.set(COOKIE_NAME, encryptedPhone, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV !== "development",
+                sameSite: "strict",
+                maxAge: 60 * 60 * 24, // 1 day
+                path: "/",
+              });
+            } else {
+              authFailed = true; // Token valid but no phone number
+            }
+          } else {
+            authFailed = true; // Token validation failed
+          }
+        } catch (error) {
+          authFailed = true; // Error during validation
+        }
+      }
+
+      if (authFailed) {
+        requestHeaders.set("x-auth-failed", "true");
+        // Re-create the response object with the modified headers
+        response = NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
       }
     }
   }
@@ -92,11 +150,11 @@ export async function middleware(request: NextRequest) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
+    "camera=(), microphone=(), geolocation=()"
   );
   response.headers.set(
     "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload",
+    "max-age=63072000; includeSubDomains; preload"
   );
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
