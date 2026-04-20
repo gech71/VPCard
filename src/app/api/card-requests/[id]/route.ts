@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
       const pssPayload = {
         header: { idmsg },
         initiator: {
-          customerid: cardRequest.accountNumber,
+          customerid: cardRequest.customerId,
           customertype: "N",
           accountnumber: cardRequest.accountNumber,
           accounttype: "N",
@@ -106,6 +106,8 @@ export async function PATCH(request: NextRequest) {
           email: cardRequest.customerEmail || "",
         },
       };
+
+      console.log({pssPayload});
 
       try {
         const pssResponse = await fetch(pssUrl, {

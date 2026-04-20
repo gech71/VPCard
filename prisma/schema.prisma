@@ -50,6 +50,7 @@ model PasswordResetToken {
 
 model CardRequest {
   id              String        @id @default(uuid())
+  customerId      String?
   accountNumber   String
   customerName    String
   customerEmail   String?

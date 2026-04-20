@@ -5,6 +5,7 @@ import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 const createRequestSchema = z.object({
+  customerId: z.string().optional(),
   accountNumber: z.string().min(1, "Account number is required"),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email().optional(),
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
+      customerId,
       accountNumber,
       customerName,
       customerEmail,
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest) {
     // Create the card request
     const cardRequest = await prisma.cardRequest.create({
       data: {
+        customerId,
         accountNumber,
         customerName,
         customerEmail,

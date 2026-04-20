@@ -173,6 +173,8 @@ export default function MakerDashboard() {
     // Extract customer details from the API response
     const accountNumber = searchAccount;
     const detail = (customerInfo.detail as Record<string, unknown>) || customerInfo;
+    const extractedCustomerId = detail.CustomerId || detail.customerId || detail.customerID;
+    const customerId = extractedCustomerId ? String(extractedCustomerId) : undefined;
     const customerName = (detail.CustomerName ||
       detail.customerName ||
       detail.name ||
@@ -190,6 +192,7 @@ export default function MakerDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          customerId,
           accountNumber,
           customerName,
           customerEmail,

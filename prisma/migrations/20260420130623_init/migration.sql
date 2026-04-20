@@ -31,6 +31,7 @@ CREATE TABLE "password_reset_tokens" (
 -- CreateTable
 CREATE TABLE "card_requests" (
     "id" TEXT NOT NULL,
+    "customerId" TEXT,
     "accountNumber" TEXT NOT NULL,
     "customerName" TEXT NOT NULL,
     "customerEmail" TEXT,
