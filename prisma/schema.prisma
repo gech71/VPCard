@@ -57,6 +57,16 @@ model CardRequest {
   status          RequestStatus @default(PENDING)
   notes           String?
   
+  // Checker action
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+
+  // PSS Virtual Card Data
+  pan             String?
+  cvv             String?
+  expiryDate      String?
+  
   // Maker who created the request
   makerId         String
   maker           User          @relation("MakerRequests", fields: [makerId], references: [id])
@@ -65,10 +75,7 @@ model CardRequest {
   checkerId       String?
   checker         User?         @relation("CheckerRequests", fields: [checkerId], references: [id])
   
-  // Checker action
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  reviewNotes     String?
+
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

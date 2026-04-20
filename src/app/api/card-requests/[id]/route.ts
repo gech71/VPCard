@@ -74,6 +74,72 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    let pan: string | null = null;
+    let cvv: string | null = null;
+    let expiryDate: string | null = null;
+
+    if (action === "APPROVE") {
+      const pssUrl =
+        process.env.VIRTUAL_CARD_CREATION_URL || "";
+      const apiKey = process.env.CARD_LIST_API_KEY || "";
+      const idmsg =
+        process.env.CARD_LIST_ID_MSG || "";
+      const institution = process.env.PIN_CHANGE_INSTITUTION;
+
+      const pssPayload = {
+        header: { idmsg },
+        initiator: {
+          customerid: cardRequest.accountNumber,
+          customertype: "N",
+          accountnumber: cardRequest.accountNumber,
+          accounttype: "N",
+          currencycode: "840",
+          branchcode: "54",
+          cardprogramcode: "34121",
+          prepaidprogram: "1011040",
+          nameoncard: cardRequest.customerName,
+          phonenumber: cardRequest.customerPhone || "",
+          institution: institution,
+          bankaccounttype: "404",
+          gender: "F",
+          title: "1",
+          email: cardRequest.customerEmail || "",
+        },
+      };
+
+      try {
+        const pssResponse = await fetch(pssUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ApiKey: apiKey,
+          },
+          body: JSON.stringify(pssPayload),
+        });
+
+        const responseData = await pssResponse.json();
+        const statusObj = responseData?.response?.body?.status;
+
+        if (statusObj?.errorcode === "000") {
+          const additionalData = responseData.response.body.additionaldata;
+          pan = additionalData?.PAN || null;
+          cvv = additionalData?.cvv2 || null;
+          expiryDate = additionalData?.["expiry date"] || null;
+        } else {
+          return NextResponse.json(
+            { error: "PSS Error: " + (statusObj?.errordesc || "Unknown error") },
+            { status: 400 },
+          );
+        }
+      } catch (err) {
+        console.error("PSS connection error:", err);
+        return NextResponse.json(
+          { error: "Failed to connect to PSS virtual card system" },
+          { status: 500 },
+        );
+      }
+    }
+
     // Update the request
     const updatedRequest = await prisma.cardRequest.update({
       where: { id: requestId },
@@ -82,6 +148,9 @@ export async function PATCH(request: NextRequest) {
         reviewedBy: currentUser.userId,
         reviewedAt: new Date(),
         reviewNotes,
+        pan,
+        cvv,
+        expiryDate
       },
     });
 
@@ -100,17 +169,6 @@ export async function PATCH(request: NextRequest) {
         reviewNotes,
       },
     });
-
-    // If approved, simulate sending to external system (PSS endpoint)
-    if (action === "APPROVE") {
-      // In production, call the PSS endpoint here
-      console.log(
-        `[SIMULATION] Sending card request ${cardRequest.id} to PSS system`,
-      );
-      console.log(
-        `Account: ${cardRequest.accountNumber}, Customer: ${cardRequest.customerName}`,
-      );
-    }
 
     return NextResponse.json({
       success: true,
