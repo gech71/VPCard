@@ -79,11 +79,9 @@ export async function PATCH(request: NextRequest) {
     let expiryDate: string | null = null;
 
     if (action === "APPROVE") {
-      const pssUrl =
-        process.env.VIRTUAL_CARD_CREATION_URL || "";
+      const pssUrl = process.env.VIRTUAL_CARD_CREATION_URL || "";
       const apiKey = process.env.CARD_LIST_API_KEY || "";
-      const idmsg =
-        process.env.CARD_LIST_ID_MSG || "";
+      const idmsg = process.env.CARD_LIST_ID_MSG || "";
       const institution = process.env.PIN_CHANGE_INSTITUTION;
 
       const pssPayload = {
@@ -95,7 +93,7 @@ export async function PATCH(request: NextRequest) {
           accounttype: "N",
           currencycode: "840",
           branchcode: "54",
-          cardprogramcode: "34121",
+          cardprogramcode: "36501",
           prepaidprogram: "1011040",
           nameoncard: cardRequest.customerName,
           phonenumber: cardRequest.customerPhone || "",
@@ -127,7 +125,9 @@ export async function PATCH(request: NextRequest) {
           expiryDate = additionalData?.["expiry date"] || null;
         } else {
           return NextResponse.json(
-            { error: "PSS Error: " + (statusObj?.errordesc || "Unknown error") },
+            {
+              error: "PSS Error: " + (statusObj?.errordesc || "Unknown error"),
+            },
             { status: 400 },
           );
         }
@@ -150,7 +150,7 @@ export async function PATCH(request: NextRequest) {
         reviewNotes,
         pan,
         cvv,
-        expiryDate
+        expiryDate,
       },
     });
 
