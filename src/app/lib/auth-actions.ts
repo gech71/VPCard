@@ -34,11 +34,26 @@ export async function requestPasswordResetAction(prevState: any, formData: FormD
 
   const { email } = validatedFields.data;
 
-  // We always return success to the front-end to prevent user enumeration
+  // 1. Verify email exists in database
   const user = await prisma.user.findUnique({ where: { email } });
   
   if (!user) {
-    return { success: true }; 
+    return { error: 'No user found with this email address.' }; 
+  }
+
+  // 2. Check if a valid (not expired, not used) token already exists
+  const existingToken = await prisma.passwordResetToken.findFirst({
+    where: {
+      userId: user.id,
+      used: false,
+      expiresAt: {
+        gt: new Date(),
+      },
+    },
+  });
+
+  if (existingToken) {
+    return { error: 'A valid reset link has already been sent to your email. Please check your inbox or wait until it expires.' };
   }
 
   const rawToken = crypto.randomBytes(32).toString('hex');
