@@ -16,7 +16,7 @@ function getPrismaClient() {
 
 export const dynamic = "force-dynamic";
 
-async function getCardData(): Promise<{
+async function getCardData(selectedAccountNumber?: string | null): Promise<{
   cards: CardDetails[];
   accounts: any[];
 }> {
@@ -66,6 +66,19 @@ async function getCardData(): Promise<{
       status: acc.Status,
     }));
 
+    // If no account is selected, just return the list of accounts
+    if (!selectedAccountNumber) {
+      return { cards: [], accounts };
+    }
+
+    // Verify the selected account belongs to the user
+    const targetAccount = accounts.find(
+      (a: any) => a.accountNumber === selectedAccountNumber,
+    );
+    if (!targetAccount) {
+      return { cards: [], accounts };
+    }
+
     const cardListUrl = process.env.CARD_LIST_URL;
     const cardListApiKey = process.env.CARD_LIST_API_KEY;
     const cardListIdMsg = process.env.CARD_LIST_ID_MSG;
@@ -82,67 +95,66 @@ async function getCardData(): Promise<{
 
     let allCards: CardDetails[] = [];
 
-    // Fetch cards for each account
-    for (const acc of accounts) {
-      try {
-        const cardListResponse = await fetch(cardListUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ApiKey: cardListApiKey,
+    try {
+      const cardListResponse = await fetch(cardListUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ApiKey: cardListApiKey,
+        },
+        body: JSON.stringify({
+          header: {
+            idmsg: cardListIdMsg,
           },
-          body: JSON.stringify({
-            header: {
-              idmsg: cardListIdMsg,
-            },
-            filter: {
-              account: acc.accountNumber,
-              card: "",
-              pan: "",
-              customer: "",
-              name_on_card: "",
-              institution: cardListInstitution,
-              start: "1",
-              end: "10",
-            },
-          }),
-          cache: "no-store",
-        });
+          filter: {
+            account: targetAccount.accountNumber,
+            card: "",
+            pan: "",
+            customer: "",
+            name_on_card: "",
+            institution: cardListInstitution,
+            start: "1",
+            end: "10",
+          },
+        }),
+        cache: "no-store",
+      });
 
-        if (cardListResponse.ok) {
-          const cardListData = await cardListResponse.json();
-          const cardsFromApi = cardListData?.response?.body?.cards;
+      if (cardListResponse.ok) {
+        const cardListData = await cardListResponse.json();
+        const cardsFromApi = cardListData?.response?.body?.cards;
 
-          if (cardsFromApi && Array.isArray(cardsFromApi)) {
-            const mappedCards = cardsFromApi.map((card: any, index: number) => {
-              const status = card.cardstatus;
-              let cardStatus: CardDetails["status"] = "Inactive";
-              if (status === "Active" || status === "OK") {
-                cardStatus = "Active";
-              } else if (status === "Cancelled" || status === "Lost") {
-                cardStatus = "Inactive";
-              }
+        if (cardsFromApi && Array.isArray(cardsFromApi)) {
+          allCards = cardsFromApi.map((card: any, index: number) => {
+            const status = card.cardstatus;
+            let cardStatus: CardDetails["status"] = "Inactive";
+            if (status === "Active" || status === "OK") {
+              cardStatus = "Active";
+            } else if (status === "Cancelled" || status === "Lost") {
+              cardStatus = "Inactive";
+            }
 
-              return {
-                id: card.card || `card-${acc.accountNumber}-${index + 1}`,
-                fullNumber: card.clearpan,
-                maskedNumber: card.pan,
-                expiryDate: card.expiry,
-                cardholderName: card.name_on_card,
-                status: cardStatus,
-                type: card.cardtype,
-                balance: 0,
-                accountNumber: card.accountnumber,
-                currency: card.cardcurrency,
-                cardTypeNetwork: card.cardtypenetwork,
-              };
-            });
-            allCards = [...allCards, ...mappedCards];
-          }
+            return {
+              id: card.card || `card-${targetAccount.accountNumber}-${index + 1}`,
+              fullNumber: card.clearpan,
+              maskedNumber: card.pan,
+              expiryDate: card.expiry,
+              cardholderName: card.name_on_card,
+              status: cardStatus,
+              type: card.cardtype,
+              balance: 0,
+              accountNumber: card.accountnumber,
+              currency: card.cardcurrency,
+              cardTypeNetwork: card.cardtypenetwork,
+            };
+          });
         }
-      } catch (err) {
-        console.error(`Failed to fetch cards for account ${acc.accountNumber}:`, err);
       }
+    } catch (err) {
+      console.error(
+        `Failed to fetch cards for account ${targetAccount.accountNumber}:`,
+        err,
+      );
     }
 
     return { cards: allCards, accounts };
@@ -175,12 +187,15 @@ async function getSettings() {
 }
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const accountNumber = searchParams.get("accountNumber");
+
   let cards: CardDetails[] = [];
   let accounts: any[] = [];
   let fetchError = null;
 
   try {
-    const data = await getCardData();
+    const data = await getCardData(accountNumber);
     cards = data.cards;
     accounts = data.accounts;
   } catch (error: any) {

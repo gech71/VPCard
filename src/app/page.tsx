@@ -6,7 +6,7 @@ import DashboardHeader from "@/components/dashboard-header";
 import DashboardClient from "@/components/dashboard-client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Loader2, Plus } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,9 +37,11 @@ interface CardResponse {
 export default function Home() {
   const [cards, setCards] = useState<CardDetails[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCards, setIsLoadingCards] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestForm, setRequestForm] = useState({
@@ -52,24 +54,20 @@ export default function Home() {
   const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchCards() {
+    async function fetchInitialData() {
       try {
         setIsLoading(true);
         const response = await fetch("/api/get-cards");
         if (!response.ok) {
-          throw new Error("Failed to fetch card data.");
+          throw new Error("Failed to fetch initial data.");
         }
         const data: CardResponse = await response.json();
-        setCards(data.cards);
         setAllowSelfRequest(data.allowSelfRequest || false);
         setAccounts(data.accounts || []);
 
-        // Pre-fill account number if only one account exists
+        // Auto-select if only one account exists
         if (data.accounts && data.accounts.length === 1) {
-          setRequestForm((prev) => ({
-            ...prev,
-            accountNumber: data.accounts![0].accountNumber,
-          }));
+          setSelectedAccount(data.accounts[0].accountNumber);
         }
       } catch (e: any) {
         setError(e.message || "An unknown error occurred.");
@@ -77,8 +75,41 @@ export default function Home() {
         setIsLoading(false);
       }
     }
-    fetchCards();
+    fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    if (!selectedAccount) return;
+
+    async function fetchCards() {
+      try {
+        setIsLoadingCards(true);
+        const response = await fetch(
+          `/api/get-cards?accountNumber=${selectedAccount}`,
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch card data.");
+        }
+        const data: CardResponse = await response.json();
+        setCards(data.cards);
+
+        // Pre-fill request form with selected account
+        setRequestForm((prev) => ({
+          ...prev,
+          accountNumber: selectedAccount,
+        }));
+      } catch (e: any) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: e.message || "Failed to load cards for this account.",
+        });
+      } finally {
+        setIsLoadingCards(false);
+      }
+    }
+    fetchCards();
+  }, [selectedAccount, toast]);
 
   async function handleSubmitRequest(e: React.FormEvent) {
     e.preventDefault();
@@ -118,7 +149,7 @@ export default function Home() {
 
       setIsRequestDialogOpen(false);
       setRequestForm({
-        accountNumber: accounts.length === 1 ? accounts[0].accountNumber : "",
+        accountNumber: selectedAccount || "",
         customerName: "",
         customerEmail: "",
         customerPhone: "",
@@ -135,7 +166,8 @@ export default function Home() {
     }
   }
 
-  const showNoCardsMessage = !isLoading && (!cards || cards.length === 0);
+  const showNoCardsMessage =
+    !isLoading && !isLoadingCards && selectedAccount && (!cards || cards.length === 0);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -147,9 +179,54 @@ export default function Home() {
               <Loader2 className="h-4 w-4 animate-spin" />
               <AlertTitle>Loading...</AlertTitle>
               <AlertDescription>
-                Please wait while we fetch your card details.
+                Please wait while we fetch your account details.
               </AlertDescription>
             </Alert>
+          </div>
+        )}
+
+        {!selectedAccount && !isLoading && accounts.length > 1 && (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 text-center animate-in fade-in zoom-in duration-500">
+            <div className="p-4 bg-primary/10 rounded-full">
+              <UserCheck className="w-12 h-12 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold tracking-tight">Welcome</h2>
+              <p className="text-muted-foreground max-w-md">
+                We found multiple accounts associated with your phone number.
+                Please select an account to view your virtual cards.
+              </p>
+            </div>
+            <div className="w-full max-w-sm space-y-4">
+              <Select onValueChange={setSelectedAccount}>
+                <SelectTrigger className="h-14 text-lg">
+                  <SelectValue placeholder="Select an account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((acc) => (
+                    <SelectItem
+                      key={acc.accountNumber}
+                      value={acc.accountNumber}
+                    >
+                      {acc.accountNumber} ({acc.name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {error && !isLoading && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error} Please try again later.</AlertDescription>
+          </Alert>
+        )}
+
+        {selectedAccount && isLoadingCards && (
+          <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -172,64 +249,42 @@ export default function Home() {
             </div>
           </div>
         )}
-        {error && !isLoading && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error} Please try again later.</AlertDescription>
-          </Alert>
-        )}
-        {showNoCardsMessage && (
-          <Alert className="mt-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>No Cards Available</AlertTitle>
-            <AlertDescription className="flex flex-col gap-4">
-              <p>You don't have any cards associated with your account.</p>
-              {allowSelfRequest ? (
-                <Dialog
-                  open={isRequestDialogOpen}
-                  onOpenChange={setIsRequestDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Request a Card
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Request a Card</DialogTitle>
-                      <DialogDescription>
-                        Submit a request for a new card. It will be assigned to a
-                        checker for review.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitRequest} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="accountNumber">Account Number *</Label>
-                        {accounts.length > 1 ? (
-                          <Select
-                            value={requestForm.accountNumber}
-                            onValueChange={(val) =>
-                              setRequestForm({ ...requestForm, accountNumber: val })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an account" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {accounts.map((acc) => (
-                                <SelectItem
-                                  key={acc.accountNumber}
-                                  value={acc.accountNumber}
-                                >
-                                  {acc.accountNumber} ({acc.name})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <>
+
+        {selectedAccount && !isLoadingCards && (
+          <>
+            {showNoCardsMessage && (
+              <Alert className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No Cards Available</AlertTitle>
+                <AlertDescription className="flex flex-col gap-4">
+                  <p>You don't have any cards associated with this account.</p>
+                  {allowSelfRequest ? (
+                    <Dialog
+                      open={isRequestDialogOpen}
+                      onOpenChange={setIsRequestDialogOpen}
+                    >
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Request a Card
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Request a Card</DialogTitle>
+                          <DialogDescription>
+                            Submit a request for a new card. It will be assigned
+                            to a checker for review.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form
+                          onSubmit={handleSubmitRequest}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-2">
+                            <Label htmlFor="accountNumber">
+                              Account Number *
+                            </Label>
                             <Input
                               id="accountNumber"
                               value={requestForm.accountNumber}
@@ -238,10 +293,74 @@ export default function Home() {
                               required
                             />
                             <p className="text-xs text-muted-foreground">
-                              Automatically detected from your profile.
+                              Automatically linked to your selected account.
                             </p>
-                          </>
-                        )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="notes">Notes (Optional)</Label>
+                            <Input
+                              id="notes"
+                              value={requestForm.notes}
+                              onChange={(e) =>
+                                setRequestForm({
+                                  ...requestForm,
+                                  notes: e.target.value,
+                                })
+                              }
+                              placeholder="Any additional notes"
+                            />
+                          </div>
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Submitting..." : "Submit Request"}
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Please contact support if you believe this is an error.
+                    </p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {cards && cards.length > 0 && <DashboardClient cards={cards} />}
+
+            {allowSelfRequest && cards && cards.length > 0 && (
+              <div className="mt-8 flex justify-center">
+                <Dialog
+                  open={isRequestDialogOpen}
+                  onOpenChange={setIsRequestDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="lg">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Request Another Card
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Request a Card</DialogTitle>
+                      <DialogDescription>
+                        Submit a request for a new card. It will be assigned to
+                        a checker for review.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitRequest} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="accountNumber">Account Number *</Label>
+                        <Input
+                          id="accountNumber"
+                          value={requestForm.accountNumber}
+                          readOnly
+                          className="bg-muted cursor-not-allowed"
+                          required
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="notes">Notes (Optional)</Label>
@@ -267,15 +386,10 @@ export default function Home() {
                     </form>
                   </DialogContent>
                 </Dialog>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Please contact support if you believe this is an error.
-                </p>
-              )}
-            </AlertDescription>
-          </Alert>
+              </div>
+            )}
+          </>
         )}
-        {cards && !isLoading && <DashboardClient cards={cards} />}
       </main>
     </div>
   );
