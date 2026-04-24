@@ -18,11 +18,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface CardResponse {
   cards: CardDetails[];
-  accountNumber?: string | null;
+  accounts?: any[];
   allowSelfRequest?: boolean;
   defaultCheckerId?: string | null;
 }
@@ -32,7 +39,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
-  const [accountNumber, setAccountNumber] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestForm, setRequestForm] = useState({
@@ -55,13 +62,13 @@ export default function Home() {
         const data: CardResponse = await response.json();
         setCards(data.cards);
         setAllowSelfRequest(data.allowSelfRequest || false);
-        setAccountNumber(data.accountNumber || null);
+        setAccounts(data.accounts || []);
 
-        // Pre-fill account number if available
-        if (data.accountNumber) {
+        // Pre-fill account number if only one account exists
+        if (data.accounts && data.accounts.length === 1) {
           setRequestForm((prev) => ({
             ...prev,
-            accountNumber: data.accountNumber!,
+            accountNumber: data.accounts![0].accountNumber,
           }));
         }
       } catch (e: any) {
@@ -75,6 +82,15 @@ export default function Home() {
 
   async function handleSubmitRequest(e: React.FormEvent) {
     e.preventDefault();
+    if (!requestForm.accountNumber) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select an account number.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -102,7 +118,7 @@ export default function Home() {
 
       setIsRequestDialogOpen(false);
       setRequestForm({
-        accountNumber: accountNumber || "",
+        accountNumber: accounts.length === 1 ? accounts[0].accountNumber : "",
         customerName: "",
         customerEmail: "",
         customerPhone: "",
@@ -191,16 +207,41 @@ export default function Home() {
                     <form onSubmit={handleSubmitRequest} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="accountNumber">Account Number *</Label>
-                        <Input
-                          id="accountNumber"
-                          value={requestForm.accountNumber}
-                          readOnly
-                          className="bg-muted cursor-not-allowed"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Automatically detected from your profile.
-                        </p>
+                        {accounts.length > 1 ? (
+                          <Select
+                            value={requestForm.accountNumber}
+                            onValueChange={(val) =>
+                              setRequestForm({ ...requestForm, accountNumber: val })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((acc) => (
+                                <SelectItem
+                                  key={acc.accountNumber}
+                                  value={acc.accountNumber}
+                                >
+                                  {acc.accountNumber} ({acc.name})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <>
+                            <Input
+                              id="accountNumber"
+                              value={requestForm.accountNumber}
+                              readOnly
+                              className="bg-muted cursor-not-allowed"
+                              required
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Automatically detected from your profile.
+                            </p>
+                          </>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="notes">Notes (Optional)</Label>

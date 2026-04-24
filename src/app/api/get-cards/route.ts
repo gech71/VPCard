@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 async function getCardData(): Promise<{
   cards: CardDetails[];
-  accountNumber: string | null;
+  accounts: any[];
 }> {
   try {
     const phoneNumber = await getDecryptedPhoneFromCookie();
@@ -54,11 +54,17 @@ async function getCardData(): Promise<{
     }
 
     const accountsData = await accountsResponse.json();
-    const accountNumber = accountsData?.details?.[0]?.AccountNumber?.toString();
+    const rawAccounts = accountsData?.details || [];
 
-    if (!accountNumber) {
-      return { cards: [], accountNumber: null }; // Not an error, user might just not have an account
+    if (rawAccounts.length === 0) {
+      return { cards: [], accounts: [] };
     }
+
+    const accounts = rawAccounts.map((acc: any) => ({
+      accountNumber: acc.AccountNumber?.toString(),
+      name: acc.Name,
+      status: acc.Status,
+    }));
 
     const cardListUrl = process.env.CARD_LIST_URL;
     const cardListApiKey = process.env.CARD_LIST_API_KEY;
@@ -74,70 +80,72 @@ async function getCardData(): Promise<{
       throw new Error("Server configuration error for card list.");
     }
 
-    const cardListResponse = await fetch(cardListUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ApiKey: cardListApiKey,
-      },
-      body: JSON.stringify({
-        header: {
-          idmsg: cardListIdMsg,
-        },
-        filter: {
-          account: accountNumber,
-          card: "",
-          pan: "",
-          customer: "",
-          name_on_card: "",
-          institution: cardListInstitution,
-          start: "1",
-          end: "10",
-        },
-      }),
-      cache: "no-store",
-    });
+    let allCards: CardDetails[] = [];
 
-    if (!cardListResponse.ok) {
-      const errorText = await cardListResponse.text();
-      throw new Error(
-        `Failed to get card list: ${cardListResponse.statusText}`,
-      );
-    }
+    // Fetch cards for each account
+    for (const acc of accounts) {
+      try {
+        const cardListResponse = await fetch(cardListUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ApiKey: cardListApiKey,
+          },
+          body: JSON.stringify({
+            header: {
+              idmsg: cardListIdMsg,
+            },
+            filter: {
+              account: acc.accountNumber,
+              card: "",
+              pan: "",
+              customer: "",
+              name_on_card: "",
+              institution: cardListInstitution,
+              start: "1",
+              end: "10",
+            },
+          }),
+          cache: "no-store",
+        });
 
-    const cardListData = await cardListResponse.json();
+        if (cardListResponse.ok) {
+          const cardListData = await cardListResponse.json();
+          const cardsFromApi = cardListData?.response?.body?.cards;
 
-    const cardsFromApi = cardListData?.response?.body?.cards;
+          if (cardsFromApi && Array.isArray(cardsFromApi)) {
+            const mappedCards = cardsFromApi.map((card: any, index: number) => {
+              const status = card.cardstatus;
+              let cardStatus: CardDetails["status"] = "Inactive";
+              if (status === "Active" || status === "OK") {
+                cardStatus = "Active";
+              } else if (status === "Cancelled" || status === "Lost") {
+                cardStatus = "Inactive";
+              }
 
-    if (!cardsFromApi || !Array.isArray(cardsFromApi)) {
-      return { cards: [], accountNumber };
-    }
-
-    const cards = cardsFromApi.map((card: any, index: number) => {
-      const status = card.cardstatus;
-      let cardStatus: CardDetails["status"] = "Inactive";
-      if (status === "Active" || status === "OK") {
-        cardStatus = "Active";
-      } else if (status === "Cancelled" || status === "Lost") {
-        cardStatus = "Inactive";
+              return {
+                id: card.card || `card-${acc.accountNumber}-${index + 1}`,
+                fullNumber: card.clearpan,
+                maskedNumber: card.pan,
+                expiryDate: card.expiry,
+                cardholderName: card.name_on_card,
+                status: cardStatus,
+                type: card.cardtype,
+                balance: 0,
+                accountNumber: card.accountnumber,
+                currency: card.cardcurrency,
+                cardTypeNetwork: card.cardtypenetwork,
+              };
+            });
+            allCards = [...allCards, ...mappedCards];
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to fetch cards for account ${acc.accountNumber}:`, err);
       }
+    }
 
-      return {
-        id: card.card || `card${index + 1}`,
-        fullNumber: card.clearpan,
-        maskedNumber: card.pan,
-        expiryDate: card.expiry,
-        cardholderName: card.name_on_card,
-        status: cardStatus,
-        type: card.cardtype,
-        balance: 0,
-        accountNumber: card.accountnumber,
-        currency: card.cardcurrency,
-        cardTypeNetwork: card.cardtypenetwork,
-      };
-    });
-
-    return { cards, accountNumber };
+    return { cards: allCards, accounts };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -168,13 +176,13 @@ async function getSettings() {
 
 export async function GET(request: NextRequest) {
   let cards: CardDetails[] = [];
-  let accountNumber: string | null = null;
+  let accounts: any[] = [];
   let fetchError = null;
 
   try {
     const data = await getCardData();
     cards = data.cards;
-    accountNumber = data.accountNumber;
+    accounts = data.accounts;
   } catch (error: any) {
     console.error("Card fetch error:", error);
     fetchError = error.message;
@@ -185,7 +193,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       cards,
-      accountNumber,
+      accounts,
       allowSelfRequest: settings.allowSelfCardRequest,
       defaultCheckerId: settings.defaultCheckerId,
       error: fetchError,
