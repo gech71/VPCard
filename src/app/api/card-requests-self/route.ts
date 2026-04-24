@@ -29,7 +29,9 @@ async function getCustomerInfo(accountNumber: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to fetch customer info: ${response.status} - ${errorText}`);
+    throw new Error(
+      `Failed to fetch customer info: ${response.status} - ${errorText}`,
+    );
   }
 
   const data = await response.json();
@@ -102,16 +104,26 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Customer info fetch error:", error);
       return NextResponse.json(
-        { error: "Failed to fetch customer information. Please verify the account number." },
+        {
+          error:
+            "Failed to fetch customer information. Please verify the account number.",
+        },
         { status: 400 },
       );
     }
 
     // Extract customer details from API response
-    const customerName = customerInfo?.customerName || customerInfo?.name || "Unknown";
-    const customerEmail = customerInfo?.email || customerInfo?.customerEmail || undefined;
-    const customerPhone = customerInfo?.phone || customerInfo?.mobileNo || customerInfo?.customerPhone || undefined;
-    const customerId = customerInfo?.customerId || customerInfo?.id || undefined;
+    const customerName =
+      customerInfo?.customerName || customerInfo?.name || "Unknown";
+    const customerEmail =
+      customerInfo?.email || customerInfo?.customerEmail || undefined;
+    const customerPhone =
+      customerInfo?.phone ||
+      customerInfo?.mobileNo ||
+      customerInfo?.customerPhone ||
+      undefined;
+    const customerId =
+      customerInfo?.customerId || customerInfo?.id || undefined;
 
     // Create the card request (user is both maker and requester)
     const cardRequest = await prisma.cardRequest.create({
