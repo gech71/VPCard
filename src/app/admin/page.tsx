@@ -63,6 +63,12 @@ export default async function SuperAdminDashboard() {
             >
               Audit Logs
             </Link>
+            <Link
+              href="/admin/settings"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Settings
+            </Link>
           </div>
         </div>
       </nav>

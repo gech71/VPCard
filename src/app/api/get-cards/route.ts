@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getDecryptedPhoneFromCookie } from '@/lib/auth';
 import { type CardDetails } from '@/lib/data';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+
+const { Pool } = pg;
+
+function getPrismaClient() {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -124,11 +135,37 @@ async function getCardData(): Promise<CardDetails[]> {
   }
 }
 
+async function getSettings() {
+  const prisma = getPrismaClient();
+  try {
+    const allowSelfCardRequest = await prisma.settings.findUnique({
+      where: { key: 'allowSelfCardRequest' },
+    });
+    
+    const defaultCheckerId = await prisma.settings.findUnique({
+      where: { key: 'defaultCheckerId' },
+    });
+
+    return {
+      allowSelfCardRequest: allowSelfCardRequest?.value === 'true',
+      defaultCheckerId: defaultCheckerId?.value || null,
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 
 export async function GET(request: NextRequest) {
     try {
         const cards = await getCardData();
-        return NextResponse.json({ cards });
+        const settings = await getSettings();
+        
+        return NextResponse.json({ 
+            cards,
+            allowSelfRequest: settings.allowSelfCardRequest,
+            defaultCheckerId: settings.defaultCheckerId,
+        });
     } catch(error: any) {
         return NextResponse.json({ message: 'Failed to fetch cards.' }, { status: 500 });
     }

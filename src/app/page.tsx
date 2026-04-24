@@ -7,12 +7,41 @@ import DashboardHeader from '@/components/dashboard-header';
 import DashboardClient from '@/components/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
+interface CardResponse {
+  cards: CardDetails[];
+  allowSelfRequest?: boolean;
+  defaultCheckerId?: string | null;
+}
 
 export default function Home() {
   const [cards, setCards] = useState<CardDetails[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [allowSelfRequest, setAllowSelfRequest] = useState(false);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    accountNumber: '',
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    notes: '',
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchCards() {
@@ -22,8 +51,9 @@ export default function Home() {
         if (!response.ok) {
           throw new Error('Failed to fetch card data.');
         }
-        const data = await response.json();
+        const data: CardResponse = await response.json();
         setCards(data.cards);
+        setAllowSelfRequest(data.allowSelfRequest || false);
       } catch (e: any) {
         setError(e.message || 'An unknown error occurred.');
       } finally {
@@ -32,6 +62,54 @@ export default function Home() {
     }
     fetchCards();
   }, []);
+
+  async function handleSubmitRequest(e: React.FormEvent) {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/card-requests-self', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: data.error || 'Failed to submit request',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Your card request has been submitted successfully.',
+      });
+
+      setIsRequestDialogOpen(false);
+      setRequestForm({
+        accountNumber: '',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        notes: '',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'An unexpected error occurred',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const showNoCardsMessage = !isLoading && (!cards || cards.length === 0) && error;
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -76,6 +154,80 @@ export default function Home() {
                     {error} Please try again later.
                 </AlertDescription>
             </Alert>
+        )}
+        {showNoCardsMessage && allowSelfRequest && (
+          <Alert className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>No Cards Available</AlertTitle>
+            <AlertDescription className="flex flex-col gap-4">
+              <p>You don't have any cards associated with your account.</p>
+              <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Request a Card
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Request a Card</DialogTitle>
+                    <DialogDescription>
+                      Submit a request for a new card. It will be assigned to a checker for review.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitRequest} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="accountNumber">Account Number *</Label>
+                      <Input
+                        id="accountNumber"
+                        value={requestForm.accountNumber}
+                        onChange={(e) => setRequestForm({ ...requestForm, accountNumber: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customerName">Customer Name *</Label>
+                      <Input
+                        id="customerName"
+                        value={requestForm.customerName}
+                        onChange={(e) => setRequestForm({ ...requestForm, customerName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customerEmail">Email</Label>
+                      <Input
+                        id="customerEmail"
+                        type="email"
+                        value={requestForm.customerEmail}
+                        onChange={(e) => setRequestForm({ ...requestForm, customerEmail: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customerPhone">Phone</Label>
+                      <Input
+                        id="customerPhone"
+                        value={requestForm.customerPhone}
+                        onChange={(e) => setRequestForm({ ...requestForm, customerPhone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Input
+                        id="notes"
+                        value={requestForm.notes}
+                        onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
+                        placeholder="Optional notes"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </AlertDescription>
+          </Alert>
         )}
         {cards && !isLoading && <DashboardClient cards={cards} />}
       </main>
