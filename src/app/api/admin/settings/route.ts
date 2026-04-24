@@ -19,7 +19,7 @@ export async function GET() {
     // Get all settings
     const settingsRecords = await prisma.settings.findMany();
     const settings: Record<string, string> = {};
-    
+
     for (const record of settingsRecords) {
       settings[record.key] = record.value;
     }
@@ -38,7 +38,7 @@ export async function GET() {
     console.error("Error fetching settings:", error);
     return NextResponse.json(
       { error: "Failed to fetch settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (!checker) {
       return NextResponse.json(
         { error: "Invalid checker selected" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,7 +79,10 @@ export async function POST(request: NextRequest) {
     await prisma.settings.upsert({
       where: { key: "allowSelfCardRequest" },
       update: { value: allowSelfCardRequest.toString() },
-      create: { key: "allowSelfCardRequest", value: allowSelfCardRequest.toString() },
+      create: {
+        key: "allowSelfCardRequest",
+        value: allowSelfCardRequest.toString(),
+      },
     });
 
     await prisma.settings.upsert({
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
     console.error("Error updating settings:", error);
     return NextResponse.json(
       { error: "Failed to update settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

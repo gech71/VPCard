@@ -1,14 +1,13 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import { type CardDetails } from '@/lib/data';
-import DashboardHeader from '@/components/dashboard-header';
-import DashboardClient from '@/components/dashboard-client';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from "react";
+import { type CardDetails } from "@/lib/data";
+import DashboardHeader from "@/components/dashboard-header";
+import DashboardClient from "@/components/dashboard-client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, Loader2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,10 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface CardResponse {
   cards: CardDetails[];
@@ -35,11 +34,11 @@ export default function Home() {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestForm, setRequestForm] = useState({
-    accountNumber: '',
-    customerName: '',
-    customerEmail: '',
-    customerPhone: '',
-    notes: '',
+    accountNumber: "",
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    notes: "",
   });
   const { toast } = useToast();
 
@@ -47,15 +46,15 @@ export default function Home() {
     async function fetchCards() {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/get-cards');
+        const response = await fetch("/api/get-cards");
         if (!response.ok) {
-          throw new Error('Failed to fetch card data.');
+          throw new Error("Failed to fetch card data.");
         }
         const data: CardResponse = await response.json();
         setCards(data.cards);
         setAllowSelfRequest(data.allowSelfRequest || false);
       } catch (e: any) {
-        setError(e.message || 'An unknown error occurred.');
+        setError(e.message || "An unknown error occurred.");
       } finally {
         setIsLoading(false);
       }
@@ -68,9 +67,9 @@ export default function Home() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/card-requests-self', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/card-requests-self", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestForm),
       });
 
@@ -78,82 +77,81 @@ export default function Home() {
 
       if (!res.ok) {
         toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: data.error || 'Failed to submit request',
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to submit request",
         });
         return;
       }
 
       toast({
-        title: 'Success',
-        description: 'Your card request has been submitted successfully.',
+        title: "Success",
+        description: "Your card request has been submitted successfully.",
       });
 
       setIsRequestDialogOpen(false);
       setRequestForm({
-        accountNumber: '',
-        customerName: '',
-        customerEmail: '',
-        customerPhone: '',
-        notes: '',
+        accountNumber: "",
+        customerName: "",
+        customerEmail: "",
+        customerPhone: "",
+        notes: "",
       });
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'An unexpected error occurred',
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred",
       });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  const showNoCardsMessage = !isLoading && (!cards || cards.length === 0) && error;
+  const showNoCardsMessage =
+    !isLoading && (!cards || cards.length === 0) && error;
 
   return (
     <div className="min-h-screen w-full bg-background">
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {isLoading && (
-            <div className="space-y-8">
-                <Alert>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <AlertTitle>Loading...</AlertTitle>
-                    <AlertDescription>
-                        Please wait while we fetch your card details.
-                    </AlertDescription>
-                </Alert>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                            <div className="flex flex-col gap-4">
-                                <Skeleton className="aspect-[1.586] w-full max-w-md mx-auto rounded-xl" />
-                                <div className="flex justify-center gap-2">
-                                    <Skeleton className="h-2 w-4 rounded-full" />
-                                    <Skeleton className="h-2 w-2 rounded-full bg-muted" />
-                                    <Skeleton className="h-2 w-2 rounded-full bg-muted" />
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-4 h-full">
-                               <Skeleton className="h-[400px] w-full" />
-                            </div>
-                        </div>
+          <div className="space-y-8">
+            <Alert>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertTitle>Loading...</AlertTitle>
+              <AlertDescription>
+                Please wait while we fetch your card details.
+              </AlertDescription>
+            </Alert>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                  <div className="flex flex-col gap-4">
+                    <Skeleton className="aspect-[1.586] w-full max-w-md mx-auto rounded-xl" />
+                    <div className="flex justify-center gap-2">
+                      <Skeleton className="h-2 w-4 rounded-full" />
+                      <Skeleton className="h-2 w-2 rounded-full bg-muted" />
+                      <Skeleton className="h-2 w-2 rounded-full bg-muted" />
                     </div>
-                     <div className="lg:col-span-3 mt-8">
-                        <Skeleton className="h-[420px] w-full" />
-                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4 h-full">
+                    <Skeleton className="h-[400px] w-full" />
+                  </div>
                 </div>
+              </div>
+              <div className="lg:col-span-3 mt-8">
+                <Skeleton className="h-[420px] w-full" />
+              </div>
             </div>
+          </div>
         )}
         {error && !isLoading && (
-             <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>
-                    {error} Please try again later.
-                </AlertDescription>
-            </Alert>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error} Please try again later.</AlertDescription>
+          </Alert>
         )}
         {showNoCardsMessage && allowSelfRequest && (
           <Alert className="mt-4">
@@ -161,7 +159,10 @@ export default function Home() {
             <AlertTitle>No Cards Available</AlertTitle>
             <AlertDescription className="flex flex-col gap-4">
               <p>You don't have any cards associated with your account.</p>
-              <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+              <Dialog
+                open={isRequestDialogOpen}
+                onOpenChange={setIsRequestDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -172,7 +173,8 @@ export default function Home() {
                   <DialogHeader>
                     <DialogTitle>Request a Card</DialogTitle>
                     <DialogDescription>
-                      Submit a request for a new card. It will be assigned to a checker for review.
+                      Submit a request for a new card. It will be assigned to a
+                      checker for review.
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmitRequest} className="space-y-4">
@@ -181,7 +183,12 @@ export default function Home() {
                       <Input
                         id="accountNumber"
                         value={requestForm.accountNumber}
-                        onChange={(e) => setRequestForm({ ...requestForm, accountNumber: e.target.value })}
+                        onChange={(e) =>
+                          setRequestForm({
+                            ...requestForm,
+                            accountNumber: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -190,7 +197,12 @@ export default function Home() {
                       <Input
                         id="customerName"
                         value={requestForm.customerName}
-                        onChange={(e) => setRequestForm({ ...requestForm, customerName: e.target.value })}
+                        onChange={(e) =>
+                          setRequestForm({
+                            ...requestForm,
+                            customerName: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -200,7 +212,12 @@ export default function Home() {
                         id="customerEmail"
                         type="email"
                         value={requestForm.customerEmail}
-                        onChange={(e) => setRequestForm({ ...requestForm, customerEmail: e.target.value })}
+                        onChange={(e) =>
+                          setRequestForm({
+                            ...requestForm,
+                            customerEmail: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -208,7 +225,12 @@ export default function Home() {
                       <Input
                         id="customerPhone"
                         value={requestForm.customerPhone}
-                        onChange={(e) => setRequestForm({ ...requestForm, customerPhone: e.target.value })}
+                        onChange={(e) =>
+                          setRequestForm({
+                            ...requestForm,
+                            customerPhone: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -216,12 +238,21 @@ export default function Home() {
                       <Input
                         id="notes"
                         value={requestForm.notes}
-                        onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
+                        onChange={(e) =>
+                          setRequestForm({
+                            ...requestForm,
+                            notes: e.target.value,
+                          })
+                        }
                         placeholder="Optional notes"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit Request"}
                     </Button>
                   </form>
                 </DialogContent>

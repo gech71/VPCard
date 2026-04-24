@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (!allowSelfCardRequest || allowSelfCardRequest.value !== "true") {
       return NextResponse.json(
         { error: "Self-initiated card requests are not enabled" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!defaultCheckerSetting || !defaultCheckerSetting.value) {
       return NextResponse.json(
         { error: "No default checker configured. Please contact admin." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (!checker) {
       return NextResponse.json(
         { error: "Configured checker not found. Please contact admin." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,17 +65,12 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const {
-      accountNumber,
-      customerName,
-      customerEmail,
-      customerPhone,
-      notes,
-    } = validation.data;
+    const { accountNumber, customerName, customerEmail, customerPhone, notes } =
+      validation.data;
 
     // Create the card request (user is both maker and requester)
     const cardRequest = await prisma.cardRequest.create({
@@ -118,7 +113,7 @@ export async function POST(request: NextRequest) {
     console.error("Self request error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

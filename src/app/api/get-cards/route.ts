@@ -1,11 +1,10 @@
-
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getDecryptedPhoneFromCookie } from '@/lib/auth';
-import { type CardDetails } from '@/lib/data';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getDecryptedPhoneFromCookie } from "@/lib/auth";
+import { type CardDetails } from "@/lib/data";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
 const { Pool } = pg;
 
@@ -15,7 +14,7 @@ function getPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 async function getCardData(): Promise<CardDetails[]> {
   try {
@@ -31,21 +30,23 @@ async function getCardData(): Promise<CardDetails[]> {
     if (!getAccountsUrl || !getAccountsUser || !getAccountsPass) {
       throw new Error("Server configuration error for accounts.");
     }
-    
-    const basicAuth = Buffer.from(`${getAccountsUser}:${getAccountsPass}`).toString('base64');
-    
+
+    const basicAuth = Buffer.from(
+      `${getAccountsUser}:${getAccountsPass}`,
+    ).toString("base64");
+
     const accountsResponse = await fetch(getAccountsUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+        Authorization: `Basic ${basicAuth}`,
       },
       body: JSON.stringify({ phoneNumber }),
-      cache: 'no-store',
+      cache: "no-store",
     });
 
     if (!accountsResponse.ok) {
-        const errorText = await accountsResponse.text();
+      const errorText = await accountsResponse.text();
       throw new Error(`Failed to get accounts: ${accountsResponse.statusText}`);
     }
 
@@ -61,20 +62,24 @@ async function getCardData(): Promise<CardDetails[]> {
     const cardListIdMsg = process.env.CARD_LIST_ID_MSG;
     const cardListInstitution = process.env.CARD_LIST_INSTITUTION;
 
-
-    if (!cardListUrl || !cardListApiKey || !cardListIdMsg || !cardListInstitution) {
+    if (
+      !cardListUrl ||
+      !cardListApiKey ||
+      !cardListIdMsg ||
+      !cardListInstitution
+    ) {
       throw new Error("Server configuration error for card list.");
     }
 
     const cardListResponse = await fetch(cardListUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'ApiKey': cardListApiKey,
+        "Content-Type": "application/json",
+        ApiKey: cardListApiKey,
       },
       body: JSON.stringify({
         header: {
-          idmsg: cardListIdMsg
+          idmsg: cardListIdMsg,
         },
         filter: {
           account: accountNumber,
@@ -84,52 +89,53 @@ async function getCardData(): Promise<CardDetails[]> {
           name_on_card: "",
           institution: cardListInstitution,
           start: "1",
-          end: "10"
-        }
+          end: "10",
+        },
       }),
-      cache: 'no-store',
+      cache: "no-store",
     });
 
     if (!cardListResponse.ok) {
-       const errorText = await cardListResponse.text();
-      throw new Error(`Failed to get card list: ${cardListResponse.statusText}`);
+      const errorText = await cardListResponse.text();
+      throw new Error(
+        `Failed to get card list: ${cardListResponse.statusText}`,
+      );
     }
-    
+
     const cardListData = await cardListResponse.json();
-    
+
     const cardsFromApi = cardListData?.response?.body?.cards;
 
     if (!cardsFromApi || !Array.isArray(cardsFromApi)) {
-        return [];
+      return [];
     }
 
     return cardsFromApi.map((card: any, index: number) => {
-        const status = card.cardstatus;
-        let cardStatus: CardDetails['status'] = 'Inactive';
-        if (status === 'Active' || status === 'OK') {
-            cardStatus = 'Active';
-        } else if (status === 'Cancelled' || status === 'Lost') {
-            cardStatus = 'Inactive';
-        }
+      const status = card.cardstatus;
+      let cardStatus: CardDetails["status"] = "Inactive";
+      if (status === "Active" || status === "OK") {
+        cardStatus = "Active";
+      } else if (status === "Cancelled" || status === "Lost") {
+        cardStatus = "Inactive";
+      }
 
-        return {
-            id: card.card || `card${index + 1}`,
-            fullNumber: card.clearpan,
-            maskedNumber: card.pan,
-            expiryDate: card.expiry,
-            cardholderName: card.name_on_card,
-            status: cardStatus,
-            type: card.cardtype,
-            balance: 0, 
-            accountNumber: card.accountnumber,
-            currency: card.cardcurrency,
-            cardTypeNetwork: card.cardtypenetwork,
-        };
+      return {
+        id: card.card || `card${index + 1}`,
+        fullNumber: card.clearpan,
+        maskedNumber: card.pan,
+        expiryDate: card.expiry,
+        cardholderName: card.name_on_card,
+        status: cardStatus,
+        type: card.cardtype,
+        balance: 0,
+        accountNumber: card.accountnumber,
+        currency: card.cardcurrency,
+        cardTypeNetwork: card.cardtypenetwork,
+      };
     });
-
   } catch (error) {
     if (error instanceof Error) {
-        throw error;
+      throw error;
     }
     throw new Error("An unknown error occurred while fetching card data.");
   }
@@ -139,15 +145,15 @@ async function getSettings() {
   const prisma = getPrismaClient();
   try {
     const allowSelfCardRequest = await prisma.settings.findUnique({
-      where: { key: 'allowSelfCardRequest' },
+      where: { key: "allowSelfCardRequest" },
     });
-    
+
     const defaultCheckerId = await prisma.settings.findUnique({
-      where: { key: 'defaultCheckerId' },
+      where: { key: "defaultCheckerId" },
     });
 
     return {
-      allowSelfCardRequest: allowSelfCardRequest?.value === 'true',
+      allowSelfCardRequest: allowSelfCardRequest?.value === "true",
       defaultCheckerId: defaultCheckerId?.value || null,
     };
   } finally {
@@ -155,18 +161,20 @@ async function getSettings() {
   }
 }
 
-
 export async function GET(request: NextRequest) {
-    try {
-        const cards = await getCardData();
-        const settings = await getSettings();
-        
-        return NextResponse.json({ 
-            cards,
-            allowSelfRequest: settings.allowSelfCardRequest,
-            defaultCheckerId: settings.defaultCheckerId,
-        });
-    } catch(error: any) {
-        return NextResponse.json({ message: 'Failed to fetch cards.' }, { status: 500 });
-    }
+  try {
+    const cards = await getCardData();
+    const settings = await getSettings();
+
+    return NextResponse.json({
+      cards,
+      allowSelfRequest: settings.allowSelfCardRequest,
+      defaultCheckerId: settings.defaultCheckerId,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { message: "Failed to fetch cards." },
+      { status: 500 },
+    );
+  }
 }

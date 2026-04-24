@@ -33,7 +33,7 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [checkers, setCheckers] = useState<Checker[]>([]);
-  
+
   // Settings state
   const [allowSelfCardRequest, setAllowSelfCardRequest] = useState(false);
   const [defaultCheckerId, setDefaultCheckerId] = useState("");
@@ -46,7 +46,7 @@ export default function AdminSettings() {
     try {
       const res = await fetch("/api/admin/settings");
       const data = await res.json();
-      
+
       if (res.ok) {
         setCheckers(data.checkers || []);
         setAllowSelfCardRequest(data.settings?.allowSelfCardRequest === "true");
@@ -180,7 +180,8 @@ export default function AdminSettings() {
               <CardHeader>
                 <CardTitle>Self Card Request</CardTitle>
                 <CardDescription>
-                  Configure whether users can request cards themselves when no card is available
+                  Configure whether users can request cards themselves when no
+                  card is available
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -190,7 +191,8 @@ export default function AdminSettings() {
                       Allow Self-Initiated Card Requests
                     </Label>
                     <p className="text-sm text-gray-500">
-                      When enabled, users can request a card if none is available
+                      When enabled, users can request a card if none is
+                      available
                     </p>
                   </div>
                   <Switch
@@ -206,7 +208,8 @@ export default function AdminSettings() {
                       Default Checker for Self-Initiated Requests
                     </Label>
                     <p className="text-sm text-gray-500">
-                      All self-initiated card requests will be assigned to this checker
+                      All self-initiated card requests will be assigned to this
+                      checker
                     </p>
                     <Select
                       value={defaultCheckerId}
