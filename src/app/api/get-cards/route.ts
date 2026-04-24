@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getDecryptedPhoneFromCookie } from "@/lib/auth";
+import {
+  getDecryptedPhoneFromCookie,
+  getAccountsFromCookie,
+  setAccountsCookie,
+} from "@/lib/auth";
 import { type CardDetails } from "@/lib/data";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -52,7 +56,13 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
       return { cards, accounts: [] };
     }
 
-    // Otherwise, fetch the list of accounts first
+    // Otherwise, check for cached accounts first
+    const cachedAccounts = await getAccountsFromCookie();
+    if (cachedAccounts && cachedAccounts.length > 0) {
+      return { cards: [], accounts: cachedAccounts };
+    }
+
+    // If no cache, fetch the list of accounts first
     const getAccountsUrl = process.env.GET_ACCOUNTS_URL;
     const getAccountsUser = process.env.GET_ACCOUNTS_USER;
     const getAccountsPass = process.env.GET_ACCOUNTS_PASS;
@@ -88,6 +98,11 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
       name: acc.Name,
       status: acc.Status,
     }));
+
+    // Cache the accounts list
+    if (accounts.length > 0) {
+      await setAccountsCookie(accounts);
+    }
 
     return { cards: [], accounts };
   } catch (error) {

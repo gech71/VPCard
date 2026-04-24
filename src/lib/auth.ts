@@ -43,6 +43,33 @@ export async function setEncryptedPhoneCookie(phoneNumber: string) {
   });
 }
 
+export async function setAccountsCookie(accounts: any[]) {
+  const cookieStore = await cookies();
+  cookieStore.set('user-accounts', JSON.stringify(accounts), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 24, // 1 day
+    path: '/',
+  });
+}
+
+export async function getAccountsFromCookie(): Promise<any[] | null> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get('user-accounts');
+  if (!cookie?.value) return null;
+  try {
+    return JSON.parse(cookie.value);
+  } catch {
+    return null;
+  }
+}
+
+export async function clearAuthCookies() {
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, '', { maxAge: 0 });
+  cookieStore.set('user-accounts', '', { maxAge: 0 });
+}
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -54,14 +81,14 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
   try {
     const decryptedPhone = decrypt(cookie.value);
     if (!decryptedPhone) {
-        // This means decryption failed. Clear the invalid cookie.
-        cookieStore.set(COOKIE_NAME, '', { maxAge: 0 });
+        // This means decryption failed. Clear the invalid cookies.
+        await clearAuthCookies();
         return null;
     }
     return decryptedPhone;
   } catch (error) {
-    // Clear the corrupted cookie
-    cookieStore.set(COOKIE_NAME, '', { maxAge: 0 });
+    // Clear the corrupted cookies
+    await clearAuthCookies();
     return null;
   }
 }

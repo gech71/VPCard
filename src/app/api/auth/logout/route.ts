@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { removeAuthCookie, getCurrentUser } from "@/lib/jwt-auth";
+import { clearAuthCookies } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 
 export async function POST(request: Request) {
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
       });
     }
 
+    await clearAuthCookies();
     await removeAuthCookie();
 
     return NextResponse.redirect(new URL("/login", request.url), { status: 302 });
