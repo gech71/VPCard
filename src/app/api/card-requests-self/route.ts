@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
+import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
@@ -38,21 +39,26 @@ async function getCustomerInfo(accountNumber: string) {
   return data;
 }
 
-// Create a self-initiated card request (any authenticated user)
+// Create a self-initiated card request
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
+    const phoneNumber = await getDecryptedPhoneFromCookie();
 
-    if (!currentUser) {
+    // Support both standard JWT auth and legacy phone authentication
+    if (!currentUser && !phoneNumber) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if self card request is enabled
-    const allowSelfCardRequest = await prisma.settings.findUnique({
+    const allowSelfCardRequestSetting = await prisma.settings.findUnique({
       where: { key: "allowSelfCardRequest" },
     });
 
-    if (!allowSelfCardRequest || allowSelfCardRequest.value !== "true") {
+    if (
+      !allowSelfCardRequestSetting ||
+      allowSelfCardRequestSetting.value !== "true"
+    ) {
       return NextResponse.json(
         { error: "Self-initiated card requests are not enabled" },
         { status: 403 },
@@ -85,8 +91,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Determine maker ID (use current user ID or fallback to checker ID for legacy phone users)
+    const makerId = currentUser?.userId || checkerId;
 
+    const body = await request.json();
     const validation = selfRequestSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -121,11 +129,12 @@ export async function POST(request: NextRequest) {
       customerInfo?.phone ||
       customerInfo?.mobileNo ||
       customerInfo?.customerPhone ||
+      phoneNumber ||
       undefined;
     const customerId =
       customerInfo?.customerId || customerInfo?.id || undefined;
 
-    // Create the card request (user is both maker and requester)
+    // Create the card request
     const cardRequest = await prisma.cardRequest.create({
       data: {
         customerId,
@@ -134,28 +143,40 @@ export async function POST(request: NextRequest) {
         customerEmail,
         customerPhone,
         notes: notes ? `Self-request: ${notes}` : "Self-initiated card request",
-        makerId: currentUser.userId,
+        makerId,
         checkerId,
       },
     });
 
-    // Create audit log
+    // Create audit logs
+    const logUserId = currentUser?.userId || null;
+
     await createAuditLog({
-      userId: currentUser.userId,
+      userId: logUserId,
       action: "SELF_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
       cardRequestId: cardRequest.id,
-      details: { accountNumber, customerName, checkerId, isSelfRequest: true },
+      details: {
+        accountNumber,
+        customerName,
+        checkerId,
+        isSelfRequest: true,
+        authType: currentUser ? "JWT" : "PHONE",
+      },
     });
 
     await createAuditLog({
-      userId: currentUser.userId,
+      userId: logUserId,
       action: "ASSIGN_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
       cardRequestId: cardRequest.id,
-      details: { assignedTo: checker.email, isSelfRequest: true },
+      details: {
+        assignedTo: checker.email,
+        isSelfRequest: true,
+        authType: currentUser ? "JWT" : "PHONE",
+      },
     });
 
     return NextResponse.json({
