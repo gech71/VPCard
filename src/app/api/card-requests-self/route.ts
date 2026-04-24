@@ -120,19 +120,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract customer details from API response
+    // Extract customer details from API response (Align with maker/page.tsx logic)
+    const detail = (customerInfo?.detail as any) || customerInfo;
+
     const customerName =
-      customerInfo?.customerName || customerInfo?.name || "Unknown";
-    const customerEmail =
-      customerInfo?.email || customerInfo?.customerEmail || undefined;
+      detail?.CustomerName ||
+      detail?.customerName ||
+      detail?.name ||
+      detail?.custName ||
+      "Unknown";
+
+    const customerEmail = detail?.Email || detail?.email || undefined;
+
     const customerPhone =
-      customerInfo?.phone ||
-      customerInfo?.mobileNo ||
-      customerInfo?.customerPhone ||
+      detail?.PhoneNumber ||
+      detail?.phoneNumber ||
+      detail?.phone ||
+      detail?.mobile ||
+      detail?.mobileNo ||
+      detail?.customerPhone ||
       phoneNumber ||
       undefined;
-    const customerId =
-      customerInfo?.customerId || customerInfo?.id || undefined;
+
+    const customerIdRaw = detail?.CustomerId || detail?.customerId || detail?.customerID || detail?.id;
+    const customerId = customerIdRaw ? String(customerIdRaw) : undefined;
 
     // Create the card request
     const cardRequest = await prisma.cardRequest.create({
