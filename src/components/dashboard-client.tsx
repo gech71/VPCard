@@ -94,16 +94,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   };
 
   if (!cards || cards.length === 0) {
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Could not retrieve card details. Please ensure you are connected and
-          try again later.
-        </AlertDescription>
-      </Alert>
-    );
+    return null;
   }
 
   const isLoading = isTxPending;

@@ -108,8 +108,7 @@ export default function Home() {
     }
   }
 
-  const showNoCardsMessage =
-    !isLoading && (!cards || cards.length === 0) && error;
+  const showNoCardsMessage = !isLoading && (!cards || cards.length === 0);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -153,70 +152,76 @@ export default function Home() {
             <AlertDescription>{error} Please try again later.</AlertDescription>
           </Alert>
         )}
-        {showNoCardsMessage && allowSelfRequest && (
+        {showNoCardsMessage && (
           <Alert className="mt-4">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>No Cards Available</AlertTitle>
             <AlertDescription className="flex flex-col gap-4">
               <p>You don't have any cards associated with your account.</p>
-              <Dialog
-                open={isRequestDialogOpen}
-                onOpenChange={setIsRequestDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Request a Card
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Request a Card</DialogTitle>
-                    <DialogDescription>
-                      Submit a request for a new card. It will be assigned to a
-                      checker for review.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitRequest} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="accountNumber">Account Number *</Label>
-                      <Input
-                        id="accountNumber"
-                        value={requestForm.accountNumber}
-                        onChange={(e) =>
-                          setRequestForm({
-                            ...requestForm,
-                            accountNumber: e.target.value,
-                          })
-                        }
-                        required
-                        placeholder="Enter your account number"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes (Optional)</Label>
-                      <Input
-                        id="notes"
-                        value={requestForm.notes}
-                        onChange={(e) =>
-                          setRequestForm({
-                            ...requestForm,
-                            notes: e.target.value,
-                          })
-                        }
-                        placeholder="Any additional notes"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Request"}
+              {allowSelfRequest ? (
+                <Dialog
+                  open={isRequestDialogOpen}
+                  onOpenChange={setIsRequestDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Request a Card
                     </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Request a Card</DialogTitle>
+                      <DialogDescription>
+                        Submit a request for a new card. It will be assigned to a
+                        checker for review.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmitRequest} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="accountNumber">Account Number *</Label>
+                        <Input
+                          id="accountNumber"
+                          value={requestForm.accountNumber}
+                          onChange={(e) =>
+                            setRequestForm({
+                              ...requestForm,
+                              accountNumber: e.target.value,
+                            })
+                          }
+                          required
+                          placeholder="Enter your account number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Notes (Optional)</Label>
+                        <Input
+                          id="notes"
+                          value={requestForm.notes}
+                          onChange={(e) =>
+                            setRequestForm({
+                              ...requestForm,
+                              notes: e.target.value,
+                            })
+                          }
+                          placeholder="Any additional notes"
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Request"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Please contact support if you believe this is an error.
+                </p>
+              )}
             </AlertDescription>
           </Alert>
         )}

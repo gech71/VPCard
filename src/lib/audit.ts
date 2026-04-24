@@ -31,27 +31,37 @@ export async function createAuditLog({
   cardRequestId,
 }: AuditLogParams) {
   try {
-    // Get request headers for IP and user agent
-    const headers = new Map<string, string>();
+    // Verify user exists if userId is provided
+    let verifiedUserId = userId;
+    if (userId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        console.warn(`Audit Log: User ID ${userId} not found. Logging as anonymous.`);
+        verifiedUserId = undefined; // Set to undefined so Prisma omits it, column is nullable
+      }
+    }
 
     await prisma.auditLog.create({
       data: {
-        userId,
+        userId: verifiedUserId,
         action,
         entityType,
         entityId,
         details: details || {},
         cardRequestId,
-        ipAddress:
-          headers.get("x-forwarded-for") ||
-          headers.get("x-real-ip") ||
-          "unknown",
-        userAgent: headers.get("user-agent") || "unknown",
+        ipAddress: "unknown",
+        userAgent: "unknown",
       },
     });
   } catch (error) {
     // Log to console but don't fail the main operation
-    console.error("Failed to create audit log:", error);
+    console.error("Critical: Failed to create audit log:", {
+      error,
+      params: { userId, action, entityType, entityId, cardRequestId },
+    });
   }
 }
 

@@ -162,18 +162,29 @@ async function getSettings() {
 }
 
 export async function GET(request: NextRequest) {
+  let cards: CardDetails[] = [];
+  let fetchError = null;
+
   try {
-    const cards = await getCardData();
+    cards = await getCardData();
+  } catch (error: any) {
+    console.error("Card fetch error:", error);
+    fetchError = error.message;
+  }
+
+  try {
     const settings = await getSettings();
 
     return NextResponse.json({
       cards,
       allowSelfRequest: settings.allowSelfCardRequest,
       defaultCheckerId: settings.defaultCheckerId,
+      error: fetchError,
     });
   } catch (error: any) {
+    console.error("Settings fetch error:", error);
     return NextResponse.json(
-      { message: "Failed to fetch cards." },
+      { message: "Failed to fetch necessary data." },
       { status: 500 },
     );
   }
