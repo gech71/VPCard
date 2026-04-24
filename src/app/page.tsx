@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CardResponse {
   cards: CardDetails[];
+  accountNumber?: string | null;
   allowSelfRequest?: boolean;
   defaultCheckerId?: string | null;
 }
@@ -31,6 +32,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
+  const [accountNumber, setAccountNumber] = useState<string | null>(null);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestForm, setRequestForm] = useState({
@@ -53,6 +55,15 @@ export default function Home() {
         const data: CardResponse = await response.json();
         setCards(data.cards);
         setAllowSelfRequest(data.allowSelfRequest || false);
+        setAccountNumber(data.accountNumber || null);
+
+        // Pre-fill account number if available
+        if (data.accountNumber) {
+          setRequestForm((prev) => ({
+            ...prev,
+            accountNumber: data.accountNumber!,
+          }));
+        }
       } catch (e: any) {
         setError(e.message || "An unknown error occurred.");
       } finally {
@@ -91,7 +102,7 @@ export default function Home() {
 
       setIsRequestDialogOpen(false);
       setRequestForm({
-        accountNumber: "",
+        accountNumber: accountNumber || "",
         customerName: "",
         customerEmail: "",
         customerPhone: "",
@@ -183,15 +194,13 @@ export default function Home() {
                         <Input
                           id="accountNumber"
                           value={requestForm.accountNumber}
-                          onChange={(e) =>
-                            setRequestForm({
-                              ...requestForm,
-                              accountNumber: e.target.value,
-                            })
-                          }
+                          readOnly
+                          className="bg-muted cursor-not-allowed"
                           required
-                          placeholder="Enter your account number"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Automatically detected from your profile.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="notes">Notes (Optional)</Label>

@@ -16,7 +16,10 @@ function getPrismaClient() {
 
 export const dynamic = "force-dynamic";
 
-async function getCardData(): Promise<CardDetails[]> {
+async function getCardData(): Promise<{
+  cards: CardDetails[];
+  accountNumber: string | null;
+}> {
   try {
     const phoneNumber = await getDecryptedPhoneFromCookie();
     if (!phoneNumber) {
@@ -54,7 +57,7 @@ async function getCardData(): Promise<CardDetails[]> {
     const accountNumber = accountsData?.details?.[0]?.AccountNumber;
 
     if (!accountNumber) {
-      return []; // Not an error, user might just not have an account
+      return { cards: [], accountNumber: null }; // Not an error, user might just not have an account
     }
 
     const cardListUrl = process.env.CARD_LIST_URL;
@@ -107,10 +110,10 @@ async function getCardData(): Promise<CardDetails[]> {
     const cardsFromApi = cardListData?.response?.body?.cards;
 
     if (!cardsFromApi || !Array.isArray(cardsFromApi)) {
-      return [];
+      return { cards: [], accountNumber };
     }
 
-    return cardsFromApi.map((card: any, index: number) => {
+    const cards = cardsFromApi.map((card: any, index: number) => {
       const status = card.cardstatus;
       let cardStatus: CardDetails["status"] = "Inactive";
       if (status === "Active" || status === "OK") {
@@ -133,6 +136,8 @@ async function getCardData(): Promise<CardDetails[]> {
         cardTypeNetwork: card.cardtypenetwork,
       };
     });
+
+    return { cards, accountNumber };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -163,10 +168,13 @@ async function getSettings() {
 
 export async function GET(request: NextRequest) {
   let cards: CardDetails[] = [];
+  let accountNumber: string | null = null;
   let fetchError = null;
 
   try {
-    cards = await getCardData();
+    const data = await getCardData();
+    cards = data.cards;
+    accountNumber = data.accountNumber;
   } catch (error: any) {
     console.error("Card fetch error:", error);
     fetchError = error.message;
@@ -177,6 +185,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       cards,
+      accountNumber,
       allowSelfRequest: settings.allowSelfCardRequest,
       defaultCheckerId: settings.defaultCheckerId,
       error: fetchError,
@@ -189,3 +198,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
