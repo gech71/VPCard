@@ -190,51 +190,11 @@ export default function Home() {
                           })
                         }
                         required
+                        placeholder="Enter your account number"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="customerName">Customer Name *</Label>
-                      <Input
-                        id="customerName"
-                        value={requestForm.customerName}
-                        onChange={(e) =>
-                          setRequestForm({
-                            ...requestForm,
-                            customerName: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="customerEmail">Email</Label>
-                      <Input
-                        id="customerEmail"
-                        type="email"
-                        value={requestForm.customerEmail}
-                        onChange={(e) =>
-                          setRequestForm({
-                            ...requestForm,
-                            customerEmail: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="customerPhone">Phone</Label>
-                      <Input
-                        id="customerPhone"
-                        value={requestForm.customerPhone}
-                        onChange={(e) =>
-                          setRequestForm({
-                            ...requestForm,
-                            customerPhone: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Notes</Label>
+                      <Label htmlFor="notes">Notes (Optional)</Label>
                       <Input
                         id="notes"
                         value={requestForm.notes}
@@ -244,7 +204,7 @@ export default function Home() {
                             notes: e.target.value,
                           })
                         }
-                        placeholder="Optional notes"
+                        placeholder="Any additional notes"
                       />
                     </div>
                     <Button

@@ -4,13 +4,37 @@ import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
+const PREPAID_API_URL = process.env.PREPAID_API_URL;
+const PREPAID_API_USER = process.env.PREPAID_API_USER;
+const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
+
 const selfRequestSchema = z.object({
   accountNumber: z.string().min(1, "Account number is required"),
-  customerName: z.string().min(1, "Customer name is required"),
-  customerEmail: z.string().email().optional(),
-  customerPhone: z.string().optional(),
   notes: z.string().optional(),
 });
+
+async function getCustomerInfo(accountNumber: string) {
+  if (!PREPAID_API_URL || !PREPAID_API_USER || !PREPAID_API_PASS) {
+    throw new Error("Prepaid API configuration missing");
+  }
+
+  const response = await fetch(`${PREPAID_API_URL}/prepaid/cust-info-by-acct`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${Buffer.from(`${PREPAID_API_USER}:${PREPAID_API_PASS}`).toString("base64")}`,
+    },
+    body: JSON.stringify({ accountNumber }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch customer info: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data;
+}
 
 // Create a self-initiated card request (any authenticated user)
 export async function POST(request: NextRequest) {
@@ -69,12 +93,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accountNumber, customerName, customerEmail, customerPhone, notes } =
-      validation.data;
+    const { accountNumber, notes } = validation.data;
+
+    // Fetch customer information from prepaid API
+    let customerInfo;
+    try {
+      customerInfo = await getCustomerInfo(accountNumber);
+    } catch (error) {
+      console.error("Customer info fetch error:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch customer information. Please verify the account number." },
+        { status: 400 },
+      );
+    }
+
+    // Extract customer details from API response
+    const customerName = customerInfo?.customerName || customerInfo?.name || "Unknown";
+    const customerEmail = customerInfo?.email || customerInfo?.customerEmail || undefined;
+    const customerPhone = customerInfo?.phone || customerInfo?.mobileNo || customerInfo?.customerPhone || undefined;
+    const customerId = customerInfo?.customerId || customerInfo?.id || undefined;
 
     // Create the card request (user is both maker and requester)
     const cardRequest = await prisma.cardRequest.create({
       data: {
+        customerId,
         accountNumber,
         customerName,
         customerEmail,
