@@ -10,7 +10,7 @@ const PREPAID_API_USER = process.env.PREPAID_API_USER;
 const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
 const selfRequestSchema = z.object({
-  accountNumber: z.string().min(1, "Account number is required"),
+  accountNumber: z.coerce.string().min(1, "Account number is required"),
   notes: z.string().optional(),
 });
 

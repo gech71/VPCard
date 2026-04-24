@@ -54,7 +54,7 @@ async function getCardData(): Promise<{
     }
 
     const accountsData = await accountsResponse.json();
-    const accountNumber = accountsData?.details?.[0]?.AccountNumber;
+    const accountNumber = accountsData?.details?.[0]?.AccountNumber?.toString();
 
     if (!accountNumber) {
       return { cards: [], accountNumber: null }; // Not an error, user might just not have an account
