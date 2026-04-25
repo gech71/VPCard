@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useActionState } from 'react';
+import React, { useState, useEffect, Suspense, useActionState, startTransition } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
@@ -32,7 +32,9 @@ function LimitsPageContent() {
     if (cardNumber) {
       const formData = new FormData();
       formData.append('card_numb', cardNumber);
-      limitsFormAction(formData);
+      startTransition(() => {
+        limitsFormAction(formData);
+      });
     }
   }, [cardNumber, limitsFormAction, refreshKey]);
 

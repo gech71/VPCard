@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useActionState } from "react";
+import React, { useState, useEffect, useActionState, startTransition } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -41,7 +41,9 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
     if (selectedCard) {
       const formData = new FormData();
       formData.append("card_numb", selectedCard.fullNumber);
-      txFormAction(formData);
+      startTransition(() => {
+        txFormAction(formData);
+      });
     }
   }, [current, cards, selectedCard]);
 
