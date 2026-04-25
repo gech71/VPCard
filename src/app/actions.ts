@@ -66,7 +66,8 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
           idmsg: idMsg,
         },
         initiator: {
-          card_numb: card_numb,
+          // card_numb: card_numb,
+          card_numb:"5262473567817128",
           start: '1',
           end: '10', // Fetch last 10 transactions
         },
