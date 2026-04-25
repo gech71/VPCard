@@ -64,6 +64,12 @@ export default async function SuperAdminDashboard() {
               Audit Logs
             </Link>
             <Link
+              href="/admin/requests"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Card Requests
+            </Link>
+            <Link
               href="/admin/settings"
               className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
             >
@@ -145,6 +151,12 @@ export default async function SuperAdminDashboard() {
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
             >
               Manage Users
+            </Link>
+            <Link
+              href="/admin/requests"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              Manage Requests
             </Link>
             <Link
               href="/admin/audit"

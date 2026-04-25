@@ -118,6 +118,18 @@ export default function AuditLogsPage() {
             >
               Audit Logs
             </a>
+            <a
+              href="/admin/requests"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Card Requests
+            </a>
+            <a
+              href="/admin/settings"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Settings
+            </a>
           </div>
         </div>
       </nav>
