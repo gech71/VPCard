@@ -178,7 +178,12 @@ export default function Home() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>No Cards Available</AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
-                  <p>You don't have any cards associated with this account.</p>
+                  <p>
+                    You don't have any cards associated with account{" "}
+                    <span className="font-mono font-bold bg-muted px-1 rounded">
+                      {selectedAccount}
+                    </span>.
+                  </p>
                   {allowSelfRequest ? (
                     <Button asChild>
                       <Link href={`/request-card?accountNumber=${selectedAccount}`}>
@@ -188,7 +193,7 @@ export default function Home() {
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Please contact support if you believe this is an error.
+                      Please contact support for account {selectedAccount} if you believe this is an error.
                     </p>
                   )}
                 </AlertDescription>
