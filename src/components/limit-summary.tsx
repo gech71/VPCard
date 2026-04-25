@@ -1,8 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
-import { useFormState } from "react-dom";
+import { useState, useActionState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { type LimitApiResponse, setCardLimit } from "@/app/actions";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
@@ -32,7 +31,7 @@ const initialSetLimitState = {
 
 export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSummaryProps) {
   const { toast } = useToast();
-  const [formState, formAction] = useFormState(setCardLimit, initialSetLimitState);
+  const [formState, formAction] = useActionState(setCardLimit, initialSetLimitState);
   const [pending, setPending] = useState(false);
   const [newLimit, setNewLimit] = useState<number | string>("");
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | null>(null);

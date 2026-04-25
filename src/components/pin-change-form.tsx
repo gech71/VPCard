@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useState, useEffect, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { changePin } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,7 +34,7 @@ function SubmitButton() {
 export default function PinChangeForm({ cardNumber }: PinChangeFormProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const [formState, formAction] = useFormState(changePin, initialFormState);
+  const [formState, formAction] = useActionState(changePin, initialFormState);
 
   useEffect(() => {
     if (formState.message) {

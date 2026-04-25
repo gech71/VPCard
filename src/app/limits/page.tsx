@@ -1,8 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useTransition, Suspense } from 'react';
-import { useFormState } from 'react-dom';
+import React, { useState, useEffect, Suspense, useActionState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
@@ -26,17 +25,14 @@ function LimitsPageContent() {
   const cardNumber = searchParams.get('card_numb');
   const { toast } = useToast();
   
-  const [isLimitsPending, startLimitsTransition] = useTransition();
-  const [limitsFormState, limitsFormAction] = useFormState(getCardLimits, initialLimitsState);
+  const [limitsFormState, limitsFormAction, isLimitsPending] = useActionState(getCardLimits, initialLimitsState);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (cardNumber) {
       const formData = new FormData();
       formData.append('card_numb', cardNumber);
-      startLimitsTransition(() => {
-        limitsFormAction(formData);
-      });
+      limitsFormAction(formData);
     }
   }, [cardNumber, limitsFormAction, refreshKey]);
 

@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
-import { useFormState } from "react-dom";
+import React, { useState, useEffect, useActionState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -34,8 +33,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
   const [count, setCount] = useState(0);
 
   const { toast } = useToast();
-  const [isTxPending, startTxTransition] = useTransition();
-  const [txFormState, setTxFormState] = useState(initialTransactionState);
+  const [txFormState, txFormAction, isTxPending] = useActionState(getCardTransactions, initialTransactionState);
 
   const selectedCard = cards[current];
 
@@ -43,13 +41,7 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
     if (selectedCard) {
       const formData = new FormData();
       formData.append("card_numb", selectedCard.fullNumber);
-      startTxTransition(async () => {
-        const result = await getCardTransactions(
-          initialTransactionState,
-          formData,
-        );
-        setTxFormState(result);
-      });
+      txFormAction(formData);
     }
   }, [current, cards, selectedCard]);
 
