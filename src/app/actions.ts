@@ -225,17 +225,23 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
         return { success: false, message: 'Server configuration error.' };
     }
     
-    const limitDataRaw = formData.get('limitData');
-    if (!limitDataRaw || typeof limitDataRaw !== 'string') {
-        return { success: false, message: 'Missing or invalid limit data.' };
+    // Read individual fields to avoid WAF issues with JSON blobs
+    const risk_code = formData.get('risk_code');
+    if (!risk_code) {
+        return { success: false, message: 'Missing limit identification data.' };
     }
     
-    let originalLimitData: LimitApiResponse;
-    try {
-        originalLimitData = JSON.parse(limitDataRaw) as LimitApiResponse;
-    } catch (e) {
-        return { success: false, message: 'Invalid limit data format.' };
-    }
+    const originalLimitData = {
+        risk_code: String(risk_code),
+        transaction_type: String(formData.get('transaction_type') || ""),
+        channel: String(formData.get('channel') || ""),
+        periodicity_id: String(formData.get('periodicity_id') || ""),
+        periodicity_code: Number(formData.get('periodicity_code') || 0),
+        domain_type: String(formData.get('domain_type') || ""),
+        transaction_mode: String(formData.get('transaction_mode') || ""),
+        tans_max: Number(formData.get('tans_max') || 0),
+        limite_number: Number(formData.get('limite_number') || 0),
+    };
 
     const newLimitRaw = formData.get('newLimit');
     const newLimit = Number(newLimitRaw);
