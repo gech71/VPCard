@@ -77,9 +77,10 @@ export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSu
         onUpdate(); // Trigger re-fetch
       }
     } catch (error) {
+      console.error("Limit update error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while updating the limit.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the limit.",
         variant: "destructive",
       });
     } finally {

@@ -226,11 +226,19 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
     }
     
     const limitDataRaw = formData.get('limitData');
-    if (!limitDataRaw) {
-        return { success: false, message: 'Missing limit data.' };
+    if (!limitDataRaw || typeof limitDataRaw !== 'string') {
+        return { success: false, message: 'Missing or invalid limit data.' };
     }
-    const originalLimitData = JSON.parse(limitDataRaw as string) as LimitApiResponse;
-    const newLimit = Number(formData.get('newLimit'));
+    
+    let originalLimitData: LimitApiResponse;
+    try {
+        originalLimitData = JSON.parse(limitDataRaw) as LimitApiResponse;
+    } catch (e) {
+        return { success: false, message: 'Invalid limit data format.' };
+    }
+
+    const newLimitRaw = formData.get('newLimit');
+    const newLimit = Number(newLimitRaw);
 
     if (isNaN(newLimit) || newLimit < 0) {
         return { success: false, message: 'Invalid limit amount provided.' };
@@ -267,6 +275,7 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
         return { success: true, message: 'Limit updated successfully.' };
 
     } catch (error) {
+        console.error("setCardLimit server error:", error);
         return { success: false, message: 'An unexpected error occurred while setting the limit.' };
     }
 }
