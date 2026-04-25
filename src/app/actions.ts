@@ -225,7 +225,11 @@ export async function setCardLimit(prevState: any, formData: FormData): Promise<
         return { success: false, message: 'Server configuration error.' };
     }
     
-    const originalLimitData = JSON.parse(formData.get('limitData') as string) as LimitApiResponse;
+    const limitDataRaw = formData.get('limitData');
+    if (!limitDataRaw) {
+        return { success: false, message: 'Missing limit data.' };
+    }
+    const originalLimitData = JSON.parse(limitDataRaw as string) as LimitApiResponse;
     const newLimit = Number(formData.get('newLimit'));
 
     if (isNaN(newLimit) || newLimit < 0) {

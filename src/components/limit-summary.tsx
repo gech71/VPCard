@@ -1,8 +1,6 @@
-
 "use client";
 
 import { useState } from "react";
-import { useFormState } from "react-dom";
 import { Skeleton } from "./ui/skeleton";
 import { type LimitApiResponse, setCardLimit } from "@/app/actions";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
@@ -24,17 +22,10 @@ type GroupedLimit = {
     originalData: LimitApiResponse;
 }
 
-const initialSetLimitState = {
-  success: false,
-  message: "",
-};
-
-
 export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSummaryProps) {
   const { toast } = useToast();
-  const [formState, formAction] = useFormState(setCardLimit, initialSetLimitState);
   const [pending, setPending] = useState(false);
-  const [newLimit, setNewLimit] = useState<number | string>("");
+  const [newLimits, setNewLimits] = useState<Record<string, string>>({});
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | null>(null);
 
   const currencyFormatter = (value: number) => new Intl.NumberFormat("en-US", {
@@ -58,21 +49,49 @@ export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSu
 
   const summary: GroupedLimit[] = Object.values(groupedLimits).sort((a,b) => a.transaction_type.localeCompare(b.transaction_type));
 
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>, limitData: LimitApiResponse) => {
     e.preventDefault();
     setPending(true);
-    const formData = new FormData(e.currentTarget);
-    const result = await setCardLimit(formState, formData);
-    toast({
-      title: result.success ? "Success" : "Error",
-      description: result.message,
-      variant: result.success ? "default" : "destructive",
-    });
-    setPending(false);
-    if (result.success) {
-      setActiveAccordionItem(null); // Close accordion
-      onUpdate(); // Trigger re-fetch
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      // Manually call the server action. Since it expects (prevState, formData), 
+      // and we don't use prevState, we can pass null.
+      const result = await setCardLimit(null, formData);
+      
+      toast({
+        title: result.success ? "Success" : "Error",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+
+      if (result.success) {
+        setActiveAccordionItem(null); // Close accordion
+        // Clear the specific input for this limit
+        const key = `${limitData.transaction_type}-${limitData.periodicity_id}`;
+        setNewLimits(prev => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+        onUpdate(); // Trigger re-fetch
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating the limit.",
+        variant: "destructive",
+      });
+    } finally {
+      setPending(false);
     }
+  };
+
+  const handleInputChange = (key: string, value: string) => {
+    setNewLimits(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   const renderSkeleton = () => (
@@ -96,41 +115,44 @@ export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSu
         {isLoading ? (
           renderSkeleton()
         ) : (
-          summary.map((limit) => (
-            <AccordionItem value={limit.originalData.risk_code} key={limit.originalData.risk_code} className="border rounded-md bg-muted/30">
-              <AccordionTrigger className="p-3 hover:no-underline text-left">
-                <div className="w-full">
-                  <p className="font-semibold text-base text-foreground mb-2">{limit.transaction_type}</p>
-                   <div className="flex justify-between border-t pt-2 mt-2 text-sm">
-                    <p className="font-medium text-foreground">Limit:</p>
-                    <p className="font-semibold text-foreground">{currencyFormatter(limit.limit)}</p>
+          summary.map((limit) => {
+            const key = `${limit.transaction_type}-${limit.periodicity_id}`;
+            return (
+              <AccordionItem value={limit.originalData.risk_code} key={limit.originalData.risk_code} className="border rounded-md bg-muted/30">
+                <AccordionTrigger className="p-3 hover:no-underline text-left">
+                  <div className="w-full">
+                    <p className="font-semibold text-base text-foreground mb-2">{limit.transaction_type}</p>
+                     <div className="flex justify-between border-t pt-2 mt-2 text-sm">
+                      <p className="font-medium text-foreground">Limit:</p>
+                      <p className="font-semibold text-foreground">{currencyFormatter(limit.limit)}</p>
+                    </div>
                   </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-4 border-t">
-                <form onSubmit={handleFormSubmit} className="space-y-4">
-                  <input type="hidden" name="limitData" value={JSON.stringify(limit.originalData)} />
-                  <div>
-                    <label htmlFor="newLimit" className="block text-sm font-medium text-foreground mb-1">Set New Limit</label>
-                    <Input
-                        id="newLimit"
-                        name="newLimit"
-                        type="number"
-                        placeholder="Enter new limit amount"
-                        required
-                        value={newLimit}
-                        onChange={(e) => setNewLimit(e.target.value)}
-                        className="max-w-xs"
-                    />
-                  </div>
-                  <Button type="submit" disabled={pending}>
-                    {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                  </Button>
-                </form>
-              </AccordionContent>
-            </AccordionItem>
-          ))
+                </AccordionTrigger>
+                <AccordionContent className="p-4 border-t">
+                  <form onSubmit={(e) => handleFormSubmit(e, limit.originalData)} className="space-y-4">
+                    <input type="hidden" name="limitData" value={JSON.stringify(limit.originalData)} />
+                    <div>
+                      <label htmlFor={`newLimit-${key}`} className="block text-sm font-medium text-foreground mb-1">Set New Limit</label>
+                      <Input
+                          id={`newLimit-${key}`}
+                          name="newLimit"
+                          type="number"
+                          placeholder="Enter new limit amount"
+                          required
+                          value={newLimits[key] || ""}
+                          onChange={(e) => handleInputChange(key, e.target.value)}
+                          className="max-w-xs"
+                      />
+                    </div>
+                    <Button type="submit" disabled={pending}>
+                      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Changes
+                    </Button>
+                  </form>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })
         )}
       </Accordion>
     </div>
