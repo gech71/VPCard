@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       whereClause.customerEmail = { contains: customerEmail, mode: 'insensitive' };
     }
     
-    if (checkerId \u0026\u0026 checkerId !== "all") {
+    if (checkerId && checkerId !== "all") {
       whereClause.checkerId = checkerId;
     }
     

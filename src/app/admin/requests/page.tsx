@@ -145,7 +145,7 @@ export default function AdminRequestsPage() {
     if (requests.length === 0) return;
 
     const headers = ["Date", "Account", "Name", "Phone", "Email", "Status", "Checker", "PAN", "CVV", "Expiry"];
-    const rows = requests.map(req =\u003e [
+    const rows = requests.map(req => [
       new Date(req.createdAt).toLocaleDateString(),
       req.accountNumber,
       req.customerName,
@@ -158,7 +158,7 @@ export default function AdminRequestsPage() {
       req.expiryDate || ""
     ]);
 
-    const csvContent = [headers, ...rows].map(e =\u003e e.join(",")).join("\n");
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -201,7 +201,7 @@ export default function AdminRequestsPage() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">All Card Requests</h2>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() =\u003e setShowFilters(!showFilters)}>
+            <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
               <Filter className="w-4 h-4 mr-2" />
               {showFilters ? "Hide Filters" : "Show Filters"}
             </Button>
@@ -212,7 +212,7 @@ export default function AdminRequestsPage() {
           </div>
         </div>
 
-        {showFilters \u0026\u0026 (
+        {showFilters && (
           <Card className="mb-8">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Advanced Filters</CardTitle>
@@ -235,19 +235,19 @@ export default function AdminRequestsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="accountNumber">Account Number</Label>
-                  <Input id="accountNumber" value={accountNumber} onChange={(e) =\u003e setAccountNumber(e.target.value)} placeholder="Search account..." />
+                  <Input id="accountNumber" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Search account..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customerName">Customer Name</Label>
-                  <Input id="customerName" value={customerName} onChange={(e) =\u003e setCustomerName(e.target.value)} placeholder="Search name..." />
+                  <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Search name..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customerPhone">Phone Number</Label>
-                  <Input id="customerPhone" value={customerPhone} onChange={(e) =\u003e setCustomerPhone(e.target.value)} placeholder="+251..." />
+                  <Input id="customerPhone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+251..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customerEmail">Email</Label>
-                  <Input id="customerEmail" value={customerEmail} onChange={(e) =\u003e setCustomerEmail(e.target.value)} placeholder="Search email..." />
+                  <Input id="customerEmail" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Search email..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="checker">Assigned Checker</Label>
@@ -257,7 +257,7 @@ export default function AdminRequestsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Checkers</SelectItem>
-                      {checkers.map((c) =\u003e (
+                      {checkers.map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.email}</SelectItem>
                       ))}
                     </SelectContent>
@@ -265,19 +265,19 @@ export default function AdminRequestsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pan">Card Number (PAN)</Label>
-                  <Input id="pan" value={pan} onChange={(e) =\u003e setPan(e.target.value)} placeholder="Search PAN..." />
+                  <Input id="pan" value={pan} onChange={(e) => setPan(e.target.value)} placeholder="Search PAN..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cvv">CVV</Label>
-                  <Input id="cvv" value={cvv} onChange={(e) =\u003e setCvv(e.target.value)} placeholder="Search CVV..." />
+                  <Input id="cvv" value={cvv} onChange={(e) => setCvv(e.target.value)} placeholder="Search CVV..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Start Date</Label>
-                  <Input id="startDate" type="date" value={startDate} onChange={(e) =\u003e setStartDate(e.target.value)} />
+                  <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">End Date</Label>
-                  <Input id="endDate" type="date" value={endDate} onChange={(e) =\u003e setEndDate(e.target.value)} />
+                  <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
@@ -323,7 +323,7 @@ export default function AdminRequestsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    requests.map((req) =\u003e (
+                    requests.map((req) => (
                       <TableRow key={req.id}>
                         <TableCell className="text-sm">
                           {new Date(req.createdAt).toLocaleDateString()}
@@ -365,7 +365,7 @@ export default function AdminRequestsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {req.status === "APPROVED" \u0026\u0026 req.pan ? (
+                          {req.status === "APPROVED" && req.pan ? (
                             <div className="flex flex-col gap-1">
                               <span className="font-mono text-xs bg-gray-100 px-1 rounded">PAN: {req.pan}</span>
                               <div className="flex gap-2">
