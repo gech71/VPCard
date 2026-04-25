@@ -113,6 +113,21 @@ export async function POST(request: NextRequest) {
 
     const { accountNumber, customerEmail, customerPhone: providedPhone, notes } = validation.data;
 
+    // Check if there's already a pending request for this account number
+    const existingPendingRequest = await prisma.cardRequest.findFirst({
+      where: {
+        accountNumber,
+        status: "PENDING",
+      },
+    });
+
+    if (existingPendingRequest) {
+      return NextResponse.json(
+        { error: "There is already a pending card request for this account number." },
+        { status: 400 },
+      );
+    }
+
     // Fetch customer information from prepaid API
     let customerInfo;
     try {

@@ -56,6 +56,21 @@ export async function POST(request: NextRequest) {
       notes,
     } = validation.data;
 
+    // Check if there's already a pending request for this account number
+    const existingPendingRequest = await prisma.cardRequest.findFirst({
+      where: {
+        accountNumber,
+        status: "PENDING",
+      },
+    });
+
+    if (existingPendingRequest) {
+      return NextResponse.json(
+        { error: "There is already a pending card request for this account number." },
+        { status: 400 },
+      );
+    }
+
     // Verify checker exists and has CHECKER role
     const checker = await prisma.user.findFirst({
       where: { id: checkerId, role: "CHECKER" },

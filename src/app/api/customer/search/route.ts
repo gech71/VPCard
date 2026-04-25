@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 const PREPAID_API_URL =
   process.env.PREPAID_API_URL;
@@ -13,6 +14,21 @@ export async function POST(request: NextRequest) {
     if (!accountNumber) {
       return NextResponse.json(
         { error: "Account number is required" },
+        { status: 400 },
+      );
+    }
+
+    // Check if there's already a pending request for this account number
+    const existingPendingRequest = await prisma.cardRequest.findFirst({
+      where: {
+        accountNumber,
+        status: "PENDING",
+      },
+    });
+
+    if (existingPendingRequest) {
+      return NextResponse.json(
+        { error: "There is already a pending card request for this account number." },
         { status: 400 },
       );
     }
