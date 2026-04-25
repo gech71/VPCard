@@ -7,17 +7,8 @@ import DashboardClient from "@/components/dashboard-client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2, Plus, UserCheck } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -42,15 +33,6 @@ export default function Home() {
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
-  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [requestForm, setRequestForm] = useState({
-    accountNumber: "",
-    customerName: "",
-    customerEmail: "",
-    customerPhone: "",
-    notes: "",
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -92,12 +74,6 @@ export default function Home() {
         }
         const data: CardResponse = await response.json();
         setCards(data.cards);
-
-        // Pre-fill request form with selected account
-        setRequestForm((prev) => ({
-          ...prev,
-          accountNumber: selectedAccount,
-        }));
       } catch (e: any) {
         toast({
           variant: "destructive",
@@ -110,61 +86,6 @@ export default function Home() {
     }
     fetchCards();
   }, [selectedAccount, toast]);
-
-  async function handleSubmitRequest(e: React.FormEvent) {
-    e.preventDefault();
-    if (!requestForm.accountNumber) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select an account number.",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch("/api/card-requests-self", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestForm),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.error || "Failed to submit request",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Your card request has been submitted successfully.",
-      });
-
-      setIsRequestDialogOpen(false);
-      setRequestForm({
-        accountNumber: selectedAccount || "",
-        customerName: "",
-        customerEmail: "",
-        customerPhone: "",
-        notes: "",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   const showNoCardsMessage =
     !isLoading && !isLoadingCards && selectedAccount && (!cards || cards.length === 0);
@@ -259,67 +180,12 @@ export default function Home() {
                 <AlertDescription className="flex flex-col gap-4">
                   <p>You don't have any cards associated with this account.</p>
                   {allowSelfRequest ? (
-                    <Dialog
-                      open={isRequestDialogOpen}
-                      onOpenChange={setIsRequestDialogOpen}
-                    >
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Request a Card
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Request a Card</DialogTitle>
-                          <DialogDescription>
-                            Submit a request for a new card. It will be assigned
-                            to a checker for review.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form
-                          onSubmit={handleSubmitRequest}
-                          className="space-y-4"
-                        >
-                          <div className="space-y-2">
-                            <Label htmlFor="accountNumber">
-                              Account Number *
-                            </Label>
-                            <Input
-                              id="accountNumber"
-                              value={requestForm.accountNumber}
-                              readOnly
-                              className="bg-muted cursor-not-allowed"
-                              required
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Automatically linked to your selected account.
-                            </p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="notes">Notes (Optional)</Label>
-                            <Input
-                              id="notes"
-                              value={requestForm.notes}
-                              onChange={(e) =>
-                                setRequestForm({
-                                  ...requestForm,
-                                  notes: e.target.value,
-                                })
-                              }
-                              placeholder="Any additional notes"
-                            />
-                          </div>
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting ? "Submitting..." : "Submit Request"}
-                          </Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                    <Button asChild>
+                      <Link href={`/request-card?accountNumber=${selectedAccount}`}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Request a Card
+                      </Link>
+                    </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Please contact support if you believe this is an error.
@@ -333,59 +199,12 @@ export default function Home() {
 
             {allowSelfRequest && cards && cards.length > 0 && (
               <div className="mt-8 flex justify-center">
-                <Dialog
-                  open={isRequestDialogOpen}
-                  onOpenChange={setIsRequestDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="lg">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Request Another Card
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Request a Card</DialogTitle>
-                      <DialogDescription>
-                        Submit a request for a new card. It will be assigned to
-                        a checker for review.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmitRequest} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="accountNumber">Account Number *</Label>
-                        <Input
-                          id="accountNumber"
-                          value={requestForm.accountNumber}
-                          readOnly
-                          className="bg-muted cursor-not-allowed"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="notes">Notes (Optional)</Label>
-                        <Input
-                          id="notes"
-                          value={requestForm.notes}
-                          onChange={(e) =>
-                            setRequestForm({
-                              ...requestForm,
-                              notes: e.target.value,
-                            })
-                          }
-                          placeholder="Any additional notes"
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Submitting..." : "Submit Request"}
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="outline" size="lg" asChild>
+                  <Link href={`/request-card?accountNumber=${selectedAccount}`}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Request Another Card
+                  </Link>
+                </Button>
               </div>
             )}
           </>

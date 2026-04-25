@@ -79,13 +79,11 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
     }
 
     const data = await response.json();
-    const transactionsFromApi = data?.response?.body?.Transactions;
+    const body = data?.response?.body;
+    const transactionsFromApi = body?.Transactions;
+    const balanceFromSummary = body?.summary?.balance ? Number(body.summary.balance) : 0;
 
-    if (!transactionsFromApi || !Array.isArray(transactionsFromApi)) {
-      return { transactions: [], balance: 0, error: null };
-    }
-
-    const formattedTransactions: Transaction[] = transactionsFromApi.map((tx: TransactionApiResponse) => {
+    const formattedTransactions: Transaction[] = (Array.isArray(transactionsFromApi) ? transactionsFromApi : []).map((tx: TransactionApiResponse) => {
         let status: Transaction['status'] = 'Failed';
         if (tx.Status === 'Approval') {
             status = 'Completed';
@@ -102,14 +100,9 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
         };
     });
 
-    const balanceFromTransactions = transactionsFromApi
-        .filter((tx: TransactionApiResponse) => tx.Status === 'Approval')
-        .reduce((acc: number, tx: TransactionApiResponse) => acc + tx.Amount, 0);
-
-
     return { 
         transactions: formattedTransactions, 
-        balance: balanceFromTransactions,
+        balance: balanceFromSummary,
         error: null 
     };
 

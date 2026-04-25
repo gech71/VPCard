@@ -11,6 +11,8 @@ const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
 const selfRequestSchema = z.object({
   accountNumber: z.coerce.string().min(1, "Account number is required"),
+  customerEmail: z.string().email("Invalid email format"),
+  customerPhone: z.string().regex(/^\+251(9|7)\d{8}$/, "Invalid phone format").optional(),
   notes: z.string().optional(),
 });
 
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accountNumber, notes } = validation.data;
+    const { accountNumber, customerEmail, customerPhone: providedPhone, notes } = validation.data;
 
     // Fetch customer information from prepaid API
     let customerInfo;
@@ -130,16 +132,14 @@ export async function POST(request: NextRequest) {
       detail?.custName ||
       "Unknown";
 
-    const customerEmail = detail?.Email || detail?.email || undefined;
+    const finalEmail = customerEmail || detail?.Email || detail?.email || undefined;
 
-    const customerPhone =
-      detail?.PhoneNumber ||
+    const customerPhone = providedPhone || phoneNumber || detail?.PhoneNumber ||
       detail?.phoneNumber ||
       detail?.phone ||
       detail?.mobile ||
       detail?.mobileNo ||
       detail?.customerPhone ||
-      phoneNumber ||
       undefined;
 
     const customerIdRaw = detail?.CustomerId || detail?.customerId || detail?.customerID || detail?.id;
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         customerId,
         accountNumber,
         customerName,
-        customerEmail,
+        customerEmail: finalEmail,
         customerPhone,
         notes: notes ? `Self-request: ${notes}` : "Self-initiated card request",
         makerId,

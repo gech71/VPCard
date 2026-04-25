@@ -81,6 +81,8 @@ export default function MakerDashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedChecker, setSelectedChecker] = useState("");
   const [requestNotes, setRequestNotes] = useState("");
+  const [makerPhone, setMakerPhone] = useState("");
+  const [makerEmail, setMakerEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -147,6 +149,12 @@ export default function MakerDashboard() {
 
       if (data.customer) {
         setCustomerInfo(data.customer);
+        // Pre-fill phone and email if available
+        const detail = (data.customer.detail as Record<string, unknown>) || data.customer;
+        const phone = (detail.PhoneNumber || detail.phoneNumber || detail.phone || detail.mobile || "") as string;
+        const email = (detail.Email || detail.email || "") as string;
+        setMakerPhone(phone);
+        setMakerEmail(email);
       } else {
         toast({
           title: "Not Found",
@@ -187,6 +195,27 @@ export default function MakerDashboard() {
       detail.phone ||
       detail.mobile) as string | undefined;
 
+    // Validation
+    const phoneRegex = /^\+251(9|7)\d{8}$/;
+    if (!phoneRegex.test(makerPhone)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Phone Number",
+        description: "Phone number must be in the format +251XXXXXXXXX (starting with 9 or 7)",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(makerEmail)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+      });
+      return;
+    }
+
     try {
       const res = await fetch("/api/card-requests", {
         method: "POST",
@@ -195,8 +224,8 @@ export default function MakerDashboard() {
           customerId,
           accountNumber,
           customerName,
-          customerEmail,
-          customerPhone,
+          customerEmail: makerEmail,
+          customerPhone: makerPhone,
           checkerId: selectedChecker,
           notes: requestNotes,
         }),
@@ -223,6 +252,8 @@ export default function MakerDashboard() {
       setSearchAccount("");
       setSelectedChecker("");
       setRequestNotes("");
+      setMakerPhone("");
+      setMakerEmail("");
       fetchRequests();
     } catch (error) {
       toast({
@@ -433,6 +464,31 @@ export default function MakerDashboard() {
                       (customerInfo?.name as string)}
                   </span>
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="makerPhone">Customer Phone *</Label>
+                  <Input
+                    id="makerPhone"
+                    value={makerPhone}
+                    onChange={(e) => setMakerPhone(e.target.value)}
+                    placeholder="+2519XXXXXXXX"
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">Format: +251933704978</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="makerEmail">Customer Email *</Label>
+                  <Input
+                    id="makerEmail"
+                    type="email"
+                    value={makerEmail}
+                    onChange={(e) => setMakerEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    required
+                  />
+                </div>
               </div>
 
               <div>

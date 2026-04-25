@@ -23,6 +23,7 @@ export const dynamic = "force-dynamic";
 async function getCardData(selectedAccountNumber?: string | null): Promise<{
   cards: CardDetails[];
   accounts: any[];
+  phoneNumber: string | null;
 }> {
   try {
     const phoneNumber = await getDecryptedPhoneFromCookie();
@@ -53,13 +54,13 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
         cardListIdMsg,
         cardListInstitution,
       );
-      return { cards, accounts: [] };
+      return { cards, accounts: [], phoneNumber };
     }
 
     // Otherwise, check for cached accounts first
     const cachedAccounts = await getAccountsFromCookie();
     if (cachedAccounts && cachedAccounts.length > 0) {
-      return { cards: [], accounts: cachedAccounts };
+      return { cards: [], accounts: cachedAccounts, phoneNumber };
     }
 
     // If no cache, fetch the list of accounts first
@@ -104,7 +105,7 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
       await setAccountsCookie(accounts);
     }
 
-    return { cards: [], accounts };
+    return { cards: [], accounts, phoneNumber };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -207,12 +208,14 @@ export async function GET(request: NextRequest) {
 
   let cards: CardDetails[] = [];
   let accounts: any[] = [];
+  let phoneNumber: string | null = null;
   let fetchError = null;
 
   try {
     const data = await getCardData(accountNumber);
     cards = data.cards;
     accounts = data.accounts;
+    phoneNumber = data.phoneNumber;
   } catch (error: any) {
     console.error("Card fetch error:", error);
     fetchError = error.message;
@@ -224,6 +227,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       cards,
       accounts,
+      phoneNumber,
       allowSelfRequest: settings.allowSelfCardRequest,
       defaultCheckerId: settings.defaultCheckerId,
       error: fetchError,
