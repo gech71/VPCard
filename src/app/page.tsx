@@ -9,13 +9,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2, Plus, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { CreditCard, Wallet, ArrowRight } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 interface CardResponse {
@@ -118,22 +119,27 @@ export default function Home() {
                 Please select an account to view your virtual cards.
               </p>
             </div>
-            <div className="w-full max-w-sm space-y-4">
-              <Select onValueChange={setSelectedAccount}>
-                <SelectTrigger className="h-14 text-lg">
-                  <SelectValue placeholder="Select an account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem
-                      key={acc.accountNumber}
-                      value={acc.accountNumber}
-                    >
-                      {acc.accountNumber} ({acc.name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl px-4">
+              {accounts.map((acc) => (
+                <Card 
+                  key={acc.accountNumber}
+                  className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all group relative overflow-hidden"
+                  onClick={() => setSelectedAccount(acc.accountNumber)}
+                >
+                  <div className="absolute right-0 top-0 h-full w-1 bg-primary transform translate-x-full group-hover:translate-x-0 transition-transform" />
+                  <CardHeader className="p-5 flex flex-row items-center gap-4">
+                    <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Wallet className="w-6 h-6" />
+                    </div>
+                    <div className="text-left space-y-0.5">
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">Account Number</p>
+                      <p className="font-mono text-xl font-bold tracking-tight">{acc.accountNumber}</p>
+                      <p className="text-sm text-muted-foreground font-medium">{acc.name}</p>
+                    </div>
+                    <ArrowRight className="ml-auto w-5 h-5 text-muted-foreground group-hover:text-primary transform group-hover:translate-x-1 transition-all" />
+                  </CardHeader>
+                </Card>
+              ))}
             </div>
           </div>
         )}
