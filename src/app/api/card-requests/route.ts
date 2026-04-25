@@ -9,7 +9,13 @@ const createRequestSchema = z.object({
   accountNumber: z.string().min(1, "Account number is required"),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email("Invalid email format"),
-  customerPhone: z.string().regex(/^\+251(9|7)\d{8}$/, "Phone number must be in the format +251XXXXXXXXX (starting with 9 or 7)"),
+  customerPhone: z.preprocess((val) => {
+    if (typeof val !== "string") return val;
+    let phone = val.trim();
+    if (phone.startsWith("251")) return `+${phone}`;
+    if (phone.startsWith("0")) return `+251${phone.slice(1)}`;
+    return phone;
+  }, z.string().regex(/^\+251(9|7)\d{8}$/, "Phone number must be in the format +251XXXXXXXXX (starting with 9 or 7)")),
   checkerId: z.string().uuid("Invalid checker ID"),
   notes: z.string().optional(),
 });

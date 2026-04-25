@@ -65,6 +65,14 @@ function RequestCardForm() {
 
     setIsSubmitting(true);
 
+    // Normalize phone number (add +251 if missing)
+    let normalizedPhone = phoneNumber.trim();
+    if (normalizedPhone.startsWith("251")) {
+      normalizedPhone = `+${normalizedPhone}`;
+    } else if (normalizedPhone.startsWith("0")) {
+      normalizedPhone = `+251${normalizedPhone.slice(1)}`;
+    }
+
     try {
       const res = await fetch("/api/card-requests-self", {
         method: "POST",
@@ -72,7 +80,7 @@ function RequestCardForm() {
         body: JSON.stringify({
             accountNumber,
             customerEmail: email,
-            customerPhone: phoneNumber,
+            customerPhone: normalizedPhone,
             notes,
         }),
       });

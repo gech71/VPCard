@@ -12,7 +12,13 @@ const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 const selfRequestSchema = z.object({
   accountNumber: z.coerce.string().min(1, "Account number is required"),
   customerEmail: z.string().email("Invalid email format"),
-  customerPhone: z.string().regex(/^\+251(9|7)\d{8}$/, "Invalid phone format").optional(),
+  customerPhone: z.preprocess((val) => {
+    if (typeof val !== "string") return val;
+    let phone = val.trim();
+    if (phone.startsWith("251")) return `+${phone}`;
+    if (phone.startsWith("0")) return `+251${phone.slice(1)}`;
+    return phone;
+  }, z.string().regex(/^\+251(9|7)\d{8}$/, "Invalid phone format")).optional(),
   notes: z.string().optional(),
 });
 

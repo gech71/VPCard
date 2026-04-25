@@ -195,14 +195,22 @@ export default function MakerDashboard() {
       detail.phone ||
       detail.mobile) as string | undefined;
 
-    // Validation
+    // Normalization and Validation
+    let normalizedPhone = makerPhone.trim();
+    if (normalizedPhone.startsWith("251")) {
+      normalizedPhone = `+${normalizedPhone}`;
+    } else if (normalizedPhone.startsWith("0")) {
+      normalizedPhone = `+251${normalizedPhone.slice(1)}`;
+    }
+
     const phoneRegex = /^\+251(9|7)\d{8}$/;
-    if (!phoneRegex.test(makerPhone)) {
+    if (!phoneRegex.test(normalizedPhone)) {
       toast({
         variant: "destructive",
         title: "Invalid Phone Number",
         description: "Phone number must be in the format +251XXXXXXXXX (starting with 9 or 7)",
       });
+      setSubmitting(false);
       return;
     }
 
@@ -213,6 +221,7 @@ export default function MakerDashboard() {
         title: "Invalid Email",
         description: "Please enter a valid email address",
       });
+      setSubmitting(false);
       return;
     }
 
@@ -225,7 +234,7 @@ export default function MakerDashboard() {
           accountNumber,
           customerName,
           customerEmail: makerEmail,
-          customerPhone: makerPhone,
+          customerPhone: normalizedPhone,
           checkerId: selectedChecker,
           notes: requestNotes,
         }),
