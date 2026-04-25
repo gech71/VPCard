@@ -208,7 +208,7 @@ export default function Home() {
 
             {cards && cards.length > 0 && <DashboardClient cards={cards} />}
 
-            {allowSelfRequest && cards && cards.length > 0 && (
+            {/* {allowSelfRequest && cards && cards.length > 0 && (
               <div className="mt-8 flex justify-center">
                 <Button variant="outline" size="lg" asChild>
                   <Link href={`/request-card?accountNumber=${selectedAccount}`}>
@@ -217,7 +217,7 @@ export default function Home() {
                   </Link>
                 </Button>
               </div>
-            )}
+            )} */}
           </>
         )}
       </main>
