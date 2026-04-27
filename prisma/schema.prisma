@@ -63,9 +63,11 @@ model CardRequest {
   reviewedAt      DateTime?
   reviewNotes     String?
 
-  // PSS Virtual Card Data
+  // PSS Virtual Card Data (encrypted)
+  // PAN and expiryDate are encrypted using AES-256-GCM before storage
+  // CVV is NEVER stored - it is retrieved from PSS when needed and immediately discarded
   pan             String?
-  cvv             String?
+  // CVV removed - PCI DSS prohibits storing CVV after authorization
   expiryDate      String?
   
   // Maker who created the request

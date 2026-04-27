@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     const customerEmail = searchParams.get("customerEmail");
     const checkerId = searchParams.get("checkerId");
     const pan = searchParams.get("pan");
-    const cvv = searchParams.get("cvv");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
@@ -53,10 +52,6 @@ export async function GET(request: NextRequest) {
     
     if (pan) {
       whereClause.pan = { contains: pan, mode: 'insensitive' };
-    }
-    
-    if (cvv) {
-      whereClause.cvv = { contains: cvv, mode: 'insensitive' };
     }
     
     if (startDate || endDate) {

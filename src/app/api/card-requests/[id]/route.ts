@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
+import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
 
 const reviewSchema = z.object({
@@ -120,9 +121,17 @@ export async function PATCH(request: NextRequest) {
 
         if (statusObj?.errorcode === "000") {
           const additionalData = responseData.response.body.additionaldata;
-          pan = additionalData?.PAN || null;
-          cvv = additionalData?.cvv2 || null;
-          expiryDate = additionalData?.["expiry date"] || null;
+          const panPlaintext = additionalData?.PAN || null;
+          const cvv = additionalData?.cvv2 || null; // CVV received but NOT stored
+          const expiryDatePlaintext = additionalData?.["expiry date"] || null;
+          
+          // Encrypt PAN and expiryDate before storage (PCI DSS Requirement 3.4)
+          const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || '';
+          pan = panPlaintext ? encryptCardData(panPlaintext, encryptionSecret) : null;
+          expiryDate = expiryDatePlaintext ? encryptCardData(expiryDatePlaintext, encryptionSecret) : null;
+          
+          // CVV is intentionally NOT stored - PCI DSS strictly prohibits storing CVV after authorization
+          // CVV should only exist in memory briefly and be discarded
         } else {
           return NextResponse.json(
             {
@@ -149,7 +158,6 @@ export async function PATCH(request: NextRequest) {
         reviewedAt: new Date(),
         reviewNotes,
         pan,
-        cvv,
         expiryDate,
       },
     });

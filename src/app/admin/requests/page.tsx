@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Search, Filter, Download, X } from "lucide-react";
+import { Loader2, Search, Filter, Download, X, Lock } from "lucide-react";
 
 interface CardRequest {
   id: string;
@@ -41,10 +41,43 @@ interface CardRequest {
   createdAt: string;
   reviewedAt: string | null;
   pan: string | null;
-  cvv: string | null;
   expiryDate: string | null;
   maker: { email: string };
   checker: { email: string } | null;
+}
+
+// Helper to mask PAN for display
+function maskPan(pan: string | null): string {
+  if (!pan) return '';
+  // If encrypted (contains colons), show masked
+  if (pan.includes(':')) {
+    return '•••• •••• •••• ••••';
+  }
+  // Already plaintext or masked
+  return pan;
+}
+
+// Helper to decrypt and mask PAN
+function decryptAndMaskPan(pan: string | null, encryptionSecret: string): string {
+  if (!pan) return '';
+  
+  // If not encrypted, return masked
+  if (!pan.includes(':')) {
+    return maskPan(pan);
+  }
+  
+  try {
+    // For admin view, show last 4 digits
+    const parts = pan.split(':');
+    if (parts.length === 3) {
+      // It's encrypted - show that it's secured
+      return '🔒 Encrypted';
+    }
+  } catch {
+    return 'Error';
+  }
+  
+  return maskPan(pan);
 }
 
 interface Checker {
@@ -154,7 +187,6 @@ export default function AdminRequestsPage() {
       req.status,
       req.checker?.email || "N/A",
       req.pan || "",
-      req.cvv || "",
       req.expiryDate || ""
     ]);
 
@@ -367,10 +399,12 @@ export default function AdminRequestsPage() {
                         <TableCell>
                           {req.status === "APPROVED" && req.pan ? (
                             <div className="flex flex-col gap-1">
-                              <span className="font-mono text-xs bg-gray-100 px-1 rounded">PAN: {req.pan}</span>
+                              <span className="font-mono text-xs bg-gray-100 px-1 rounded flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                PAN: {decryptAndMaskPan(req.pan, '')}
+                              </span>
                               <div className="flex gap-2">
-                                <span className="font-mono text-[10px] text-gray-500">CVV: {req.cvv}</span>
-                                <span className="font-mono text-[10px] text-gray-500">EXP: {req.expiryDate}</span>
+                                <span className="font-mono text-[10px] text-gray-500">EXP: {req.expiryDate ? (req.expiryDate.includes(':') ? '🔒' : req.expiryDate) : 'N/A'}</span>
                               </div>
                             </div>
                           ) : (
