@@ -1,6 +1,3 @@
-// Force middleware to run on Node.js runtime to use 'crypto'
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { COOKIE_NAME, encrypt } from "@/lib/auth";
@@ -15,7 +12,7 @@ const publicPaths = [
   "/api/customer/search",
   "/login",
   "/register",
-  "/reset-password"
+  "/reset-password",
 ];
 
 // Check if path is public
@@ -23,7 +20,7 @@ function isPublicPath(pathname: string): boolean {
   return publicPaths.some((path) => pathname.startsWith(path));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Generate nonce using Web Crypto API (works in both Edge and Node runtimes)
@@ -153,11 +150,11 @@ export async function middleware(request: NextRequest) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=()",
   );
   response.headers.set(
     "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload"
+    "max-age=63072000; includeSubDomains; preload",
   );
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");

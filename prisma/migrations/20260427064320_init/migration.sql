@@ -70,7 +70,7 @@ CREATE TABLE "audit_logs" (
 
 -- CreateTable
 CREATE TABLE "settings" (
-    "id" TEXT NOT NULL DEFAULT 'default',
+    "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
