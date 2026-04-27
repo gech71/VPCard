@@ -45,7 +45,7 @@ export async function setEncryptedPhoneCookie(phoneNumber: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 24, // 1 day
+    maxAge: 15 * 60, // 15 minutes
     path: '/',
   });
 }
@@ -56,7 +56,7 @@ export async function setAccountsCookie(accounts: any[]) {
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 24, // 1 day
+    maxAge: 15 * 60, // 15 minutes
     path: '/',
   });
 }

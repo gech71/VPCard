@@ -49,11 +49,22 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-user-email", payload.email);
   requestHeaders.set("x-user-role", payload.role);
 
-  return NextResponse.next({
+  // Sliding session: reset cookie expiration on every activity
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+
+  response.cookies.set("auth-token", authToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 15 * 60, // 15 minutes inactivity timeout
+    path: "/",
+  });
+
+  return response;
 }
 
 export const config = {

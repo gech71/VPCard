@@ -53,7 +53,7 @@ export async function setAuthCookie(token: string): Promise<void> {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: 15 * 60, // 15 minutes (PCI DSS 8.2.8)
     path: "/",
   });
 }
