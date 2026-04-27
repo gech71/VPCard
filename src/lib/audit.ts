@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import prisma from "./prisma";
 
 export type AuditAction =
@@ -31,6 +32,22 @@ export async function createAuditLog({
   cardRequestId,
 }: AuditLogParams) {
   try {
+    // Capture IP and User-Agent from request headers
+    let ipAddress = "unknown";
+    let userAgent = "unknown";
+    
+    try {
+      const headerList = await headers();
+      // Try to get IP from standard proxy headers
+      ipAddress = headerList.get("x-forwarded-for")?.split(",")[0] || 
+                  headerList.get("x-real-ip") || 
+                  "unknown";
+      userAgent = headerList.get("user-agent") || "unknown";
+    } catch (e) {
+      // headers() might fail if called outside of a request context
+      console.warn("Audit Log: Could not retrieve request headers.");
+    }
+
     // Verify user exists if userId is provided
     let verifiedUserId = userId;
     if (userId) {
@@ -52,8 +69,8 @@ export async function createAuditLog({
         entityId,
         details: details || {},
         cardRequestId,
-        ipAddress: "unknown",
-        userAgent: "unknown",
+        ipAddress,
+        userAgent,
       },
     });
   } catch (error) {
