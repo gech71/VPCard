@@ -3,27 +3,34 @@ import * as crypto from 'crypto';
 import { cookies } from 'next/headers';
 
 const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
-const ENCRYPTION_IV = process.env.ENCRYPTION_IV;
 export const COOKIE_NAME = 'user-phone';
 
-if (!ENCRYPTION_SECRET_KEY || !ENCRYPTION_IV) {
-  throw new Error('ENCRYPTION_SECRET_KEY and ENCRYPTION_IV must be set in .env');
+if (!ENCRYPTION_SECRET_KEY) {
+  throw new Error('ENCRYPTION_SECRET_KEY must be set in .env');
 }
 
-const KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY, 'salt', 32);
-const IV = crypto.scryptSync(ENCRYPTION_IV, 'salt', 16);
+// Derive a consistent key from the secret using a more secure salt
+const KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY, 'vpc-auth-salt-v1', 32);
 
 export function encrypt(text: string): string {
-  const cipher = crypto.createCipheriv(ALGORITHM, KEY, IV);
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  return encrypted;
+  // Return iv:encrypted to store the unique IV with the ciphertext
+  return `${iv.toString('hex')}:${encrypted}`;
 }
 
 export function decrypt(encryptedText: string): string {
+  if (!encryptedText || !encryptedText.includes(':')) {
+    return '';
+  }
+
   try {
-    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, IV);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    const [ivHex, ciphertext] = encryptedText.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (error) {
