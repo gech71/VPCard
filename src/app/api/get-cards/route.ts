@@ -177,7 +177,6 @@ async function fetchCardsForAccount(
       };
     });
   } catch (err) {
-    console.error(`Failed to fetch cards for account ${accountNumber}:`, err);
     return [];
   }
 }
@@ -217,7 +216,6 @@ export async function GET(request: NextRequest) {
     accounts = data.accounts;
     phoneNumber = data.phoneNumber;
   } catch (error: any) {
-    console.error("Card fetch error:", error);
     fetchError = error.message;
   }
 
@@ -233,7 +231,6 @@ export async function GET(request: NextRequest) {
       error: fetchError,
     });
   } catch (error: any) {
-    console.error("Settings fetch error:", error);
     return NextResponse.json(
       { message: "Failed to fetch necessary data." },
       { status: 500 },

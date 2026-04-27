@@ -141,7 +141,6 @@ export async function PATCH(request: NextRequest) {
           );
         }
       } catch (err) {
-        console.error("PSS connection error:", err);
         return NextResponse.json(
           { error: "Failed to connect to PSS virtual card system" },
           { status: 500 },
@@ -183,7 +182,6 @@ export async function PATCH(request: NextRequest) {
       request: updatedRequest,
     });
   } catch (error) {
-    console.error("Review request error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -249,7 +247,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ request: cardRequest });
   } catch (error) {
-    console.error("Get request error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

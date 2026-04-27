@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
       message: "Password reset successfully",
     });
   } catch (error) {
-    console.error("Reset password error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -132,7 +131,6 @@ export async function PUT(request: NextRequest) {
       devToken: token,
     });
   } catch (error) {
-    console.error("Request password reset error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -41,7 +41,6 @@ function RequestCardForm() {
           setPhoneNumber(data.phoneNumber);
         }
       } catch (err) {
-        console.error("Failed to fetch user data", err);
       } finally {
         setLoadingUser(false);
       }

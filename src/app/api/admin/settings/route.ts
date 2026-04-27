@@ -35,7 +35,6 @@ export async function GET() {
       checkers,
     });
   } catch (error) {
-    console.error("Error fetching settings:", error);
     return NextResponse.json(
       { error: "Failed to fetch settings" },
       { status: 500 },
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
       message: "Settings updated successfully",
     });
   } catch (error) {
-    console.error("Error updating settings:", error);
     return NextResponse.json(
       { error: "Failed to update settings" },
       { status: 500 },

@@ -133,7 +133,6 @@ export async function POST(request: NextRequest) {
     try {
       customerInfo = await getCustomerInfo(accountNumber);
     } catch (error) {
-      console.error("Customer info fetch error:", error);
       return NextResponse.json(
         {
           error:
@@ -217,7 +216,6 @@ export async function POST(request: NextRequest) {
       message: "Card request submitted successfully",
     });
   } catch (error) {
-    console.error("Self request error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

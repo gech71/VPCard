@@ -121,7 +121,6 @@ export async function POST(request: NextRequest) {
       request: cardRequest,
     });
   } catch (error) {
-    console.error("Create request error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -182,7 +181,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests });
   } catch (error) {
-    console.error("Get requests error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

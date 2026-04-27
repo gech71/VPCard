@@ -120,7 +120,6 @@ export default function AdminRequestsPage() {
         setCheckers(data.checkers);
       }
     } catch (error) {
-      console.error("Failed to fetch checkers");
     }
   }
 

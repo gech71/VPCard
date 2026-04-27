@@ -21,7 +21,6 @@ export async function POST(request: Request) {
 
     return NextResponse.redirect(new URL("/login", request.url), { status: 302 });
   } catch (error) {
-    console.error("Logout error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

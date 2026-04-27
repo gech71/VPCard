@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Prepaid API error:", response.status, errorText);
 
       return NextResponse.json(
         { error: "Failed to fetch customer information" },
@@ -77,7 +76,6 @@ export async function POST(request: NextRequest) {
       customer: data,
     });
   } catch (error) {
-    console.error("Customer search error:", error);
     return NextResponse.json(
       { error: "Failed to search customer" },
       { status: 500 },

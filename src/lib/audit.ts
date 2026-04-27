@@ -45,7 +45,6 @@ export async function createAuditLog({
       userAgent = headerList.get("user-agent") || "unknown";
     } catch (e) {
       // headers() might fail if called outside of a request context
-      console.warn("Audit Log: Could not retrieve request headers.");
     }
 
     // Verify user exists if userId is provided
@@ -56,7 +55,6 @@ export async function createAuditLog({
         select: { id: true },
       });
       if (!userExists) {
-        console.warn(`Audit Log: User ID ${userId} not found. Logging as anonymous.`);
         verifiedUserId = undefined; // Set to undefined so Prisma omits it, column is nullable
       }
     }
@@ -74,11 +72,6 @@ export async function createAuditLog({
       },
     });
   } catch (error) {
-    // Log to console but don't fail the main operation
-    console.error("Critical: Failed to create audit log:", {
-      error,
-      params: { userId, action, entityType, entityId, cardRequestId },
-    });
   }
 }
 
