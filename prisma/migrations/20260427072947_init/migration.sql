@@ -10,6 +10,8 @@ CREATE TABLE "users" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "Role" NOT NULL DEFAULT 'MAKER',
+    "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+    "lockoutUntil" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -42,7 +44,6 @@ CREATE TABLE "card_requests" (
     "reviewedAt" TIMESTAMP(3),
     "reviewNotes" TEXT,
     "pan" TEXT,
-    "cvv" TEXT,
     "expiryDate" TEXT,
     "makerId" TEXT NOT NULL,
     "checkerId" TEXT,
