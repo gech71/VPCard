@@ -127,8 +127,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "If the email exists, a reset link will be sent",
-      // Remove this in production
-      devToken: token,
     });
   } catch (error) {
     return NextResponse.json(
