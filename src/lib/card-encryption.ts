@@ -84,7 +84,7 @@ export function maskPan(pan: string): string {
   // If encrypted, try to decrypt first
   let decrypted = pan;
   try {
-    const keySecret = process.env.ENCRYPTION_SECRET || '';
+    const keySecret = process.env.ENCRYPTION_SECRET_KEY || '';
     if (keySecret && pan.includes(':')) {
       decrypted = decryptCardData(pan, keySecret);
     }
