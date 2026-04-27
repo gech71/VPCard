@@ -120,10 +120,6 @@ export async function PUT(request: NextRequest) {
         expiresAt,
       },
     });
-
-    // In production, send email with reset link
-    // For now, return the token (development only)
-
     return NextResponse.json({
       success: true,
       message: "If the email exists, a reset link will be sent",
