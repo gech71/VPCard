@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { hashPassword, getCurrentUser } from "@/lib/jwt-auth";
+import { hashPassword, getCurrentUser, validatePassword } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(10, "Password must be at least 10 characters"),
+  password: z.string(), // Validation handled by custom function for better error messages
   role: z.enum(["MAKER", "CHECKER"]),
 });
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Validate input
+    // Validate input basic structure
     const validation = registerSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -38,6 +38,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, role } = validation.data;
+
+    // Perform deep password complexity validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return NextResponse.json(
+        { error: passwordValidation.error },
+        { status: 400 },
+      );
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

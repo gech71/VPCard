@@ -19,6 +19,41 @@ export interface JWTPayload {
   role: "SUPER_ADMIN" | "MAKER" | "CHECKER";
 }
 
+/**
+ * Validates password complexity
+ * Requirements:
+ * - At least 10 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ * - At least one special character
+ */
+export function validatePassword(password: string): { isValid: boolean; error?: string } {
+  if (password.length < 10) {
+    return { isValid: false, error: "Password must be at least 10 characters long" };
+  }
+  
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  
+  if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+    return { 
+      isValid: false, 
+      error: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character" 
+    };
+  }
+  
+  // Basic check for common weak patterns
+  const weakPatterns = ["password", "admin123", "123456", "qwerty"];
+  if (weakPatterns.some(pattern => password.toLowerCase().includes(pattern))) {
+    return { isValid: false, error: "Password is too common or contains weak patterns" };
+  }
+
+  return { isValid: true };
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }

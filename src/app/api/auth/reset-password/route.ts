@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { hashPassword, getCurrentUser } from "@/lib/jwt-auth";
+import { hashPassword, getCurrentUser, validatePassword } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 
 const resetPasswordSchema = z.object({
   userId: z.string().uuid("Invalid user ID"),
-  newPassword: z.string().min(10, "Password must be at least 10 characters"),
+  newPassword: z.string(), // Validation handled by custom function
 });
 
 // Super Admin resets a user's password
@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, newPassword } = validation.data;
+
+    // Perform deep password complexity validation
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return NextResponse.json(
+        { error: passwordValidation.error },
+        { status: 400 },
+      );
+    }
 
     // Check if target user exists
     const targetUser = await prisma.user.findUnique({
