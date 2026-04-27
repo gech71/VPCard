@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/jwt-auth";
 
 const PREPAID_API_URL =
   process.env.PREPAID_API_URL;
@@ -8,6 +9,19 @@ const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (currentUser.role !== "MAKER" && currentUser.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Access denied. Only Makers can search customers." },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { accountNumber } = body;
 

@@ -7,7 +7,6 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/reset-password",
-  "/api/customer/search",
 ];
 
 // Check if path is public
