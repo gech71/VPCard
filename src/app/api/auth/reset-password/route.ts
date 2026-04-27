@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const resetPasswordSchema = z.object({
   userId: z.string().uuid("Invalid user ID"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  newPassword: z.string().min(10, "Password must be at least 10 characters"),
 });
 
 // Super Admin resets a user's password

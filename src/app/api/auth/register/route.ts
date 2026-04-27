@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(10, "Password must be at least 10 characters"),
   role: z.enum(["MAKER", "CHECKER"]),
 });
 

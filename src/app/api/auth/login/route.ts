@@ -33,14 +33,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account is locked
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const minutesLeft = Math.ceil(
+        (user.lockoutUntil.getTime() - new Date().getTime()) / (1000 * 60),
+      );
+      return NextResponse.json(
+        {
+          error: `Account is temporarily locked due to multiple failed attempts. Please try again in ${minutesLeft} minutes.`,
+        },
+        { status: 403 },
+      );
+    }
+
     // Verify password
     const isValid = await verifyPassword(password, user.password);
+
     if (!isValid) {
+      // Increment failed attempts
+      const newFailedAttempts = user.failedLoginAttempts + 1;
+      const MAX_ATTEMPTS = 5;
+      let lockoutUntil = null;
+
+      if (newFailedAttempts >= MAX_ATTEMPTS) {
+        // Lock account for 30 minutes
+        lockoutUntil = new Date(Date.now() + 30 * 60 * 1000);
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: newFailedAttempts,
+          lockoutUntil,
+        },
+      });
+
+      // Create audit log for failed attempt
+      await createAuditLog({
+        userId: user.id,
+        action: "LOGIN_FAILED",
+        entityType: "AUTH",
+        entityId: user.id,
+        details: { reason: "Invalid password", attempt: newFailedAttempts },
+      });
+
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 },
       );
     }
+
+    // Reset failed attempts on successful login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockoutUntil: null,
+      },
+    });
 
     // Generate JWT token
     const token = generateToken({

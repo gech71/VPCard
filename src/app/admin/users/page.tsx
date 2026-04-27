@@ -280,8 +280,8 @@ export default function UserManagement() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={6}
-                    placeholder="Minimum 6 characters"
+                    minLength={10}
+                    placeholder="Minimum 10 characters"
                   />
                 </div>
                 <div>
@@ -374,8 +374,8 @@ export default function UserManagement() {
                   value={resetPassword}
                   onChange={(e) => setResetPassword(e.target.value)}
                   required
-                  minLength={6}
-                  placeholder="Minimum 6 characters"
+                  minLength={10}
+                  placeholder="Minimum 10 characters"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={submitting}>
