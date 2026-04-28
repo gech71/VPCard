@@ -295,14 +295,6 @@ export default function AdminRequestsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pan">Card Number (PAN)</Label>
-                  <Input id="pan" value={pan} onChange={(e) => setPan(e.target.value)} placeholder="Search PAN..." />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV</Label>
-                  <Input id="cvv" value={cvv} onChange={(e) => setCvv(e.target.value)} placeholder="Search CVV..." />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="startDate">Start Date</Label>
                   <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
@@ -336,7 +328,6 @@ export default function AdminRequestsPage() {
                     <TableHead>Account Details</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Assignment</TableHead>
-                    <TableHead>Card Data</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -394,21 +385,6 @@ export default function AdminRequestsPage() {
                             <span className="text-gray-500">Maker: {req.maker.email.split('@')[0]}</span>
                             <span className="text-gray-500">Checker: {req.checker?.email.split('@')[0] || "Unassigned"}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {req.status === "APPROVED" && req.pan ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="font-mono text-xs bg-gray-100 px-1 rounded flex items-center gap-1">
-                                <Lock className="w-3 h-3" />
-                                PAN: {decryptAndMaskPan(req.pan, '')}
-                              </span>
-                              <div className="flex gap-2">
-                                <span className="font-mono text-[10px] text-gray-500">EXP: {req.expiryDate ? (req.expiryDate.includes(':') ? '🔒' : req.expiryDate) : 'N/A'}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-xs italic">Not Available</span>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))
