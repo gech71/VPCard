@@ -112,13 +112,11 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
                 </Button>
             </Link>
-            {/* 
             <Link href={`/change-pin?card_numb=${card.fullNumber}`} passHref>
                 <Button variant="outline" className="w-full">
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN
                 </Button>
             </Link>
-            */}
         </div>
       </CardContent>
     </Card>
