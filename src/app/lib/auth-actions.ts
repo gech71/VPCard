@@ -74,7 +74,7 @@ export async function requestPasswordResetAction(prevState: any, formData: FormD
   // Log action
   await createAuditLog({
     userId: user.id,
-    action: 'RESET_PASSWORD', // Wait, looking at audit log allowed types: 'RESET_PASSWORD' is valid
+    action: 'REQUEST_PASSWORD_RESET',
     entityType: 'AUTH',
     entityId: user.id,
     details: { event: 'REQUEST_RESET' },

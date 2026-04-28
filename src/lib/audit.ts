@@ -6,6 +6,7 @@ export type AuditAction =
   | "LOGOUT"
   | "REGISTER_USER"
   | "RESET_PASSWORD"
+  | "REQUEST_PASSWORD_RESET"
   | "CREATE_REQUEST"
   | "ASSIGN_REQUEST"
   | "APPROVE_REQUEST"

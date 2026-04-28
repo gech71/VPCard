@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { hashPassword, getCurrentUser, validatePassword } from "@/lib/jwt-auth";
+import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "@/lib/server/email";
 
-const resetPasswordSchema = z.object({
+const resetPasswordRequestSchema = z.object({
   userId: z.string().uuid("Invalid user ID"),
-  newPassword: z.string(), // Validation handled by custom function
 });
 
-// Super Admin resets a user's password
+// Super Admin triggers a password reset request for a user
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -21,14 +21,14 @@ export async function POST(request: NextRequest) {
 
     if (currentUser.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: "Only Super Admin can reset passwords" },
+        { error: "Only Super Admin can initiate password resets" },
         { status: 403 },
       );
     }
 
     const body = await request.json();
 
-    const validation = resetPasswordSchema.safeParse(body);
+    const validation = resetPasswordRequestSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
@@ -36,16 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userId, newPassword } = validation.data;
-
-    // Perform deep password complexity validation
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
-      return NextResponse.json(
-        { error: passwordValidation.error },
-        { status: 400 },
-      );
-    }
+    const { userId } = validation.data;
 
     // Check if target user exists
     const targetUser = await prisma.user.findUnique({
@@ -56,29 +47,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Hash new password
-    const hashedPassword = await hashPassword(newPassword);
+    // Generate reset token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // Update user's password
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
+    // Save token to database
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: targetUser.id,
+        token: hashedToken,
+        expiresAt,
+      },
     });
+
+    // Send email
+    const emailSent = await sendPasswordResetEmail(targetUser.email, rawToken);
+
+    if (!emailSent) {
+      return NextResponse.json(
+        { error: "Failed to send reset email" },
+        { status: 500 },
+      );
+    }
 
     // Create audit log
     await createAuditLog({
       userId: currentUser.userId,
-      action: "RESET_PASSWORD",
+      action: "REQUEST_PASSWORD_RESET",
       entityType: "USER",
       entityId: userId,
-      details: { resetUserEmail: targetUser.email },
+      details: { resetUserEmail: targetUser.email, initiatedBy: "SUPER_ADMIN" },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Password reset successfully",
+      message: "Password reset request sent successfully",
     });
   } catch (error) {
+    console.error("Password reset error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -110,21 +120,39 @@ export async function PUT(request: NextRequest) {
     }
 
     // Generate reset token
-    const token = uuidv4();
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await prisma.passwordResetToken.create({
       data: {
         userId: user.id,
-        token,
+        token: hashedToken,
         expiresAt,
       },
     });
+
+    // Send email
+    await sendPasswordResetEmail(user.email, rawToken);
+
+    // Create audit log
+    await createAuditLog({
+      userId: user.id,
+      action: "REQUEST_PASSWORD_RESET",
+      entityType: "USER",
+      entityId: user.id,
+      details: { resetUserEmail: user.email, initiatedBy: "SELF" },
+    });
+
     return NextResponse.json({
       success: true,
       message: "If the email exists, a reset link will be sent",
     });
   } catch (error) {
+    console.error("Self-service reset error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -59,7 +59,6 @@ export default function UserManagement() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState("MAKER");
-  const [resetPassword, setResetPassword] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -141,7 +140,6 @@ export default function UserManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: selectedUser.id,
-          newPassword: resetPassword,
         }),
       });
 
@@ -151,19 +149,18 @@ export default function UserManagement() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: data.error || "Failed to reset password",
+          description: data.error || "Failed to send reset link",
         });
         return;
       }
 
       toast({
         title: "Success",
-        description: "Password reset successfully",
+        description: "Password reset link sent successfully to user email",
       });
 
       setIsResetOpen(false);
       setSelectedUser(null);
-      setResetPassword("");
     } catch (error) {
       toast({
         variant: "destructive",
@@ -360,26 +357,15 @@ export default function UserManagement() {
         <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Reset Password</DialogTitle>
+              <DialogTitle>Request Password Reset</DialogTitle>
               <DialogDescription>
-                Reset password for {selectedUser?.email}
+                This will send a password reset link to {selectedUser?.email}.
+                The user will be able to set their own password.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <Label htmlFor="resetPassword">New Password</Label>
-                <Input
-                  id="resetPassword"
-                  type="password"
-                  value={resetPassword}
-                  onChange={(e) => setResetPassword(e.target.value)}
-                  required
-                  minLength={10}
-                  placeholder="Minimum 10 characters"
-                />
-              </div>
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Resetting..." : "Reset Password"}
+                {submitting ? "Sending..." : "Send Reset Link"}
               </Button>
             </form>
           </DialogContent>
