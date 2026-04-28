@@ -60,7 +60,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/checker");
 
   if (authToken) {
-    const payload = verifyToken(authToken);
+    const payload = await verifyToken(authToken);
     if (payload) {
       // JWT auth successful - add user info to headers
       requestHeaders.set("x-user-id", payload.userId);

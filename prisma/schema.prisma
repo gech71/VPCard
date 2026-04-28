@@ -117,3 +117,12 @@ model Settings {
 
   @@map("settings")
 }
+
+model RevokedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("revoked_tokens")
+}

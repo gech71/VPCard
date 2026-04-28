@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { removeAuthCookie, getCurrentUser } from "@/lib/jwt-auth";
+import { removeAuthCookie, getCurrentUser, revokeToken, getAuthCookie } from "@/lib/jwt-auth";
 import { clearAuthCookies } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
+    const token = await getAuthCookie();
 
     if (user) {
       await createAuditLog({
@@ -14,6 +15,10 @@ export async function POST(request: Request) {
         entityType: "AUTH",
         entityId: user.userId,
       });
+    }
+
+    if (token) {
+      await revokeToken(token);
     }
 
     await clearAuthCookies();

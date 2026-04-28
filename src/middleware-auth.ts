@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verify token
-  const payload = verifyToken(authToken);
+  const payload = await verifyToken(authToken);
   if (!payload) {
     // Invalid token - clear cookie and redirect
     const response = NextResponse.redirect(new URL("/login", request.url));
