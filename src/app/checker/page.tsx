@@ -33,6 +33,7 @@ import { Loader2, FileText, CheckCircle, XCircle, Eye } from "lucide-react";
 
 interface CardRequest {
   id: string;
+  customerId: string | null;
   accountNumber: string;
   customerName: string;
   customerEmail: string | null;
@@ -55,9 +56,9 @@ export default function CheckerDashboard() {
     null,
   );
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [reviewAction, setReviewAction] = useState<"APPROVE" | "REJECT" | null>(
-    null,
-  );
+  const [reviewAction, setReviewAction] = useState<
+    "APPROVE" | "REJECT" | "VIEW" | null
+  >(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -133,10 +134,15 @@ export default function CheckerDashboard() {
 
   function openReviewDialog(
     request: CardRequest,
-    action: "APPROVE" | "REJECT",
+    action: "APPROVE" | "REJECT" | "VIEW",
   ) {
     setSelectedRequest(request);
     setReviewAction(action);
+    if (action === "VIEW") {
+      setReviewNotes(request.reviewNotes || "");
+    } else {
+      setReviewNotes("");
+    }
     setIsReviewOpen(true);
   }
 
@@ -335,13 +341,14 @@ export default function CheckerDashboard() {
                       <TableHead>Status</TableHead>
                       <TableHead>Reviewed At</TableHead>
                       <TableHead>Notes</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {reviewedRequests.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={6}
                           className="text-center text-gray-500 py-8"
                         >
                           No reviewed requests
@@ -373,6 +380,16 @@ export default function CheckerDashboard() {
                           <TableCell className="text-sm text-gray-500 max-w-xs truncate">
                             {req.reviewNotes || "-"}
                           </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openReviewDialog(req, "VIEW")}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -385,60 +402,152 @@ export default function CheckerDashboard() {
 
         {/* Review Dialog */}
         <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {reviewAction === "APPROVE" ? "Approve" : "Reject"} Request
+                {reviewAction === "VIEW"
+                  ? "Request Details"
+                  : reviewAction === "APPROVE"
+                    ? "Approve Request"
+                    : "Reject Request"}
               </DialogTitle>
               <DialogDescription>
-                {reviewAction === "APPROVE"
-                  ? "This will approve the card request and send it to the PSS system."
-                  : "This will reject the card request. The maker will be notified."}
+                {reviewAction === "VIEW"
+                  ? "Full information for the selected card request."
+                  : reviewAction === "APPROVE"
+                    ? "This will approve the card request and send it to the PSS system."
+                    : "This will reject the card request. The maker will be notified."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleReview} className="space-y-4">
               {selectedRequest && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium mb-2">Request Details</h4>
-                  <p className="text-sm">
-                    Account: {selectedRequest.accountNumber}
-                  </p>
-                  <p className="text-sm">
-                    Customer: {selectedRequest.customerName}
-                  </p>
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <h4 className="font-semibold text-primary border-b pb-2 mb-2 flex justify-between items-center">
+                    <span>Request Details</span>
+                    {reviewAction === "VIEW" && (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${
+                          selectedRequest.status === "APPROVED"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {selectedRequest.status}
+                      </span>
+                    )}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 font-medium">Customer Name</p>
+                      <p className="font-mono">
+                        {selectedRequest.customerName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">
+                        Account Number
+                      </p>
+                      <p className="font-mono">
+                        {selectedRequest.accountNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">Customer ID</p>
+                      <p className="font-mono">
+                        {selectedRequest.customerId || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">Phone Number</p>
+                      <p className="font-mono">
+                        {selectedRequest.customerPhone || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">Email Address</p>
+                      <p
+                        className="font-mono text-[11px] truncate"
+                        title={selectedRequest.customerEmail || ""}
+                      >
+                        {selectedRequest.customerEmail || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">Created At</p>
+                      <p className="font-mono">
+                        {new Date(
+                          selectedRequest.createdAt,
+                        ).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-500 font-medium">Requested By</p>
+                      <p className="font-mono">{selectedRequest.maker.email}</p>
+                    </div>
+                  </div>
                   {selectedRequest.notes && (
-                    <p className="text-sm">Notes: {selectedRequest.notes}</p>
+                    <div className="mt-3 pt-2 border-t text-sm">
+                      <p className="text-gray-500 font-medium mb-1">
+                        Maker's Notes
+                      </p>
+                      <p className="bg-white p-2 rounded border italic">
+                        {selectedRequest.notes}
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
               <div>
-                <Label htmlFor="reviewNotes">Review Notes (Optional)</Label>
+                <Label htmlFor="reviewNotes">
+                  {reviewAction === "VIEW"
+                    ? "Reviewer Notes"
+                    : "Review Notes (Optional)"}
+                </Label>
                 <textarea
                   id="reviewNotes"
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  disabled={reviewAction === "VIEW"}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
                   rows={3}
-                  placeholder="Add your review notes..."
+                  placeholder={
+                    reviewAction === "VIEW" ? "" : "Add your review notes..."
+                  }
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={submitting}>
-                  {submitting
-                    ? "Processing..."
-                    : reviewAction === "APPROVE"
-                      ? "Approve"
-                      : "Reject"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsReviewOpen(false)}
-                >
-                  Cancel
-                </Button>
+                {reviewAction !== "VIEW" ? (
+                  <>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={submitting}
+                    >
+                      {submitting
+                        ? "Processing..."
+                        : reviewAction === "APPROVE"
+                          ? "Approve"
+                          : "Reject"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsReviewOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => setIsReviewOpen(false)}
+                  >
+                    Close
+                  </Button>
+                )}
               </div>
             </form>
           </DialogContent>
