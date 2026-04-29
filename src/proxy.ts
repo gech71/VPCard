@@ -22,8 +22,10 @@ function isPublicPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Generate nonce using Web Crypto API (works in both Edge and Node runtimes)
-  const nonce = btoa(Math.random().toString(36).substring(2));
+  // Generate a cryptographically secure nonce for Content Security Policy
+  const nonce = btoa(
+    String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))),
+  );
 
   const cspHeader = `
     default-src 'self';
@@ -80,7 +82,7 @@ export async function proxy(request: NextRequest) {
         maxAge: 15 * 60, // 15 minutes inactivity timeout
         path: "/",
       });
-      
+
       isDashboardAuthProcessed = true;
     } else {
       // Invalid JWT - clear cookie
