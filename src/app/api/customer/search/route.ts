@@ -32,6 +32,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Account Number Validation: must start with 7000 and be exactly 13 digits
+    const accountRegex = /^7000\d{9}$/;
+    if (!accountRegex.test(accountNumber)) {
+      return NextResponse.json(
+        { error: "Invalid account number. Must start with 7000 and be 13 digits." },
+        { status: 400 },
+      );
+    }
+
     // Check if there's already a pending request for this account number
     const existingPendingRequest = await prisma.cardRequest.findFirst({
       where: {

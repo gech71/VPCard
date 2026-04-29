@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const createRequestSchema = z.object({
   customerId: z.string().optional(),
-  accountNumber: z.string().min(1, "Account number is required"),
+  accountNumber: z.string().regex(/^7000\d{9}$/, "Account number must start with 7000 and be exactly 13 digits"),
   customerName: z.string().min(1, "Customer name is required"),
   customerEmail: z.string().email("Invalid email format"),
   customerPhone: z.preprocess((val) => {

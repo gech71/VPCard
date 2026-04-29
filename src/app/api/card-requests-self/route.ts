@@ -10,7 +10,7 @@ const PREPAID_API_USER = process.env.PREPAID_API_USER;
 const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
 const selfRequestSchema = z.object({
-  accountNumber: z.coerce.string().min(1, "Account number is required"),
+  accountNumber: z.coerce.string().regex(/^7000\d{9}$/, "Account number must start with 7000 and be exactly 13 digits"),
   customerEmail: z.string().email("Invalid email format"),
   customerPhone: z.preprocess((val) => {
     if (typeof val !== "string") return val;

@@ -1,40 +1,50 @@
-
-import * as crypto from 'crypto';
-import { cookies } from 'next/headers';
+import * as crypto from "crypto";
+import { cookies } from "next/headers";
 
 const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
-export const COOKIE_NAME = 'user-phone';
+export const COOKIE_NAME = "user-phone";
+const ALGORITHM = "aes-256-gcm";
 
 if (!ENCRYPTION_SECRET_KEY) {
-  throw new Error('ENCRYPTION_SECRET_KEY must be set in .env');
+  throw new Error("ENCRYPTION_SECRET_KEY must be set in .env");
 }
 
-// Derive a consistent key from the secret using a more secure salt
-const KEY = crypto.scryptSync(ENCRYPTION_SECRET_KEY, 'vpc-auth-salt-v1', 32);
+// Derive a consistent 32-byte key from the secret using SHA-256
+const KEY = crypto.createHash("sha256").update(ENCRYPTION_SECRET_KEY).digest();
 
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  // Return iv:encrypted to store the unique IV with the ciphertext
-  return `${iv.toString('hex')}:${encrypted}`;
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const tag = cipher.getAuthTag();
+  // Return iv:tag:encrypted to store the unique IV and Auth Tag with the ciphertext
+  return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted}`;
 }
 
 export function decrypt(encryptedText: string): string {
-  if (!encryptedText || !encryptedText.includes(':')) {
-    return '';
+  if (!encryptedText || !encryptedText.includes(":")) {
+    return "";
   }
 
   try {
-    const [ivHex, ciphertext] = encryptedText.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
+    const parts = encryptedText.split(":");
+    if (parts.length !== 3) {
+      // Handle legacy format or invalid format
+      return "";
+    }
+
+    const [ivHex, tagHex, ciphertext] = parts;
+    const iv = Buffer.from(ivHex, "hex");
+    const tag = Buffer.from(tagHex, "hex");
     const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    decipher.setAuthTag(tag);
+
+    let decrypted = decipher.update(ciphertext, "hex", "utf8");
+    decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
-    return '';
+    return "";
   }
 }
 
@@ -43,27 +53,27 @@ export async function setEncryptedPhoneCookie(phoneNumber: string) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, encryptedPhone, {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV !== "development",
+    sameSite: "strict",
     maxAge: 15 * 60, // 15 minutes
-    path: '/',
+    path: "/",
   });
 }
 
 export async function setAccountsCookie(accounts: any[]) {
   const cookieStore = await cookies();
-  cookieStore.set('user-accounts', JSON.stringify(accounts), {
+  cookieStore.set("user-accounts", JSON.stringify(accounts), {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV !== "development",
+    sameSite: "strict",
     maxAge: 15 * 60, // 15 minutes
-    path: '/',
+    path: "/",
   });
 }
 
 export async function getAccountsFromCookie(): Promise<any[] | null> {
   const cookieStore = await cookies();
-  const cookie = cookieStore.get('user-accounts');
+  const cookie = cookieStore.get("user-accounts");
   if (!cookie?.value) return null;
   try {
     return JSON.parse(cookie.value);
@@ -74,8 +84,8 @@ export async function getAccountsFromCookie(): Promise<any[] | null> {
 
 export async function clearAuthCookies() {
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, '', { maxAge: 0 });
-  cookieStore.set('user-accounts', '', { maxAge: 0 });
+  cookieStore.set(COOKIE_NAME, "", { maxAge: 0 });
+  cookieStore.set("user-accounts", "", { maxAge: 0 });
 }
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
@@ -88,9 +98,9 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
   try {
     const decryptedPhone = decrypt(cookie.value);
     if (!decryptedPhone) {
-        // This means decryption failed. Clear the invalid cookies.
-        await clearAuthCookies();
-        return null;
+      // This means decryption failed. Clear the invalid cookies.
+      await clearAuthCookies();
+      return null;
     }
     return decryptedPhone;
   } catch (error) {
@@ -99,5 +109,3 @@ export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
     return null;
   }
 }
-
-const ALGORITHM = 'aes-256-cbc';
