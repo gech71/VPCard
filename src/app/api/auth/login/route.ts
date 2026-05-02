@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      // Create audit log for failed attempt (non-existent user)
+      await createAuditLog({
+        action: "LOGIN_FAILED",
+        entityType: "AUTH",
+        details: { reason: "User not found", email },
+      });
+
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 },

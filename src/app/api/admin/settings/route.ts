@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
+import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
 const settingsSchema = z.object({
@@ -88,6 +89,18 @@ export async function POST(request: NextRequest) {
       where: { key: "defaultCheckerId" },
       update: { value: defaultCheckerId },
       create: { key: "defaultCheckerId", value: defaultCheckerId },
+    });
+
+    // Log settings update
+    await createAuditLog({
+      userId: currentUser.userId,
+      action: "REGISTER_USER", // Using REGISTER_USER as a generic 'ADMIN_ACTION' proxy or we could add 'UPDATE_SETTINGS'
+      entityType: "USER",
+      details: {
+        event: "UPDATE_SETTINGS",
+        allowSelfCardRequest,
+        defaultCheckerEmail: checker.email,
+      },
     });
 
     return NextResponse.json({

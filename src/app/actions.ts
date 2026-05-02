@@ -1,46 +1,45 @@
+"use server";
 
-'use server';
-
-import type { Transaction, Limit } from '@/lib/data';
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import type { Transaction, Limit } from "@/lib/data";
+import { z } from "zod";
+import { createAuditLog } from "@/lib/audit";
+import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 
 const CardNumbSchema = z.object({
   card_numb: z.string(),
 });
 
 type TransactionApiResponse = {
-    'transaction date': string;
-    'transaction type name': string;
-    Amount: number;
-    Status: 'Approval' | 'Decline' | string;
-    'Reference number': string;
-}
-
-export type LimitApiResponse = {
-    risk_code: string;
-    transaction_type: string;
-    channel: string;
-    mnt_limite: number;
-    periodicity_id: string;
-    periodicity_code: number;
-    domain_type: string;
-    transaction_mode: string;
-    tans_max: number;
-    limite_number: number;
+  "transaction date": string;
+  "transaction type name": string;
+  Amount: number;
+  Status: "Approval" | "Decline" | string;
+  "Reference number": string;
 };
 
+export type LimitApiResponse = {
+  risk_code: string;
+  transaction_type: string;
+  channel: string;
+  mnt_limite: number;
+  periodicity_id: string;
+  periodicity_code: number;
+  domain_type: string;
+  transaction_mode: string;
+  tans_max: number;
+  limite_number: number;
+};
 
 export async function getCardTransactions(prevState: any, formData: FormData) {
   const validatedFields = CardNumbSchema.safeParse({
-    card_numb: formData.get('card_numb'),
+    card_numb: formData.get("card_numb"),
   });
 
   if (!validatedFields.success) {
     return {
       transactions: [],
       balance: 0,
-      error: 'Invalid card number provided.',
+      error: "Invalid card number provided.",
     };
   }
 
@@ -51,15 +50,19 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
   const idMsg = process.env.CARD_LIST_ID_MSG;
 
   if (!getTransactionsUrl || !apiKey || !idMsg) {
-    return { transactions: [], balance: 0, error: 'Server configuration error.' };
+    return {
+      transactions: [],
+      balance: 0,
+      error: "Server configuration error.",
+    };
   }
 
   try {
     const response = await fetch(getTransactionsUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'ApiKey': apiKey,
+        "Content-Type": "application/json",
+        ApiKey: apiKey,
       },
       body: JSON.stringify({
         header: {
@@ -67,148 +70,180 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
         },
         initiator: {
           card_numb: card_numb,
-          start: '1',
-          end: '10', // Fetch last 10 transactions
+          start: "1",
+          end: "10", // Fetch last 10 transactions
         },
       }),
-      cache: 'no-store',
+      cache: "no-store",
     });
 
     if (!response.ok) {
-        return { transactions: [], balance: 0, error: `API error: ${response.statusText}` };
+      return {
+        transactions: [],
+        balance: 0,
+        error: `API error: ${response.statusText}`,
+      };
     }
 
     const data = await response.json();
     const body = data?.response?.body;
     const transactionsFromApi = body?.Transactions;
-    const balanceFromSummary = body?.summary?.balance ? Number(body.summary.balance) : 0;
+    const balanceFromSummary = body?.summary?.balance
+      ? Number(body.summary.balance)
+      : 0;
 
-    const formattedTransactions: Transaction[] = (Array.isArray(transactionsFromApi) ? transactionsFromApi : []).map((tx: TransactionApiResponse) => {
-        let status: Transaction['status'] = 'Failed';
-        if (tx.Status === 'Approval') {
-            status = 'Completed';
-        } else if (tx.Status === 'Pending') { 
-            status = 'Pending';
-        }
-
-        return {
-            id: tx['Reference number'],
-            date: new Date(tx['transaction date']).toLocaleDateString(),
-            description: tx['transaction type name'],
-            amount: tx.Status === 'Approval' ? -tx.Amount : tx.Amount,
-            status: status,
-        };
+    // Log transaction view
+    await createAuditLog({
+      action: "VIEW_TRANSACTIONS",
+      entityType: "CARD",
+      entityId: card_numb.slice(-4), // Only store last 4 for privacy in logs
+      details: {
+        cardLast4: card_numb.slice(-4),
+        transactionCount: transactionsFromApi?.length || 0,
+      },
     });
 
-    return { 
-        transactions: formattedTransactions, 
-        balance: balanceFromSummary,
-        error: null 
-    };
+    const formattedTransactions: Transaction[] = (
+      Array.isArray(transactionsFromApi) ? transactionsFromApi : []
+    ).map((tx: TransactionApiResponse) => {
+      let status: Transaction["status"] = "Failed";
+      if (tx.Status === "Approval") {
+        status = "Completed";
+      } else if (tx.Status === "Pending") {
+        status = "Pending";
+      }
 
+      return {
+        id: tx["Reference number"],
+        date: new Date(tx["transaction date"]).toLocaleDateString(),
+        description: tx["transaction type name"],
+        amount: tx.Status === "Approval" ? -tx.Amount : tx.Amount,
+        status: status,
+      };
+    });
+
+    return {
+      transactions: formattedTransactions,
+      balance: balanceFromSummary,
+      error: null,
+    };
   } catch (error) {
-    return { transactions: [], balance: 0, error: 'An unexpected error occurred.' };
+    return {
+      transactions: [],
+      balance: 0,
+      error: "An unexpected error occurred.",
+    };
   }
 }
 
 export async function getCardLimits(prevState: any, formData: FormData) {
-    const validatedFields = CardNumbSchema.safeParse({
-        card_numb: formData.get('card_numb'),
+  const validatedFields = CardNumbSchema.safeParse({
+    card_numb: formData.get("card_numb"),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      posLimit: { current: 0, max: 0 },
+      atmLimit: { current: 0, max: 0 },
+      allLimits: [],
+      error: "Invalid card number provided.",
+    };
+  }
+
+  const { card_numb } = validatedFields.data;
+
+  const getLimitsUrl = process.env.GET_LIMITS_URL;
+  const apiKey = process.env.CARD_LIST_API_KEY;
+  const idMsg = process.env.CARD_LIST_ID_MSG;
+  const bankCode = process.env.CARD_LIST_BANK_CODE;
+
+  if (!getLimitsUrl || !apiKey || !idMsg || !bankCode) {
+    return {
+      posLimit: { current: 0, max: 0 },
+      atmLimit: { current: 0, max: 0 },
+      allLimits: [],
+      error: "Server configuration error.",
+    };
+  }
+
+  try {
+    const response = await fetch(getLimitsUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ApiKey: apiKey,
+      },
+      body: JSON.stringify({
+        header: { idmsg: idMsg },
+        filter: { card: card_numb, bankcode: bankCode },
+      }),
+      cache: "no-store",
     });
 
-    if (!validatedFields.success) {
-        return {
-            posLimit: { current: 0, max: 0 },
-            atmLimit: { current: 0, max: 0 },
-            allLimits: [],
-            error: 'Invalid card number provided.',
-        };
+    if (!response.ok) {
+      return {
+        posLimit: { current: 0, max: 0 },
+        atmLimit: { current: 0, max: 0 },
+        allLimits: [],
+        error: `API error: ${response.statusText}`,
+      };
     }
 
-    const { card_numb } = validatedFields.data;
+    const data = await response.json();
+    const limitsFromApi: LimitApiResponse[] = data?.response?.body?.Risk;
 
-    const getLimitsUrl = process.env.GET_LIMITS_URL;
-    const apiKey = process.env.CARD_LIST_API_KEY;
-    const idMsg = process.env.CARD_LIST_ID_MSG;
-    const bankCode = process.env.CARD_LIST_BANK_CODE;
+    // Log limits view
+    await createAuditLog({
+      action: "VIEW_LIMITS",
+      entityType: "CARD",
+      entityId: card_numb.slice(-4),
+      details: {
+        cardLast4: card_numb.slice(-4),
+        limitCount: limitsFromApi?.length || 0,
+      },
+    });
 
-    if (!getLimitsUrl || !apiKey || !idMsg || !bankCode) {
-        return { 
-            posLimit: { current: 0, max: 0 }, 
-            atmLimit: { current: 0, max: 0 },
-            allLimits: [],
-            error: 'Server configuration error.' 
-        };
+    if (!limitsFromApi || !Array.isArray(limitsFromApi)) {
+      return {
+        posLimit: { current: 0, max: 0 },
+        atmLimit: { current: 0, max: 0 },
+        allLimits: [],
+        error: null,
+      };
     }
 
-    try {
-        const response = await fetch(getLimitsUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'ApiKey': apiKey,
-            },
-            body: JSON.stringify({
-                header: { idmsg: idMsg },
-                filter: { card: card_numb, bankcode: bankCode },
-            }),
-            cache: 'no-store',
-        });
-
-        if (!response.ok) {
-            return { 
-                posLimit: { current: 0, max: 0 },
-                atmLimit: { current: 0, max: 0 },
-                allLimits: [],
-                error: `API error: ${response.statusText}` 
-            };
+    let posMax = 0;
+    limitsFromApi
+      .filter((limit) => limit.channel === "POS CHANNEL")
+      .forEach((limit) => {
+        if (limit.mnt_limite > posMax) {
+          posMax = limit.mnt_limite;
         }
+      });
 
-        const data = await response.json();
-        const limitsFromApi: LimitApiResponse[] = data?.response?.body?.Risk;
-
-        if (!limitsFromApi || !Array.isArray(limitsFromApi)) {
-             return { 
-                posLimit: { current: 0, max: 0 },
-                atmLimit: { current: 0, max: 0 },
-                allLimits: [],
-                error: null 
-            };
+    let atmMax = 0;
+    limitsFromApi
+      .filter((limit) => limit.channel === "ATM CHANNEL")
+      .forEach((limit) => {
+        if (limit.mnt_limite > atmMax) {
+          atmMax = limit.mnt_limite;
         }
-        
-        let posMax = 0;
-        limitsFromApi
-            .filter((limit) => limit.channel === 'POS CHANNEL')
-            .forEach((limit) => {
-                if (limit.mnt_limite > posMax) {
-                    posMax = limit.mnt_limite;
-                }
-            });
+      });
 
-        let atmMax = 0;
-        limitsFromApi
-            .filter((limit) => limit.channel === 'ATM CHANNEL')
-            .forEach((limit) => {
-                if (limit.mnt_limite > atmMax) {
-                    atmMax = limit.mnt_limite;
-                }
-            });
-
-        return {
-            posLimit: { current: posMax, max: posMax }, // Assuming current is same as max for now
-            atmLimit: { current: atmMax, max: atmMax },
-            allLimits: limitsFromApi,
-            error: null,
-        };
-
-    } catch (error) {
-        return { 
-            posLimit: { current: 0, max: 0 },
-            atmLimit: { current: 0, max: 0 },
-            allLimits: [],
-            error: 'An unexpected error occurred while fetching limits.' 
-        };
-    }
+    return {
+      posLimit: { current: posMax, max: posMax }, // Assuming current is same as max for now
+      atmLimit: { current: atmMax, max: atmMax },
+      allLimits: limitsFromApi,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      posLimit: { current: 0, max: 0 },
+      atmLimit: { current: 0, max: 0 },
+      allLimits: [],
+      error: "An unexpected error occurred while fetching limits.",
+    };
+  }
 }
 
 const SetLimitSchema = z.object({
@@ -216,73 +251,98 @@ const SetLimitSchema = z.object({
   newLimit: z.number(),
 });
 
-export async function setCardLimit(prevState: any, formData: FormData): Promise<{ success: boolean; message: string }> {
-    const setLimitsUrl = process.env.SET_LIMITS_URL;
-    const apiKey = process.env.CARD_LIST_API_KEY;
-    const idMsg = process.env.CARD_LIST_ID_MSG;
+export async function setCardLimit(
+  prevState: any,
+  formData: FormData,
+): Promise<{ success: boolean; message: string }> {
+  const setLimitsUrl = process.env.SET_LIMITS_URL;
+  const apiKey = process.env.CARD_LIST_API_KEY;
+  const idMsg = process.env.CARD_LIST_ID_MSG;
 
-    if (!setLimitsUrl || !apiKey || !idMsg) {
-        return { success: false, message: 'Server configuration error.' };
+  if (!setLimitsUrl || !apiKey || !idMsg) {
+    return { success: false, message: "Server configuration error." };
+  }
+
+  const originalLimitData = JSON.parse(
+    formData.get("limitData") as string,
+  ) as LimitApiResponse;
+  const newLimit = Number(formData.get("newLimit"));
+
+  if (isNaN(newLimit) || newLimit < 0) {
+    return { success: false, message: "Invalid limit amount provided." };
+  }
+
+  const initiatorPayload = {
+    ...originalLimitData,
+    risk_code: Number(originalLimitData.risk_code),
+    periodicity_code: Number(originalLimitData.periodicity_code),
+    mnt_limite: newLimit,
+  };
+
+  try {
+    const response = await fetch(setLimitsUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ApiKey: apiKey,
+      },
+      body: JSON.stringify({
+        header: { idmsg: idMsg },
+        initiator: initiatorPayload,
+      }),
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.response?.body?.status?.errorcode !== "000") {
+      const errorDesc =
+        data.response?.body?.status?.errordesc || response.statusText;
+      return { success: false, message: `API error: ${errorDesc}` };
     }
-    
-    const originalLimitData = JSON.parse(formData.get('limitData') as string) as LimitApiResponse;
-    const newLimit = Number(formData.get('newLimit'));
 
-    if (isNaN(newLimit) || newLimit < 0) {
-        return { success: false, message: 'Invalid limit amount provided.' };
-    }
+    // Log limit update
+    await createAuditLog({
+      action: "UPDATE_LIMIT",
+      entityType: "CARD",
+      details: {
+        channel: originalLimitData.channel,
+        oldLimit: originalLimitData.mnt_limite,
+        newLimit,
+        transactionType: originalLimitData.transaction_type,
+      },
+    });
 
-    const initiatorPayload = {
-        ...originalLimitData,
-        risk_code: Number(originalLimitData.risk_code),
-        periodicity_code: Number(originalLimitData.periodicity_code),
-        mnt_limite: newLimit,
+    return { success: true, message: "Limit updated successfully." };
+  } catch (error) {
+    return {
+      success: false,
+      message: "An unexpected error occurred while setting the limit.",
     };
-    
-    try {
-        const response = await fetch(setLimitsUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'ApiKey': apiKey,
-            },
-            body: JSON.stringify({
-                header: { idmsg: idMsg },
-                initiator: initiatorPayload,
-            }),
-            cache: 'no-store',
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
-             const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
-            return { success: false, message: `API error: ${errorDesc}` };
-        }
-
-        return { success: true, message: 'Limit updated successfully.' };
-
-    } catch (error) {
-        return { success: false, message: 'An unexpected error occurred while setting the limit.' };
-    }
+  }
 }
 
-const ChangePinSchema = z.object({
-  pan_number: z.string().min(1, 'Card number is required.'),
-  old_pin: z.string().length(4, 'PIN must be 4 digits.'),
-  new_pin: z.string().length(4, 'PIN must be 4 digits.'),
-  confirm_pin: z.string().length(4, 'PIN must be 4 digits.'),
-}).refine(data => data.new_pin === data.confirm_pin, {
-  message: "New PINs don't match.",
-  path: ['confirm_pin'],
-});
+const ChangePinSchema = z
+  .object({
+    pan_number: z.string().min(1, "Card number is required."),
+    old_pin: z.string().length(4, "PIN must be 4 digits."),
+    new_pin: z.string().length(4, "PIN must be 4 digits."),
+    confirm_pin: z.string().length(4, "PIN must be 4 digits."),
+  })
+  .refine((data) => data.new_pin === data.confirm_pin, {
+    message: "New PINs don't match.",
+    path: ["confirm_pin"],
+  });
 
-export async function changePin(prevState: any, formData: FormData): Promise<{ success: boolean; message: string; errors?: any }> {
+export async function changePin(
+  prevState: any,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; errors?: any }> {
   const validatedFields = ChangePinSchema.safeParse({
-    pan_number: formData.get('pan_number'),
-    old_pin: formData.get('old_pin'),
-    new_pin: formData.get('new_pin'),
-    confirm_pin: formData.get('confirm_pin'),
+    pan_number: formData.get("pan_number"),
+    old_pin: formData.get("old_pin"),
+    new_pin: formData.get("new_pin"),
+    confirm_pin: formData.get("confirm_pin"),
   });
 
   if (!validatedFields.success) {
@@ -292,7 +352,7 @@ export async function changePin(prevState: any, formData: FormData): Promise<{ s
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
-  
+
   const { pan_number, old_pin, new_pin } = validatedFields.data;
 
   const pinChangeUrl = process.env.PIN_CHANGE_URL;
@@ -300,19 +360,19 @@ export async function changePin(prevState: any, formData: FormData): Promise<{ s
   const institution = process.env.PIN_CHANGE_INSTITUTION;
 
   if (!pinChangeUrl || !apiKey || !institution) {
-    return { success: false, message: 'Server configuration error.' };
+    return { success: false, message: "Server configuration error." };
   }
 
   try {
     const response = await fetch(pinChangeUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'ApiKey': apiKey,
+        "Content-Type": "application/json",
+        ApiKey: apiKey,
       },
       body: JSON.stringify({
         header: {
-          idmsg: uuidv4(),
+          idmsg: crypto.randomUUID(),
         },
         initiator: {
           pan_number,
@@ -321,19 +381,30 @@ export async function changePin(prevState: any, formData: FormData): Promise<{ s
           institution,
         },
       }),
-      cache: 'no-store',
+      cache: "no-store",
     });
-    
+
     const data = await response.json();
 
-    if (!response.ok || data.response?.body?.status?.errorcode !== '000') {
-      const errorDesc = data.response?.body?.status?.errordesc || response.statusText;
+    if (!response.ok || data.response?.body?.status?.errorcode !== "000") {
+      const errorDesc =
+        data.response?.body?.status?.errordesc || response.statusText;
       return { success: false, message: `API error: ${errorDesc}` };
     }
 
-    return { success: true, message: 'PIN changed successfully.' };
+    // Log PIN change
+    await createAuditLog({
+      action: "CHANGE_PIN",
+      entityType: "CARD",
+      entityId: pan_number.slice(-4),
+      details: { cardLast4: pan_number.slice(-4), success: true },
+    });
 
+    return { success: true, message: "PIN changed successfully." };
   } catch (error) {
-    return { success: false, message: 'An unexpected error occurred while changing the PIN.' };
+    return {
+      success: false,
+      message: "An unexpected error occurred while changing the PIN.",
+    };
   }
 }

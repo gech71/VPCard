@@ -3,17 +3,23 @@ import prisma from "./prisma";
 
 export type AuditAction =
   | "LOGIN"
+  | "LOGIN_FAILED"
   | "LOGOUT"
   | "REGISTER_USER"
   | "RESET_PASSWORD"
   | "REQUEST_PASSWORD_RESET"
   | "CREATE_REQUEST"
+  | "SELF_REQUEST"
   | "ASSIGN_REQUEST"
   | "APPROVE_REQUEST"
   | "REJECT_REQUEST"
-  | "VIEW_REQUEST";
+  | "VIEW_REQUEST"
+  | "CHANGE_PIN"
+  | "UPDATE_LIMIT"
+  | "VIEW_LIMITS"
+  | "VIEW_TRANSACTIONS";
 
-export type AuditEntityType = "USER" | "CARD_REQUEST" | "AUTH";
+export type AuditEntityType = "USER" | "CARD_REQUEST" | "AUTH" | "CARD";
 
 interface AuditLogParams {
   userId?: string;

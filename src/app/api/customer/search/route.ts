@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
+import { createAuditLog } from "@/lib/audit";
 
-const PREPAID_API_URL =
-  process.env.PREPAID_API_URL;
+const PREPAID_API_URL = process.env.PREPAID_API_URL;
 const PREPAID_API_USER = process.env.PREPAID_API_USER;
 const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
 
@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
     const accountRegex = /^7000\d{9}$/;
     if (!accountRegex.test(accountNumber)) {
       return NextResponse.json(
-        { error: "Invalid account number. Must start with 7000 and be 13 digits." },
+        {
+          error:
+            "Invalid account number. Must start with 7000 and be 13 digits.",
+        },
         { status: 400 },
       );
     }
@@ -51,7 +54,10 @@ export async function POST(request: NextRequest) {
 
     if (existingPendingRequest) {
       return NextResponse.json(
-        { error: "There is already a pending card request for this account number." },
+        {
+          error:
+            "There is already a pending card request for this account number.",
+        },
         { status: 400 },
       );
     }
@@ -79,6 +85,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    // Log customer search
+    await createAuditLog({
+      userId: currentUser.userId,
+      action: "VIEW_REQUEST", // Using VIEW_REQUEST as a proxy for searching/viewing customer info
+      entityType: "CARD_REQUEST",
+      details: { accountNumber, event: "CUSTOMER_SEARCH" },
+    });
 
     return NextResponse.json({
       success: true,
