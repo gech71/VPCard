@@ -71,6 +71,8 @@ export default function AuditLogsPage() {
         (log) =>
           log.action.toLowerCase().includes(filter.toLowerCase()) ||
           log.user?.email.toLowerCase().includes(filter.toLowerCase()) ||
+          log.actorEmail?.toLowerCase().includes(filter.toLowerCase()) ||
+          log.actorId?.toLowerCase().includes(filter.toLowerCase()) ||
           log.entityType.toLowerCase().includes(filter.toLowerCase()),
       )
     : logs;

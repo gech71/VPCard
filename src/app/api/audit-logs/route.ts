@@ -23,14 +23,22 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
     const action = searchParams.get("action");
     const entityType = searchParams.get("entityType");
+    const actorId = searchParams.get("actorId");
+    const actorEmail = searchParams.get("actorEmail");
 
-    const whereClause: Record<string, unknown> = {};
+    const whereClause: any = {};
 
     if (action) {
       whereClause.action = action;
     }
     if (entityType) {
       whereClause.entityType = entityType;
+    }
+    if (actorId) {
+      whereClause.actorId = actorId;
+    }
+    if (actorEmail) {
+      whereClause.actorEmail = { contains: actorEmail, mode: 'insensitive' };
     }
 
     const [logs, total] = await Promise.all([
