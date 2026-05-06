@@ -73,7 +73,10 @@ export async function POST(request: NextRequest) {
 
     // Create audit log
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "ADMIN",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
+      targetUserId: user.id,
       action: "REGISTER_USER",
       entityType: "USER",
       entityId: user.id,

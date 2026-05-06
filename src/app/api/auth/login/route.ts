@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       // Create audit log for failed attempt (non-existent user)
       await createAuditLog({
+        actorType: "SYSTEM",
         action: "LOGIN_FAILED",
         entityType: "AUTH",
         details: { reason: "User not found", email },
@@ -77,7 +78,9 @@ export async function POST(request: NextRequest) {
 
       // Create audit log for failed attempt
       await createAuditLog({
-        userId: user.id,
+        actorType: "USER",
+        actorId: user.id,
+        actorEmail: user.email,
         action: "LOGIN_FAILED",
         entityType: "AUTH",
         entityId: user.id,
@@ -111,7 +114,9 @@ export async function POST(request: NextRequest) {
 
     // Create audit log
     await createAuditLog({
-      userId: user.id,
+      actorType: "USER",
+      actorId: user.id,
+      actorEmail: user.email,
       action: "LOGIN",
       entityType: "AUTH",
       entityId: user.id,

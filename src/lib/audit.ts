@@ -20,9 +20,14 @@ export type AuditAction =
   | "VIEW_TRANSACTIONS";
 
 export type AuditEntityType = "USER" | "CARD_REQUEST" | "AUTH" | "CARD";
+export type AuditActorType = "USER" | "SYSTEM" | "ADMIN";
 
 interface AuditLogParams {
-  userId?: string;
+  userId?: string; // The primary user ID associated with the record (legacy)
+  actorType: AuditActorType;
+  actorId?: string;
+  actorEmail?: string;
+  targetUserId?: string;
   action: AuditAction;
   entityType: AuditEntityType;
   entityId?: string;
@@ -32,6 +37,10 @@ interface AuditLogParams {
 
 export async function createAuditLog({
   userId,
+  actorType,
+  actorId,
+  actorEmail,
+  targetUserId,
   action,
   entityType,
   entityId,
@@ -55,20 +64,24 @@ export async function createAuditLog({
     }
 
     // Verify user exists if userId is provided
-    let verifiedUserId = userId;
-    if (userId) {
+    let verifiedUserId = userId || actorId; // Map actorId to userId for backward compatibility if needed
+    if (verifiedUserId) {
       const userExists = await prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: verifiedUserId },
         select: { id: true },
       });
       if (!userExists) {
-        verifiedUserId = undefined; // Set to undefined so Prisma omits it, column is nullable
+        verifiedUserId = undefined;
       }
     }
 
     await prisma.auditLog.create({
       data: {
         userId: verifiedUserId,
+        actorType,
+        actorId: actorId || "SYSTEM",
+        actorEmail,
+        targetUserId,
         action,
         entityType,
         entityId,
@@ -79,6 +92,7 @@ export async function createAuditLog({
       },
     });
   } catch (error) {
+    console.error("Failed to create audit log:", error);
   }
 }
 

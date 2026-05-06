@@ -181,9 +181,12 @@ export async function POST(request: NextRequest) {
 
     // Create audit logs
     const logUserId = currentUser?.userId || null;
+    const actorType = currentUser ? "USER" : "SYSTEM"; // System if phone-based/unauthenticated
 
     await createAuditLog({
-      userId: logUserId,
+      actorType,
+      actorId: logUserId || "PHONE_USER",
+      actorEmail: currentUser?.email || phoneNumber || "unknown",
       action: "SELF_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
@@ -198,7 +201,9 @@ export async function POST(request: NextRequest) {
     });
 
     await createAuditLog({
-      userId: logUserId,
+      actorType,
+      actorId: logUserId || "PHONE_USER",
+      actorEmail: currentUser?.email || phoneNumber || "unknown",
       action: "ASSIGN_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,

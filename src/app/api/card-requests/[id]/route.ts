@@ -124,12 +124,16 @@ export async function PATCH(request: NextRequest) {
           const panPlaintext = additionalData?.PAN || null;
           const cvv = additionalData?.cvv2 || null; // CVV received but NOT stored
           const expiryDatePlaintext = additionalData?.["expiry date"] || null;
-          
+
           // Encrypt PAN and expiryDate before storage (PCI DSS Requirement 3.4)
-          const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || '';
-          pan = panPlaintext ? encryptCardData(panPlaintext, encryptionSecret) : null;
-          expiryDate = expiryDatePlaintext ? encryptCardData(expiryDatePlaintext, encryptionSecret) : null;
-          
+          const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || "";
+          pan = panPlaintext
+            ? encryptCardData(panPlaintext, encryptionSecret)
+            : null;
+          expiryDate = expiryDatePlaintext
+            ? encryptCardData(expiryDatePlaintext, encryptionSecret)
+            : null;
+
           // CVV is intentionally NOT stored - PCI DSS strictly prohibits storing CVV after authorization
           // CVV should only exist in memory briefly and be discarded
         } else {
@@ -165,7 +169,9 @@ export async function PATCH(request: NextRequest) {
     const auditAction =
       action === "APPROVE" ? "APPROVE_REQUEST" : "REJECT_REQUEST";
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "USER", // Checker is a USER actor
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: auditAction,
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
@@ -238,7 +244,9 @@ export async function GET(request: NextRequest) {
 
     // Create audit log for viewing
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "USER",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: "VIEW_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,

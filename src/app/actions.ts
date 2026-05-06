@@ -92,8 +92,12 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
       ? Number(body.summary.balance)
       : 0;
 
+    const phoneNumber = await getDecryptedPhoneFromCookie();
+
     // Log transaction view
     await createAuditLog({
+      actorType: phoneNumber ? "USER" : "SYSTEM",
+      actorId: phoneNumber || "anonymous",
       action: "VIEW_TRANSACTIONS",
       entityType: "CARD",
       entityId: card_numb.slice(-4), // Only store last 4 for privacy in logs
@@ -192,8 +196,12 @@ export async function getCardLimits(prevState: any, formData: FormData) {
     const data = await response.json();
     const limitsFromApi: LimitApiResponse[] = data?.response?.body?.Risk;
 
+    const phoneNumber = await getDecryptedPhoneFromCookie();
+
     // Log limits view
     await createAuditLog({
+      actorType: phoneNumber ? "USER" : "SYSTEM",
+      actorId: phoneNumber || "anonymous",
       action: "VIEW_LIMITS",
       entityType: "CARD",
       entityId: card_numb.slice(-4),
@@ -301,8 +309,12 @@ export async function setCardLimit(
       return { success: false, message: `API error: ${errorDesc}` };
     }
 
+    const phoneNumber = await getDecryptedPhoneFromCookie();
+
     // Log limit update
     await createAuditLog({
+      actorType: phoneNumber ? "USER" : "SYSTEM",
+      actorId: phoneNumber || "anonymous",
       action: "UPDATE_LIMIT",
       entityType: "CARD",
       details: {
@@ -392,8 +404,12 @@ export async function changePin(
       return { success: false, message: `API error: ${errorDesc}` };
     }
 
+    const phoneNumber = await getDecryptedPhoneFromCookie();
+
     // Log PIN change
     await createAuditLog({
+      actorType: phoneNumber ? "USER" : "SYSTEM",
+      actorId: phoneNumber || "anonymous",
       action: "CHANGE_PIN",
       entityType: "CARD",
       entityId: pan_number.slice(-4),

@@ -10,7 +10,9 @@ export async function POST(request: Request) {
 
     if (user) {
       await createAuditLog({
-        userId: user.userId,
+        actorType: "USER",
+        actorId: user.userId,
+        actorEmail: user.email,
         action: "LOGOUT",
         entityType: "AUTH",
         entityId: user.userId,

@@ -76,7 +76,10 @@ export async function POST(request: NextRequest) {
 
     // Create audit log
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "ADMIN",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
+      targetUserId: userId,
       action: "REQUEST_PASSWORD_RESET",
       entityType: "USER",
       entityId: userId,
@@ -140,7 +143,9 @@ export async function PUT(request: NextRequest) {
 
     // Create audit log
     await createAuditLog({
-      userId: user.id,
+      actorType: "USER",
+      actorId: user.id,
+      actorEmail: user.email,
       action: "REQUEST_PASSWORD_RESET",
       entityType: "USER",
       entityId: user.id,

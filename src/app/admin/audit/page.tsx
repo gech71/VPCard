@@ -21,6 +21,10 @@ import { Loader2, Search } from "lucide-react";
 
 interface AuditLog {
   id: string;
+  actorType: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  targetUserId: string | null;
   action: string;
   entityType: string;
   entityId: string | null;
@@ -161,9 +165,9 @@ export default function AuditLogsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
-                  <TableHead>User</TableHead>
+                  <TableHead>Actor</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Entity Type</TableHead>
+                  <TableHead>Target/Entity</TableHead>
                   <TableHead>Details</TableHead>
                   <TableHead>IP Address</TableHead>
                 </TableRow>
@@ -175,40 +179,66 @@ export default function AuditLogsPage() {
                       {new Date(log.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {log.user?.email || "System"}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-400 mb-0.5">
+                          {log.actorType}
+                        </span>
+                        <p className="font-medium text-sm">
+                          {log.actorEmail || log.user?.email || "System"}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {log.user?.role}
-                        </p>
+                        {log.actorId && log.actorId !== log.actorEmail && (
+                          <p className="text-[10px] text-gray-500 font-mono">
+                            ID: {log.actorId}
+                          </p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          log.action.includes("LOGIN") ||
-                          log.action.includes("LOGOUT")
-                            ? "bg-primary/20 text-primary"
-                            : log.action.includes("CREATE") ||
-                                log.action.includes("ASSIGN")
-                              ? "bg-green-100 text-green-700"
-                              : log.action.includes("APPROVE")
-                                ? "bg-purple-100 text-purple-700"
-                                : log.action.includes("REJECT")
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {log.action}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium w-fit ${
+                            log.action.includes("LOGIN") ||
+                            log.action.includes("LOGOUT")
+                              ? "bg-primary/20 text-primary"
+                              : log.action.includes("CREATE") ||
+                                  log.action.includes("ASSIGN") ||
+                                  log.action.includes("SELF")
+                                ? "bg-green-100 text-green-700"
+                                : log.action.includes("APPROVE")
+                                  ? "bg-purple-100 text-purple-700"
+                                  : log.action.includes("REJECT")
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {log.action}
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell>{log.entityType}</TableCell>
-                    <TableCell className="text-sm text-gray-500 max-w-xs truncate">
-                      {log.details ? JSON.stringify(log.details) : "-"}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium">
+                          {log.entityType}
+                        </span>
+                        {log.targetUserId && (
+                          <span className="text-[10px] text-primary">
+                            Target: {log.targetUserId.slice(0, 8)}...
+                          </span>
+                        )}
+                        {log.entityId && (
+                          <span className="text-[10px] text-gray-500">
+                            ID: {log.entityId.slice(0, 8)}...
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {log.ipAddress || "-"}
+                    <TableCell className="text-xs max-w-[200px]">
+                      <div className="bg-gray-50 p-1.5 rounded border text-[10px] font-mono overflow-auto max-h-20">
+                        {JSON.stringify(log.details, null, 2)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[10px] font-mono">
+                      {log.ipAddress}
                     </TableCell>
                   </TableRow>
                 ))}

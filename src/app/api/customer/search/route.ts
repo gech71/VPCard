@@ -88,7 +88,9 @@ export async function POST(request: NextRequest) {
 
     // Log customer search
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "USER",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: "VIEW_REQUEST", // Using VIEW_REQUEST as a proxy for searching/viewing customer info
       entityType: "CARD_REQUEST",
       details: { accountNumber, event: "CUSTOMER_SEARCH" },

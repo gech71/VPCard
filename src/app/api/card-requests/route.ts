@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
 
     // Create audit log
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "USER",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: "CREATE_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
@@ -108,7 +110,9 @@ export async function POST(request: NextRequest) {
     });
 
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "USER",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: "ASSIGN_REQUEST",
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,

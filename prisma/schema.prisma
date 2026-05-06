@@ -91,16 +91,23 @@ model CardRequest {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  action      String
-  entityType  String
-  entityId    String?
-  details     Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  
+  // Professional Audit Fields
+  actorType     String   @default("USER") // USER, SYSTEM, ADMIN
+  actorId       String?  // Unique identifier for the actor
+  actorEmail    String?  // Email of the actor for easier search
+  targetUserId  String?  // ID of the user being acted upon (if applicable)
+  
+  action        String
+  entityType    String
+  entityId      String?
+  details       Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
 
   cardRequestId String?
   cardRequest   CardRequest? @relation(fields: [cardRequestId], references: [id])

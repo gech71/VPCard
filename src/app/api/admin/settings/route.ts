@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
 
     // Log settings update
     await createAuditLog({
-      userId: currentUser.userId,
+      actorType: "ADMIN",
+      actorId: currentUser.userId,
+      actorEmail: currentUser.email,
       action: "REGISTER_USER", // Using REGISTER_USER as a generic 'ADMIN_ACTION' proxy or we could add 'UPDATE_SETTINGS'
       entityType: "USER",
       details: {
