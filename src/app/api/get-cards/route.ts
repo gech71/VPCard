@@ -174,6 +174,7 @@ async function fetchCardsForAccount(
         accountNumber: card.accountnumber,
         currency: card.cardcurrency,
         cardTypeNetwork: card.cardtypenetwork,
+        cvv: card.cvv2,
       };
     });
   } catch (err) {

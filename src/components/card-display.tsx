@@ -45,12 +45,20 @@ export default function CardDisplay({ card }: CardDisplayProps) {
                 <span className="text-[8px] block opacity-70">Holder Name</span>
                 <span>{card.cardholderName}</span>
               </div>
-              <div className="text-right flex items-center gap-2">
-                  <span className="text-[8px] opacity-70">Expires</span>
-                  <div className="text-right">
-                    <span className="text-[8px] block opacity-70">Month/Year</span>
-                    <span>{card.expiryDate}</span>
+              <div className="flex gap-4">
+                {card.cvv && (
+                  <div className="text-center">
+                    <span className="text-[8px] block opacity-70">CVV</span>
+                    <span>{isRevealed ? card.cvv : '***'}</span>
                   </div>
+                )}
+                <div className="text-right flex items-center gap-2">
+                    <span className="text-[8px] opacity-70">Expires</span>
+                    <div className="text-right">
+                      <span className="text-[8px] block opacity-70">Month/Year</span>
+                      <span>{card.expiryDate}</span>
+                    </div>
+                </div>
               </div>
             </div>
           </div>

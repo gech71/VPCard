@@ -11,6 +11,7 @@ export type CardDetails = {
   accountNumber: string;
   currency: string;
   cardTypeNetwork: string;
+  cvv?: string;
 };
 
 export type Transaction = {
