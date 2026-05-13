@@ -89,7 +89,10 @@ export default function Home() {
   }, [selectedAccount, toast]);
 
   const showNoCardsMessage =
-    !isLoading && !isLoadingCards && selectedAccount && (!cards || cards.length === 0);
+    !isLoading &&
+    !isLoadingCards &&
+    selectedAccount &&
+    (!cards || cards.length === 0);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -116,12 +119,12 @@ export default function Home() {
               <h2 className="text-3xl font-bold tracking-tight">Welcome</h2>
               <p className="text-muted-foreground max-w-md">
                 We found multiple accounts associated with your phone number.
-                Please select an account to view your virtual cards.
+                Please select an account to view your Prepaid Cards.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl px-4">
               {accounts.map((acc) => (
-                <Card 
+                <Card
                   key={acc.accountNumber}
                   className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all group relative overflow-hidden"
                   onClick={() => setSelectedAccount(acc.accountNumber)}
@@ -132,9 +135,15 @@ export default function Home() {
                       <Wallet className="w-6 h-6" />
                     </div>
                     <div className="text-left space-y-0.5">
-                      <p className="text-xs font-bold text-primary uppercase tracking-wider">Account Number</p>
-                      <p className="font-mono text-xl font-bold tracking-tight">{acc.accountNumber}</p>
-                      <p className="text-sm text-muted-foreground font-medium">{acc.name}</p>
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                        Account Number
+                      </p>
+                      <p className="font-mono text-xl font-bold tracking-tight">
+                        {acc.accountNumber}
+                      </p>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {acc.name}
+                      </p>
                     </div>
                     <ArrowRight className="ml-auto w-5 h-5 text-muted-foreground group-hover:text-primary transform group-hover:translate-x-1 transition-all" />
                   </CardHeader>
@@ -188,18 +197,22 @@ export default function Home() {
                     You don't have any cards associated with account{" "}
                     <span className="font-mono font-bold bg-muted px-1 rounded">
                       {selectedAccount}
-                    </span>.
+                    </span>
+                    .
                   </p>
                   {allowSelfRequest ? (
                     <Button asChild>
-                      <Link href={`/request-card?accountNumber=${selectedAccount}`}>
+                      <Link
+                        href={`/request-card?accountNumber=${selectedAccount}`}
+                      >
                         <Plus className="mr-2 h-4 w-4" />
                         Request a Card
                       </Link>
                     </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Please contact support for account {selectedAccount} if you believe this is an error.
+                      Please contact support for account {selectedAccount} if
+                      you believe this is an error.
                     </p>
                   )}
                 </AlertDescription>

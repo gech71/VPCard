@@ -6,7 +6,14 @@ import DashboardHeader from "@/components/dashboard-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, CreditCard } from "lucide-react";
@@ -77,10 +84,10 @@ function RequestCardForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            accountNumber,
-            customerEmail: email,
-            customerPhone: normalizedPhone,
-            notes,
+          accountNumber,
+          customerEmail: email,
+          customerPhone: normalizedPhone,
+          notes,
         }),
       });
 
@@ -116,8 +123,8 @@ function RequestCardForm() {
 
   return (
     <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Button 
-        variant="ghost" 
+      <Button
+        variant="ghost"
         className="mb-6 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
         onClick={() => router.push("/")}
       >
@@ -132,17 +139,23 @@ function RequestCardForm() {
             <div className="p-2 bg-primary/10 rounded-lg">
               <CreditCard className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">Request a New Card</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              Request a New Card
+            </CardTitle>
           </div>
           <CardDescription className="text-base">
-            Submit a request for a new virtual card. Your request will be reviewed by a bank official.
+            Submit a request for a new Prepaid Card. Your request will be
+            reviewed by a bank official.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="accountNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                <Label
+                  htmlFor="accountNumber"
+                  className="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
+                >
                   Linked Account
                 </Label>
                 <Input
@@ -153,7 +166,10 @@ function RequestCardForm() {
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="phoneNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                <Label
+                  htmlFor="phoneNumber"
+                  className="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
+                >
                   Phone Number
                 </Label>
                 <div className="relative">
@@ -163,13 +179,18 @@ function RequestCardForm() {
                     readOnly
                     className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                   />
-                  {loadingUser && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />}
+                  {loadingUser && (
+                    <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="email" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label
+                htmlFor="email"
+                className="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
+              >
                 Email Address *
               </Label>
               <Input
@@ -183,7 +204,10 @@ function RequestCardForm() {
               />
             </div>
             <div className="space-y-3">
-              <Label htmlFor="notes" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label
+                htmlFor="notes"
+                className="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
+              >
                 Additional Notes
               </Label>
               <Textarea
@@ -222,12 +246,16 @@ export default function RequestCardPage() {
     <div className="min-h-screen w-full bg-slate-50/50 dark:bg-slate-950">
       <DashboardHeader />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <Suspense fallback={
+        <Suspense
+          fallback={
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground font-medium">Loading request form...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="mt-4 text-muted-foreground font-medium">
+                Loading request form...
+              </p>
             </div>
-        }>
+          }
+        >
           <RequestCardForm />
         </Suspense>
       </main>

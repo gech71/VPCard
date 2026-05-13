@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
@@ -10,18 +10,21 @@ const transporter = nodemailer.createTransport({
   },
   tls: {
     // allow self-signed certificates if configured
-    rejectUnauthorized: process.env.MAIL_ALLOW_SELF_SIGNED !== 'true'
-  }
+    rejectUnauthorized: process.env.MAIL_ALLOW_SELF_SIGNED !== "true",
+  },
 });
 
-export const sendPasswordResetEmail = async (email: string, resetToken: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9000';
+export const sendPasswordResetEmail = async (
+  email: string,
+  resetToken: string,
+) => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:9000";
   const resetLink = `${baseUrl}/reset-password/${resetToken}`;
 
   const mailOptions = {
-    from: `"VPCard System" <${process.env.MAIL_FROM_EMAIL}>`,
+    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
     to: email,
-    subject: 'Password Reset Request',
+    subject: "Password Reset Request",
     html: `
       <div style="font-family: inherit; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
         <h2 style="color: #333;">Password Reset Request</h2>

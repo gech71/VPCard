@@ -108,7 +108,9 @@ export default function AdminSettings() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-primary text-primary-foreground">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-bold">VPCard Admin - Super Admin</h1>
+            <h1 className="text-xl font-bold">
+              Prepaid Card Admin - Super Admin
+            </h1>
           </div>
         </header>
         <div className="flex items-center justify-center h-64">
@@ -123,7 +125,9 @@ export default function AdminSettings() {
       {/* Header */}
       <header className="bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">VPCard Admin - Super Admin</h1>
+          <h1 className="text-xl font-bold">
+            Prepaid Card Admin - Super Admin
+          </h1>
           <div className="flex items-center gap-4">
             <form action="/api/auth/logout" method="POST">
               <button

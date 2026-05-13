@@ -20,7 +20,9 @@ export default async function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary">
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-primary/20">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary">VPCard Admin</h1>
+          <h1 className="text-2xl font-bold text-primary">
+            Prepaid Card Admin
+          </h1>
           <p className="text-gray-500 mt-2">Sign in to your account</p>
         </div>
 

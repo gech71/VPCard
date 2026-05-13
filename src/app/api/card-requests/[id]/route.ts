@@ -147,7 +147,7 @@ export async function PATCH(request: NextRequest) {
         }
       } catch (err) {
         return NextResponse.json(
-          { error: "Failed to connect to PSS virtual card system" },
+          { error: "Failed to connect to PSS Prepaid Card system" },
           { status: 500 },
         );
       }
