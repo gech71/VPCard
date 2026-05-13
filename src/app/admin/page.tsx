@@ -26,7 +26,9 @@ export default async function SuperAdminDashboard() {
       {/* Header */}
       <header className="bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">VPCard Admin - Super Admin</h1>
+          <h1 className="text-xl font-bold">
+            Prepaid Card Admin - Super Admin
+          </h1>
           <div className="flex items-center gap-4">
             <span className="text-sm">{user.email}</span>
             <form action="/api/auth/logout" method="POST">

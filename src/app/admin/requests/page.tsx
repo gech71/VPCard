@@ -206,7 +206,7 @@ export default function AdminRequestsPage() {
       {/* Header */}
       <header className="bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">VPCard Admin - Card Requests</h1>
+          <h1 className="text-xl font-bold">Prepaid Card Admin - Card Requests</h1>
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className="text-sm bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition">
               Logout

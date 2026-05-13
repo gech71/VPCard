@@ -190,7 +190,7 @@ export default function UserManagement() {
       {/* Header */}
       <header className="bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">VPCard Admin - User Management</h1>
+          <h1 className="text-xl font-bold">Prepaid Card Admin - User Management</h1>
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
