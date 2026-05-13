@@ -106,7 +106,7 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
           </div>
         </div>
         
-        {/* <div className="grid grid-cols-1 gap-2 pt-4">
+        <div className="grid grid-cols-1 gap-2 pt-4">
             <Link href={`/limits?card_numb=${card.fullNumber}`} passHref className="w-full">
                  <Button variant="outline" className="w-full">
                     <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
@@ -117,7 +117,7 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
                   <KeyRound className="mr-2 h-4 w-4" /> Change PIN
                 </Button>
             </Link>
-        </div> */}
+        </div>
       </CardContent>
     </Card>
   );

@@ -6,6 +6,7 @@ import {
   setAccountsCookie,
 } from "@/lib/auth";
 import { type CardDetails } from "@/lib/data";
+import { fetchPss } from "@/lib/pss-fetch";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -122,7 +123,7 @@ async function fetchCardsForAccount(
   institution: string,
 ): Promise<CardDetails[]> {
   try {
-    const cardListResponse = await fetch(url, {
+    const cardListResponse = await fetchPss(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

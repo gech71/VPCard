@@ -4,6 +4,7 @@ import type { Transaction, Limit } from "@/lib/data";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { getDecryptedPhoneFromCookie } from "@/lib/auth";
+import { fetchPss } from "@/lib/pss-fetch";
 
 const CardNumbSchema = z.object({
   card_numb: z.string(),
@@ -58,7 +59,7 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
   }
 
   try {
-    const response = await fetch(getTransactionsUrl, {
+    const response = await fetchPss(getTransactionsUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -171,7 +172,7 @@ export async function getCardLimits(prevState: any, formData: FormData) {
   }
 
   try {
-    const response = await fetch(getLimitsUrl, {
+    const response = await fetchPss(getLimitsUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -288,7 +289,7 @@ export async function setCardLimit(
   };
 
   try {
-    const response = await fetch(setLimitsUrl, {
+    const response = await fetchPss(setLimitsUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -376,7 +377,7 @@ export async function changePin(
   }
 
   try {
-    const response = await fetch(pinChangeUrl, {
+    const response = await fetchPss(pinChangeUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

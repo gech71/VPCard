@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
+import { fetchPss } from "@/lib/pss-fetch";
 
 const reviewSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -107,7 +108,7 @@ export async function PATCH(request: NextRequest) {
       };
 
       try {
-        const pssResponse = await fetch(pssUrl, {
+        const pssResponse = await fetchPss(pssUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
