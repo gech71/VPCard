@@ -8,7 +8,7 @@ import {
 } from "undici";
 
 /** Hostname for PSS / card APIs that require the corporate CA (`certs/pss.crt`). */
-const PSS_HOST = "172.16.40.1";
+const PSS_HOST = process.env.PSS_HOST ?? "";
 
 let cachedAgent: Agent | null | undefined;
 
