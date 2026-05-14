@@ -6,6 +6,11 @@ import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
 import { fetchPss } from "@/lib/pss-fetch";
 import { buildPssVirtualCardInitiator } from "@/lib/pss-virtual-card";
+import {
+  fetchPssCardListByCustomerId,
+  resolveCustomertypeFromCardBins,
+} from "@/lib/pss-card-list";
+import { defaultLegacyCardProgramCode } from "@/lib/card-programs";
 
 const reviewSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -86,6 +91,40 @@ export async function PATCH(request: NextRequest) {
       const apiKey = process.env.CARD_LIST_API_KEY || "";
       const idmsg = process.env.CARD_LIST_ID_MSG || "";
       const institution = process.env.PIN_CHANGE_INSTITUTION;
+      const cardListUrl = process.env.CARD_LIST_URL || "";
+      const cardListInstitution =
+        process.env.CARD_LIST_INSTITUTION || institution || "";
+
+      const programCode =
+        cardRequest.cardProgramCode || defaultLegacyCardProgramCode();
+      const program = await prisma.cardProgram.findUnique({
+        where: { code: programCode },
+      });
+
+      let customerType: "O" | "N" = "N";
+      if (
+        cardRequest.customerId &&
+        cardListUrl &&
+        apiKey &&
+        idmsg &&
+        cardListInstitution
+      ) {
+        try {
+          const listCards = await fetchPssCardListByCustomerId({
+            customerId: String(cardRequest.customerId),
+            institution: String(cardListInstitution),
+            cardListUrl,
+            apiKey,
+            idmsg,
+          });
+          customerType = resolveCustomertypeFromCardBins(
+            listCards,
+            program?.bin,
+          );
+        } catch {
+          customerType = "N";
+        }
+      }
 
       const initiator = await buildPssVirtualCardInitiator(
         {
@@ -101,6 +140,7 @@ export async function PATCH(request: NextRequest) {
           title: cardRequest.title,
         },
         institution,
+        customerType,
       );
 
       const pssPayload = {

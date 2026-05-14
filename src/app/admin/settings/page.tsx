@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +35,6 @@ interface CardProgramRow {
 }
 
 export default function AdminSettings() {
-  const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -114,8 +112,7 @@ export default function AdminSettings() {
     }
   }
 
-  async function handleSaveCardPrograms(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSaveCardPrograms() {
     setSavingPrograms(true);
     try {
       const res = await fetch("/api/admin/card-programs", {
@@ -236,8 +233,8 @@ export default function AdminSettings() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
 
-        <form onSubmit={handleSaveSettings}>
-          <div className="space-y-6">
+        <div className="space-y-6">
+          <form onSubmit={handleSaveSettings} className="space-y-6">
             {/* Self Card Request Setting */}
             <Card>
               <CardHeader>
@@ -294,7 +291,25 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Save Button — must stay inside this form (not nested with card programs) */}
+            <div className="flex justify-end">
+              <Button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Settings
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+
+          <Card>
               <CardHeader>
                 <CardTitle>Card programs</CardTitle>
                 <CardDescription>
@@ -303,9 +318,9 @@ export default function AdminSettings() {
                   hidden from request forms and rejected by the API.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveCardPrograms} className="space-y-4">
-                  <div className="overflow-x-auto border rounded-lg">
+            <CardContent>
+              <div className="space-y-4">
+                <div className="overflow-x-auto border rounded-lg">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100 text-left">
                         <tr>
@@ -360,7 +375,11 @@ export default function AdminSettings() {
                     </table>
                   </div>
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={savingPrograms}>
+                    <Button
+                      type="button"
+                      disabled={savingPrograms}
+                      onClick={() => void handleSaveCardPrograms()}
+                    >
                       {savingPrograms ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -374,28 +393,10 @@ export default function AdminSettings() {
                       )}
                     </Button>
                   </div>
-                </form>
+                </div>
               </CardContent>
             </Card>
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Settings
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </form>
+        </div>
       </main>
     </div>
   );

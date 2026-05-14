@@ -22,6 +22,7 @@ export type CardRequestForPss = {
 export async function buildPssVirtualCardInitiator(
   cardRequest: CardRequestForPss,
   institution: string | undefined,
+  customerType: "O" | "N",
 ) {
   const programCode =
     cardRequest.cardProgramCode || defaultLegacyCardProgramCode();
@@ -53,14 +54,14 @@ export async function buildPssVirtualCardInitiator(
     }
   }
 
-  if (!gender) gender = "1";
+  if (!gender) gender = "M";
   if (!branchcode) {
     branchcode = process.env.DEFAULT_BRANCH_CODE || "409";
   }
 
   return {
     customerid: cardRequest.customerId,
-    customertype: "O",
+    customertype: customerType,
     accountnumber: "",
     accounttype: "N",
     currencycode: "840",
