@@ -44,18 +44,37 @@ export async function fetchPssCardListByCustomerId(params: {
 }
 
 /**
- * If any listed card's clearpan starts with the program BIN, customer is treated as "O", else "N".
+ * Collect unique non-empty BIN prefixes from all configured card programs
+ * (caller should load from DB regardless of enable flags).
+ */
+export function normalizeConfiguredBins(bins: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const b of bins) {
+    const t = String(b ?? "").trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
+/**
+ * If any listed card's clearpan starts with any configured BIN, customer is "O", else "N".
  */
 export function resolveCustomertypeFromCardBins(
   cards: PssCardRow[],
-  programBin: string | null | undefined,
+  configuredBins: string[],
 ): "O" | "N" {
-  const bin = (programBin || "").trim();
-  if (!bin) return "N";
+  const bins = normalizeConfiguredBins(configuredBins);
+  if (bins.length === 0) return "N";
 
   for (const card of cards) {
     const pan = String(card?.clearpan ?? "").trim();
-    if (pan && pan.startsWith(bin)) return "O";
+    if (!pan) continue;
+    for (const bin of bins) {
+      if (pan.startsWith(bin)) return "O";
+    }
   }
   return "N";
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -45,6 +46,10 @@ export default function AdminSettings() {
   const [defaultCheckerId, setDefaultCheckerId] = useState("");
   const [cardPrograms, setCardPrograms] = useState<CardProgramRow[]>([]);
   const [savingPrograms, setSavingPrograms] = useState(false);
+  const [newProgramCode, setNewProgramCode] = useState("");
+  const [newProgramName, setNewProgramName] = useState("");
+  const [newProgramBin, setNewProgramBin] = useState("");
+  const [addingProgram, setAddingProgram] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -150,6 +155,56 @@ export default function AdminSettings() {
       });
     } finally {
       setSavingPrograms(false);
+    }
+  }
+
+  async function handleAddCardProgram() {
+    const code = newProgramCode.trim();
+    const name = newProgramName.trim();
+    const bin = newProgramBin.trim();
+    if (!code || !name || !bin) {
+      toast({
+        variant: "destructive",
+        title: "Missing fields",
+        description: "Enter program code, name, and BIN.",
+      });
+      return;
+    }
+
+    setAddingProgram(true);
+    try {
+      const res = await fetch("/api/admin/card-programs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, name, bin }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to add card program",
+        });
+        return;
+      }
+      if (data.cardPrograms) {
+        setCardPrograms(data.cardPrograms);
+      }
+      setNewProgramCode("");
+      setNewProgramName("");
+      setNewProgramBin("");
+      toast({
+        title: "Success",
+        description: "Card program added",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred",
+      });
+    } finally {
+      setAddingProgram(false);
     }
   }
 
@@ -310,16 +365,68 @@ export default function AdminSettings() {
           </form>
 
           <Card>
-              <CardHeader>
-                <CardTitle>Card programs</CardTitle>
-                <CardDescription>
-                  Control which card products Makers and self-initiated customers
-                  can choose when submitting a request. Disabled programs are
-                  hidden from request forms and rejected by the API.
-                </CardDescription>
-              </CardHeader>
+            <CardHeader>
+              <CardTitle>Card programs</CardTitle>
+              <CardDescription>
+                Control which card products Makers and self-initiated customers
+                can choose when submitting a request. Disabled programs are
+                hidden from request forms and rejected by the API. Checker
+                approval compares customer cards against every BIN listed here
+                (including disabled rows) to set customer type.
+              </CardDescription>
+            </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <h3 className="text-sm font-semibold">Add card program</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="newProgramCode">Program code</Label>
+                      <Input
+                        id="newProgramCode"
+                        inputMode="numeric"
+                        placeholder="e.g. 32141"
+                        value={newProgramCode}
+                        onChange={(e) => setNewProgramCode(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1 sm:col-span-1">
+                      <Label htmlFor="newProgramName">Name</Label>
+                      <Input
+                        id="newProgramName"
+                        placeholder="Display name"
+                        value={newProgramName}
+                        onChange={(e) => setNewProgramName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="newProgramBin">BIN</Label>
+                      <Input
+                        id="newProgramBin"
+                        inputMode="numeric"
+                        placeholder="e.g. 52624735"
+                        value={newProgramBin}
+                        onChange={(e) => setNewProgramBin(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={addingProgram}
+                    onClick={() => void handleAddCardProgram()}
+                  >
+                    {addingProgram ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding…
+                      </>
+                    ) : (
+                      "Add program"
+                    )}
+                  </Button>
+                </div>
+
                 <div className="overflow-x-auto border rounded-lg">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100 text-left">
@@ -373,8 +480,8 @@ export default function AdminSettings() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                  <div className="flex justify-end">
+                </div>
+                <div className="flex justify-end">
                     <Button
                       type="button"
                       disabled={savingPrograms}
@@ -392,10 +499,10 @@ export default function AdminSettings() {
                         </>
                       )}
                     </Button>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

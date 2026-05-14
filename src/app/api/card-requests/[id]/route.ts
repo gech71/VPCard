@@ -10,7 +10,6 @@ import {
   fetchPssCardListByCustomerId,
   resolveCustomertypeFromCardBins,
 } from "@/lib/pss-card-list";
-import { defaultLegacyCardProgramCode } from "@/lib/card-programs";
 
 const reviewSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -95,11 +94,10 @@ export async function PATCH(request: NextRequest) {
       const cardListInstitution =
         process.env.CARD_LIST_INSTITUTION || institution || "";
 
-      const programCode =
-        cardRequest.cardProgramCode || defaultLegacyCardProgramCode();
-      const program = await prisma.cardProgram.findUnique({
-        where: { code: programCode },
+      const allPrograms = await prisma.cardProgram.findMany({
+        select: { bin: true },
       });
+      const allBins = allPrograms.map((p) => p.bin);
 
       let customerType: "O" | "N" = "N";
       if (
@@ -117,10 +115,7 @@ export async function PATCH(request: NextRequest) {
             apiKey,
             idmsg,
           });
-          customerType = resolveCustomertypeFromCardBins(
-            listCards,
-            program?.bin,
-          );
+          customerType = resolveCustomertypeFromCardBins(listCards, allBins);
         } catch {
           customerType = "N";
         }
