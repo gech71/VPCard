@@ -27,6 +27,14 @@ interface Checker {
   email: string;
 }
 
+interface CardProgramRow {
+  code: string;
+  name: string;
+  bin: string;
+  enabledForMaker: boolean;
+  enabledForSelf: boolean;
+}
+
 export default function AdminSettings() {
   const router = useRouter();
   const { toast } = useToast();
@@ -37,6 +45,8 @@ export default function AdminSettings() {
   // Settings state
   const [allowSelfCardRequest, setAllowSelfCardRequest] = useState(false);
   const [defaultCheckerId, setDefaultCheckerId] = useState("");
+  const [cardPrograms, setCardPrograms] = useState<CardProgramRow[]>([]);
+  const [savingPrograms, setSavingPrograms] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -51,6 +61,7 @@ export default function AdminSettings() {
         setCheckers(data.checkers || []);
         setAllowSelfCardRequest(data.settings?.allowSelfCardRequest === "true");
         setDefaultCheckerId(data.settings?.defaultCheckerId || "");
+        setCardPrograms(data.cardPrograms || []);
       }
     } catch (error) {
       toast({
@@ -100,6 +111,48 @@ export default function AdminSettings() {
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveCardPrograms(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPrograms(true);
+    try {
+      const res = await fetch("/api/admin/card-programs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programs: cardPrograms.map((p) => ({
+            code: p.code,
+            enabledForMaker: p.enabledForMaker,
+            enabledForSelf: p.enabledForSelf,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to save card programs",
+        });
+        return;
+      }
+      if (data.cardPrograms) {
+        setCardPrograms(data.cardPrograms);
+      }
+      toast({
+        title: "Success",
+        description: "Card program availability updated",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred",
+      });
+    } finally {
+      setSavingPrograms(false);
     }
   }
 
@@ -238,6 +291,90 @@ export default function AdminSettings() {
                     </Select>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Card programs</CardTitle>
+                <CardDescription>
+                  Control which card products Makers and self-initiated customers
+                  can choose when submitting a request. Disabled programs are
+                  hidden from request forms and rejected by the API.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveCardPrograms} className="space-y-4">
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100 text-left">
+                        <tr>
+                          <th className="p-3 font-medium">Code</th>
+                          <th className="p-3 font-medium">Name</th>
+                          <th className="p-3 font-medium">BIN</th>
+                          <th className="p-3 font-medium text-center">
+                            Maker requests
+                          </th>
+                          <th className="p-3 font-medium text-center">
+                            Self-initiated
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cardPrograms.map((p) => (
+                          <tr key={p.code} className="border-t">
+                            <td className="p-3 font-mono">{p.code}</td>
+                            <td className="p-3 max-w-xs">{p.name}</td>
+                            <td className="p-3 font-mono">{p.bin}</td>
+                            <td className="p-3 text-center">
+                              <Switch
+                                checked={p.enabledForMaker}
+                                onCheckedChange={(v) =>
+                                  setCardPrograms((rows) =>
+                                    rows.map((r) =>
+                                      r.code === p.code
+                                        ? { ...r, enabledForMaker: v }
+                                        : r,
+                                    ),
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <Switch
+                                checked={p.enabledForSelf}
+                                onCheckedChange={(v) =>
+                                  setCardPrograms((rows) =>
+                                    rows.map((r) =>
+                                      r.code === p.code
+                                        ? { ...r, enabledForSelf: v }
+                                        : r,
+                                    ),
+                                  )
+                                }
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={savingPrograms}>
+                      {savingPrograms ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save card programs
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </CardContent>
             </Card>
 

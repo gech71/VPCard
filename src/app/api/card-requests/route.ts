@@ -3,6 +3,15 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import {
+  assertCardProgramAllowed,
+  defaultPrepaidProgram,
+} from "@/lib/card-programs";
+import {
+  fetchCustInfoByAccount,
+  getCustDetailFromResponse,
+} from "@/lib/prepaid-api";
+import { extractPssFieldsFromCustDetail } from "@/lib/cust-detail";
 
 const createRequestSchema = z.object({
   customerId: z.string().optional(),
@@ -17,6 +26,10 @@ const createRequestSchema = z.object({
     return phone;
   }, z.string().regex(/^\+251(9|7)\d{8}$/, "Phone number must be in the format +251XXXXXXXXX (starting with 9 or 7)")),
   checkerId: z.string().uuid("Invalid checker ID"),
+  cardProgramCode: z.coerce
+    .string()
+    .min(1, "Card program is required")
+    .regex(/^\d+$/, "Invalid card program code"),
   notes: z.string().optional(),
 });
 
@@ -53,8 +66,57 @@ export async function POST(request: NextRequest) {
       customerEmail,
       customerPhone,
       checkerId,
+      cardProgramCode,
       notes,
     } = validation.data;
+
+    const programAllowed = await assertCardProgramAllowed(
+      cardProgramCode,
+      "maker",
+    );
+    if (!programAllowed.ok) {
+      return NextResponse.json(
+        { error: programAllowed.error },
+        { status: 400 },
+      );
+    }
+
+    const program = await prisma.cardProgram.findUnique({
+      where: { code: cardProgramCode },
+    });
+    if (!program) {
+      return NextResponse.json(
+        { error: "Unknown card program code." },
+        { status: 400 },
+      );
+    }
+
+    let custEnvelope: unknown;
+    try {
+      custEnvelope = await fetchCustInfoByAccount(accountNumber);
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            "Failed to verify customer information. Please verify the account number.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const env = custEnvelope as { status?: string };
+    if (
+      env.status &&
+      String(env.status).toLowerCase() !== "success"
+    ) {
+      return NextResponse.json(
+        { error: "Customer lookup did not succeed for this account." },
+        { status: 400 },
+      );
+    }
+
+    const detail = getCustDetailFromResponse(custEnvelope);
+    const pssMeta = extractPssFieldsFromCustDetail(detail);
 
     // Check if there's already a pending request for this account number
     const existingPendingRequest = await prisma.cardRequest.findFirst({
@@ -94,6 +156,12 @@ export async function POST(request: NextRequest) {
         notes,
         makerId: currentUser.userId,
         checkerId,
+        cardProgramCode: program.code,
+        cardProgramName: program.name,
+        prepaidProgram: defaultPrepaidProgram(program.prepaidProgram),
+        branchCode: pssMeta.branchcode || null,
+        genderCode: pssMeta.gender,
+        title: pssMeta.title || null,
       },
     });
 
@@ -106,7 +174,7 @@ export async function POST(request: NextRequest) {
       entityType: "CARD_REQUEST",
       entityId: cardRequest.id,
       cardRequestId: cardRequest.id,
-      details: { accountNumber, customerName, checkerId },
+      details: { accountNumber, customerName, checkerId, cardProgramCode },
     });
 
     await createAuditLog({

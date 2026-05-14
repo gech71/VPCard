@@ -38,6 +38,8 @@ interface CardRequest {
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
+  cardProgramCode: string | null;
+  cardProgramName: string | null;
   status: string;
   notes: string | null;
   createdAt: string;
@@ -439,6 +441,14 @@ export default function CheckerDashboard() {
                     )}
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 font-medium">Card program</p>
+                      <p className="font-mono text-xs">
+                        {selectedRequest.cardProgramName ||
+                          selectedRequest.cardProgramCode ||
+                          "N/A"}
+                      </p>
+                    </div>
                     <div>
                       <p className="text-gray-500 font-medium">Customer Name</p>
                       <p className="font-mono">

@@ -31,9 +31,14 @@ export async function GET() {
       select: { id: true, email: true },
     });
 
+    const cardPrograms = await prisma.cardProgram.findMany({
+      orderBy: { code: "asc" },
+    });
+
     return NextResponse.json({
       settings,
       checkers,
+      cardPrograms,
     });
   } catch (error) {
     return NextResponse.json(

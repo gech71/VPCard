@@ -4,14 +4,23 @@ import { getCurrentUser } from "@/lib/jwt-auth";
 import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
-
-const PREPAID_API_URL = process.env.PREPAID_API_URL;
-const PREPAID_API_USER = process.env.PREPAID_API_USER;
-const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
+import {
+  assertCardProgramAllowed,
+  defaultPrepaidProgram,
+} from "@/lib/card-programs";
+import {
+  fetchCustInfoByAccount,
+  getCustDetailFromResponse,
+} from "@/lib/prepaid-api";
+import { extractPssFieldsFromCustDetail } from "@/lib/cust-detail";
 
 const selfRequestSchema = z.object({
   accountNumber: z.coerce.string().regex(/^7000\d{9}$/, "Account number must start with 7000 and be exactly 13 digits"),
   customerEmail: z.string().email("Invalid email format"),
+  cardProgramCode: z.coerce
+    .string()
+    .min(1, "Card program is required")
+    .regex(/^\d+$/, "Invalid card program code"),
   customerPhone: z.preprocess((val) => {
     if (typeof val !== "string") return val;
     let phone = val.trim();
@@ -21,31 +30,6 @@ const selfRequestSchema = z.object({
   }, z.string().regex(/^\+251(9|7)\d{8}$/, "Invalid phone format")).optional(),
   notes: z.string().optional(),
 });
-
-async function getCustomerInfo(accountNumber: string) {
-  if (!PREPAID_API_URL || !PREPAID_API_USER || !PREPAID_API_PASS) {
-    throw new Error("Prepaid API configuration missing");
-  }
-
-  const response = await fetch(`${PREPAID_API_URL}/prepaid/cust-info-by-acct`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${Buffer.from(`${PREPAID_API_USER}:${PREPAID_API_PASS}`).toString("base64")}`,
-    },
-    body: JSON.stringify({ accountNumber }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to fetch customer info: ${response.status} - ${errorText}`,
-    );
-  }
-
-  const data = await response.json();
-  return data;
-}
 
 // Create a self-initiated card request
 export async function POST(request: NextRequest) {
@@ -111,7 +95,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accountNumber, customerEmail, customerPhone: providedPhone, notes } = validation.data;
+    const {
+      accountNumber,
+      customerEmail,
+      customerPhone: providedPhone,
+      notes,
+      cardProgramCode,
+    } = validation.data;
+
+    const programAllowed = await assertCardProgramAllowed(
+      cardProgramCode,
+      "self",
+    );
+    if (!programAllowed.ok) {
+      return NextResponse.json(
+        { error: programAllowed.error },
+        { status: 400 },
+      );
+    }
+
+    const program = await prisma.cardProgram.findUnique({
+      where: { code: cardProgramCode },
+    });
+    if (!program) {
+      return NextResponse.json(
+        { error: "Unknown card program code." },
+        { status: 400 },
+      );
+    }
 
     // Check if there's already a pending request for this account number
     const existingPendingRequest = await prisma.cardRequest.findFirst({
@@ -128,11 +139,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch customer information from prepaid API
-    let customerInfo;
+    let customerInfo: unknown;
     try {
-      customerInfo = await getCustomerInfo(accountNumber);
-    } catch (error) {
+      customerInfo = await fetchCustInfoByAccount(accountNumber);
+    } catch {
       return NextResponse.json(
         {
           error:
@@ -142,30 +152,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract customer details from API response (Align with maker/page.tsx logic)
-    const detail = (customerInfo?.detail as any) || customerInfo;
+    const envelope = customerInfo as { status?: string };
+    if (
+      envelope.status &&
+      String(envelope.status).toLowerCase() !== "success"
+    ) {
+      return NextResponse.json(
+        { error: "Customer lookup did not succeed for this account." },
+        { status: 400 },
+      );
+    }
+
+    const detail = getCustDetailFromResponse(customerInfo);
 
     const customerName =
-      detail?.CustomerName ||
-      detail?.customerName ||
-      detail?.name ||
-      detail?.custName ||
-      "Unknown";
+      (detail.CustomerName ||
+        detail.customerName ||
+        detail.name ||
+        detail.custName ||
+        "Unknown") as string;
 
-    const finalEmail = customerEmail || detail?.Email || detail?.email || undefined;
-
-    const customerPhone = providedPhone || phoneNumber || detail?.PhoneNumber ||
-      detail?.phoneNumber ||
-      detail?.phone ||
-      detail?.mobile ||
-      detail?.mobileNo ||
-      detail?.customerPhone ||
+    const finalEmail =
+      customerEmail ||
+      (detail.Email as string | undefined) ||
+      (detail.email as string | undefined) ||
       undefined;
 
-    const customerIdRaw = detail?.CustomerId || detail?.customerId || detail?.customerID || detail?.id;
+    const customerPhone =
+      providedPhone ||
+      phoneNumber ||
+      (detail.PhoneNumber as string | undefined) ||
+      (detail.phoneNumber as string | undefined) ||
+      (detail.phone as string | undefined) ||
+      (detail.mobile as string | undefined) ||
+      (detail.mobileNo as string | undefined) ||
+      (detail.customerPhone as string | undefined) ||
+      undefined;
+
+    const customerIdRaw =
+      detail.CustomerId ||
+      detail.customerId ||
+      detail.customerID ||
+      detail.id;
     const customerId = customerIdRaw ? String(customerIdRaw) : undefined;
 
-    // Create the card request
+    const pssMeta = extractPssFieldsFromCustDetail(detail);
+
     const cardRequest = await prisma.cardRequest.create({
       data: {
         customerId,
@@ -176,6 +208,12 @@ export async function POST(request: NextRequest) {
         notes: notes ? `Self-request: ${notes}` : "Self-initiated card request",
         makerId,
         checkerId,
+        cardProgramCode: program.code,
+        cardProgramName: program.name,
+        prepaidProgram: defaultPrepaidProgram(program.prepaidProgram),
+        branchCode: pssMeta.branchcode || null,
+        genderCode: pssMeta.gender,
+        title: pssMeta.title || null,
       },
     });
 
@@ -195,6 +233,7 @@ export async function POST(request: NextRequest) {
         accountNumber,
         customerName,
         checkerId,
+        cardProgramCode,
         isSelfRequest: true,
         authType: currentUser ? "JWT" : "PHONE",
       },

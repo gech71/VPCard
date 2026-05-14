@@ -50,6 +50,21 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model CardProgram {
+  code             String   @id
+  name             String
+  bin              String
+  prepaidProgram   String?
+  enabledForMaker  Boolean  @default(true)
+  enabledForSelf   Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  requests CardRequest[]
+
+  @@map("card_programs")
+}
+
 model CardRequest {
   id              String        @id @default(uuid())
   customerId      String?
@@ -57,6 +72,12 @@ model CardRequest {
   customerName    String
   customerEmail   String?
   customerPhone   String?
+  cardProgramCode String?
+  cardProgramName String?
+  prepaidProgram  String?
+  branchCode      String?
+  genderCode      String?
+  title           String?
   status          RequestStatus @default(PENDING)
   notes           String?
   
@@ -79,7 +100,8 @@ model CardRequest {
   // Checker assigned to review the request
   checkerId       String?
   checker         User?         @relation("CheckerRequests", fields: [checkerId], references: [id])
-  
+
+  cardProgram     CardProgram?  @relation(fields: [cardProgramCode], references: [code])
 
   
   createdAt       DateTime      @default(now())

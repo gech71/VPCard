@@ -5,6 +5,7 @@ import { createAuditLog } from "@/lib/audit";
 import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
 import { fetchPss } from "@/lib/pss-fetch";
+import { buildPssVirtualCardInitiator } from "@/lib/pss-virtual-card";
 
 const reviewSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -86,25 +87,25 @@ export async function PATCH(request: NextRequest) {
       const idmsg = process.env.CARD_LIST_ID_MSG || "";
       const institution = process.env.PIN_CHANGE_INSTITUTION;
 
+      const initiator = await buildPssVirtualCardInitiator(
+        {
+          customerId: cardRequest.customerId,
+          accountNumber: cardRequest.accountNumber,
+          customerName: cardRequest.customerName,
+          customerEmail: cardRequest.customerEmail,
+          customerPhone: cardRequest.customerPhone,
+          cardProgramCode: cardRequest.cardProgramCode,
+          prepaidProgram: cardRequest.prepaidProgram,
+          branchCode: cardRequest.branchCode,
+          genderCode: cardRequest.genderCode,
+          title: cardRequest.title,
+        },
+        institution,
+      );
+
       const pssPayload = {
         header: { idmsg },
-        initiator: {
-          customerid: cardRequest.customerId,
-          customertype: "N",
-          accountnumber: cardRequest.accountNumber,
-          accounttype: "N",
-          currencycode: "840",
-          branchcode: "54",
-          cardprogramcode: "36501",
-          prepaidprogram: "1011040",
-          nameoncard: cardRequest.customerName,
-          phonenumber: cardRequest.customerPhone || "",
-          institution: institution,
-          bankaccounttype: "404",
-          gender: "F",
-          title: "1",
-          email: cardRequest.customerEmail || "",
-        },
+        initiator,
       };
 
       try {

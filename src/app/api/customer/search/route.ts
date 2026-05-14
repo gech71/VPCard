@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
-
-const PREPAID_API_URL = process.env.PREPAID_API_URL;
-const PREPAID_API_USER = process.env.PREPAID_API_USER;
-const PREPAID_API_PASS = process.env.PREPAID_API_PASS;
+import { fetchCustInfoByAccount } from "@/lib/prepaid-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,28 +60,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the external prepaid API
-    const response = await fetch(
-      `${PREPAID_API_URL}/prepaid/cust-info-by-acct`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${Buffer.from(`${PREPAID_API_USER}:${PREPAID_API_PASS}`).toString("base64")}`,
-        },
-        body: JSON.stringify({ accountNumber }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
+    let data: unknown;
+    try {
+      data = await fetchCustInfoByAccount(accountNumber);
+    } catch {
       return NextResponse.json(
         { error: "Failed to fetch customer information" },
-        { status: response.status },
+        { status: 502 },
       );
     }
 
-    const data = await response.json();
+    const envelope = data as { status?: string };
+    if (
+      envelope.status &&
+      String(envelope.status).toLowerCase() !== "success"
+    ) {
+      return NextResponse.json(
+        { error: "Customer lookup did not succeed for this account." },
+        { status: 400 },
+      );
+    }
 
     // Log customer search
     await createAuditLog({

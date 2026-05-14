@@ -65,6 +65,12 @@ interface CustomerInfo {
   [key: string]: unknown;
 }
 
+interface ProgramOption {
+  code: string;
+  name: string;
+  bin: string;
+}
+
 export default function MakerDashboard() {
   const router = useRouter();
   const { toast } = useToast();
@@ -84,11 +90,30 @@ export default function MakerDashboard() {
   const [makerPhone, setMakerPhone] = useState("");
   const [makerEmail, setMakerEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [cardPrograms, setCardPrograms] = useState<ProgramOption[]>([]);
+  const [selectedCardProgram, setSelectedCardProgram] = useState("");
 
   useEffect(() => {
     fetchRequests();
     fetchCheckers();
+    fetchCardPrograms();
   }, []);
+
+  async function fetchCardPrograms() {
+    try {
+      const res = await fetch("/api/card-programs?audience=maker");
+      const data = await res.json();
+      if (res.ok && data.programs) {
+        setCardPrograms(data.programs);
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load card programs",
+      });
+    }
+  }
 
   async function fetchRequests() {
     try {
@@ -187,6 +212,15 @@ export default function MakerDashboard() {
     e.preventDefault();
     if (!customerInfo || !selectedChecker) return;
 
+    if (!selectedCardProgram) {
+      toast({
+        variant: "destructive",
+        title: "Card product required",
+        description: "Please select a card program.",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     // Extract customer details from the API response
@@ -247,6 +281,7 @@ export default function MakerDashboard() {
           customerEmail: makerEmail,
           customerPhone: normalizedPhone,
           checkerId: selectedChecker,
+          cardProgramCode: selectedCardProgram,
           notes: requestNotes,
         }),
       });
@@ -274,6 +309,7 @@ export default function MakerDashboard() {
       setRequestNotes("");
       setMakerPhone("");
       setMakerEmail("");
+      setSelectedCardProgram("");
       fetchRequests();
     } catch (error) {
       toast({
@@ -288,6 +324,7 @@ export default function MakerDashboard() {
 
   function startCreateRequest() {
     if (!customerInfo) return;
+    setSelectedCardProgram("");
     setIsCreateOpen(true);
   }
 
@@ -486,6 +523,32 @@ export default function MakerDashboard() {
                 </p>
               </div>
 
+              <div>
+                <Label>Card product *</Label>
+                {cardPrograms.length === 0 ? (
+                  <p className="text-sm text-amber-700 mt-2">
+                    No card programs are enabled for maker requests. Ask a
+                    Super Admin to enable products under Settings.
+                  </p>
+                ) : (
+                  <Select
+                    value={selectedCardProgram}
+                    onValueChange={setSelectedCardProgram}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select card type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cardPrograms.map((p) => (
+                        <SelectItem key={p.code} value={p.code}>
+                          {p.name} ({p.code}) — BIN {p.bin}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="makerPhone">Customer Phone *</Label>
@@ -545,7 +608,12 @@ export default function MakerDashboard() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={submitting || !selectedChecker}
+                disabled={
+                  submitting ||
+                  !selectedChecker ||
+                  !selectedCardProgram ||
+                  cardPrograms.length === 0
+                }
               >
                 {submitting ? "Creating..." : "Create Request"}
               </Button>

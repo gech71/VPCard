@@ -10,6 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, CreditCard } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function RequestCardForm() {
   const router = useRouter();
@@ -22,6 +29,10 @@ function RequestCardForm() {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loadingUser, setLoadingUser] = useState(true);
+  const [cardPrograms, setCardPrograms] = useState<
+    { code: string; name: string; bin: string }[]
+  >([]);
+  const [selectedCardProgram, setSelectedCardProgram] = useState("");
 
   useEffect(() => {
     if (!accountNumber) {
@@ -39,6 +50,11 @@ function RequestCardForm() {
         const data = await res.json();
         if (data.phoneNumber) {
           setPhoneNumber(data.phoneNumber);
+        }
+        const progRes = await fetch("/api/card-programs?audience=self");
+        const progData = await progRes.json();
+        if (progRes.ok && progData.programs) {
+          setCardPrograms(progData.programs);
         }
       } catch (err) {
       } finally {
@@ -62,6 +78,15 @@ function RequestCardForm() {
       return;
     }
 
+    if (!selectedCardProgram) {
+      toast({
+        variant: "destructive",
+        title: "Card product required",
+        description: "Please select a card program.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Normalize phone number (add +251 if missing)
@@ -80,6 +105,7 @@ function RequestCardForm() {
             accountNumber,
             customerEmail: email,
             customerPhone: normalizedPhone,
+            cardProgramCode: selectedCardProgram,
             notes,
         }),
       });
@@ -169,6 +195,34 @@ function RequestCardForm() {
             </div>
 
             <div className="space-y-3">
+              <Label htmlFor="cardProgram" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Card product *
+              </Label>
+              {cardPrograms.length === 0 ? (
+                <p className="text-sm text-amber-700">
+                  No card programs are available for self-service requests right
+                  now. Please contact the bank.
+                </p>
+              ) : (
+                <Select
+                  value={selectedCardProgram}
+                  onValueChange={setSelectedCardProgram}
+                >
+                  <SelectTrigger id="cardProgram" className="h-12 text-lg border-2">
+                    <SelectValue placeholder="Select card type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cardPrograms.map((p) => (
+                      <SelectItem key={p.code} value={p.code}>
+                        {p.name} ({p.code}) — BIN {p.bin}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-3">
               <Label htmlFor="email" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Email Address *
               </Label>
@@ -199,7 +253,7 @@ function RequestCardForm() {
             <Button
               type="submit"
               className="w-full h-14 text-lg font-bold shadow-md hover:shadow-lg transition-all"
-              disabled={isSubmitting}
+              disabled={isSubmitting || cardPrograms.length === 0 || !selectedCardProgram}
             >
               {isSubmitting ? (
                 <>
