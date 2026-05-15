@@ -201,7 +201,7 @@ function RequestCardForm() {
               </Alert>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <Label htmlFor="accountNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Linked Account
                 </Label>
@@ -212,7 +212,7 @@ function RequestCardForm() {
                   disabled={loadingUser || !allowSelfRequest}
                   className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                 />
-              </div>
+              </div> */}
               <div className="space-y-3">
                 <Label htmlFor="phoneNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Phone Number
