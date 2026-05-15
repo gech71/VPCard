@@ -12,6 +12,7 @@ import {
   getCustDetailFromResponse,
 } from "@/lib/prepaid-api";
 import { extractPssFieldsFromCustDetail } from "@/lib/cust-detail";
+import { cacheCustomerIdMappings } from "@/lib/customer-id-cache";
 
 const createRequestSchema = z.object({
   customerId: z.string().optional(),
@@ -118,6 +119,15 @@ export async function POST(request: NextRequest) {
     const detail = getCustDetailFromResponse(custEnvelope);
     const pssMeta = extractPssFieldsFromCustDetail(detail);
 
+    const resolvedCustomerId = customerId?.trim() || undefined;
+    if (resolvedCustomerId) {
+      await cacheCustomerIdMappings({
+        customerId: resolvedCustomerId,
+        phoneNumber: customerPhone,
+        accountNumbers: [accountNumber],
+      });
+    }
+
     // Check if there's already a pending request for this account number
     const existingPendingRequest = await prisma.cardRequest.findFirst({
       where: {
@@ -148,7 +158,7 @@ export async function POST(request: NextRequest) {
     // Create the card request
     const cardRequest = await prisma.cardRequest.create({
       data: {
-        customerId,
+        customerId: resolvedCustomerId,
         accountNumber,
         customerName,
         customerEmail,

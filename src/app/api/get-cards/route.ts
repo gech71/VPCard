@@ -1,80 +1,92 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import {
   getDecryptedPhoneFromCookie,
   getAccountsFromCookie,
   setAccountsCookie,
 } from "@/lib/auth";
 import { type CardDetails } from "@/lib/data";
-import { fetchPss } from "@/lib/pss-fetch";
+import { fetchPssCardListByCustomerId } from "@/lib/pss-card-list";
 import {
   filterCardsByAllowedBins,
   parseAllowedCardBinsFromEnv,
 } from "@/lib/allowed-card-bins";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
-
-const { Pool } = pg;
-
-function getPrismaClient() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
-}
+import { resolveCustomerIdWithCache } from "@/lib/customer-id-cache";
+import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-async function getCardData(selectedAccountNumber?: string | null): Promise<{
+type AccountSummary = {
+  accountNumber: string;
+  name?: string;
+  status?: string;
+};
+
+function mapPssCardsToCardDetails(cardsFromApi: unknown[]): CardDetails[] {
+  if (!Array.isArray(cardsFromApi)) return [];
+
+  return (cardsFromApi as Record<string, unknown>[]).map((card, index) => {
+    const status = card.cardstatus;
+    let cardStatus: CardDetails["status"] = "Inactive";
+    if (status === "Active" || status === "OK") {
+      cardStatus = "Active";
+    } else if (status === "Cancelled" || status === "Lost") {
+      cardStatus = "Inactive";
+    }
+
+    return {
+      id: String(card.card ?? `card-${index + 1}`),
+      fullNumber: String(card.clearpan ?? ""),
+      maskedNumber: String(card.pan ?? ""),
+      expiryDate: String(card.expiry ?? ""),
+      cardholderName: String(card.name_on_card ?? ""),
+      status: cardStatus,
+      type: String(card.cardtype ?? "Unknown"),
+      balance: 0,
+      accountNumber: String(card.accountnumber ?? ""),
+      currency: String(card.cardcurrency ?? ""),
+      cardTypeNetwork: String(card.cardtypenetwork ?? ""),
+      cvv: card.cvv2 != null ? String(card.cvv2) : undefined,
+    };
+  });
+}
+
+async function getCardData(): Promise<{
   cards: CardDetails[];
-  accounts: any[];
+  accounts: AccountSummary[];
   phoneNumber: string | null;
   customerCardPanNumbers: string[];
 }> {
-  try {
-    const phoneNumber = await getDecryptedPhoneFromCookie();
-    if (!phoneNumber) {
-      throw new Error("Could not retrieve phone number from cookie.");
-    }
+  const phoneNumber = await getDecryptedPhoneFromCookie();
+  if (!phoneNumber) {
+    throw new Error("Could not retrieve phone number from cookie.");
+  }
 
-    const cardListUrl = process.env.CARD_LIST_URL;
-    const cardListApiKey = process.env.CARD_LIST_API_KEY;
-    const cardListIdMsg = process.env.CARD_LIST_ID_MSG;
-    const cardListInstitution = process.env.CARD_LIST_INSTITUTION;
+  const cardListUrl = process.env.CARD_LIST_URL;
+  const cardListApiKey = process.env.CARD_LIST_API_KEY;
+  const cardListIdMsg = process.env.CARD_LIST_ID_MSG;
+  const cardListInstitution = process.env.CARD_LIST_INSTITUTION;
 
-    if (
-      !cardListUrl ||
-      !cardListApiKey ||
-      !cardListIdMsg ||
-      !cardListInstitution
-    ) {
-      throw new Error("Server configuration error for card list.");
-    }
+  if (
+    !cardListUrl ||
+    !cardListApiKey ||
+    !cardListIdMsg ||
+    !cardListInstitution
+  ) {
+    throw new Error("Server configuration error for card list.");
+  }
 
-    // If an account is already selected, skip the accounts retrieval and fetch cards directly
-    if (selectedAccountNumber) {
-      const mapped = await fetchCardsForAccount(
-        selectedAccountNumber,
-        cardListUrl,
-        cardListApiKey,
-        cardListIdMsg,
-        cardListInstitution,
-      );
-      const allowedBins = parseAllowedCardBinsFromEnv();
-      const cards = filterCardsByAllowedBins(mapped, allowedBins);
-      const customerCardPanNumbers = mapped
-        .map((c) => String(c.fullNumber ?? "").trim())
-        .filter(Boolean);
-      return { cards, accounts: [], phoneNumber, customerCardPanNumbers };
-    }
+  let accounts: AccountSummary[] = [];
+  let rawAccounts: Record<string, unknown>[] = [];
+  let accountsEnvelope: Record<string, unknown> | undefined;
 
-    // Otherwise, check for cached accounts first
-    const cachedAccounts = await getAccountsFromCookie();
-    if (cachedAccounts && cachedAccounts.length > 0) {
-      return { cards: [], accounts: cachedAccounts, phoneNumber, customerCardPanNumbers: [] };
-    }
-
-    // If no cache, fetch the list of accounts first
+  const cachedAccounts = await getAccountsFromCookie();
+  if (cachedAccounts && cachedAccounts.length > 0) {
+    accounts = cachedAccounts.map((acc: Record<string, unknown>) => ({
+      accountNumber: String(acc.accountNumber ?? ""),
+      name: acc.name != null ? String(acc.name) : undefined,
+      status: acc.status != null ? String(acc.status) : undefined,
+    }));
+  } else {
     const getAccountsUrl = process.env.GET_ACCOUNTS_URL;
     const getAccountsUser = process.env.GET_ACCOUNTS_USER;
     const getAccountsPass = process.env.GET_ACCOUNTS_PASS;
@@ -98,103 +110,72 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
     });
 
     if (!accountsResponse.ok) {
-      const errorText = await accountsResponse.text();
       throw new Error(`Failed to get accounts: ${accountsResponse.statusText}`);
     }
 
     const accountsData = await accountsResponse.json();
-    const rawAccounts = accountsData?.details || [];
+    accountsEnvelope =
+      accountsData && typeof accountsData === "object"
+        ? (accountsData as Record<string, unknown>)
+        : undefined;
+    rawAccounts = (accountsData?.details || []) as Record<string, unknown>[];
 
-    const accounts = rawAccounts.map((acc: any) => ({
-      accountNumber: acc.AccountNumber?.toString(),
-      name: acc.Name,
-      status: acc.Status,
+    accounts = rawAccounts.map((acc) => ({
+      accountNumber: String(acc.AccountNumber ?? ""),
+      name: acc.Name != null ? String(acc.Name) : undefined,
+      status: acc.Status != null ? String(acc.Status) : undefined,
     }));
 
-    // Cache the accounts list
     if (accounts.length > 0) {
       await setAccountsCookie(accounts);
     }
+  }
 
+  const customerId = await resolveCustomerIdWithCache({
+    phoneNumber,
+    accounts,
+    rawAccounts,
+    accountsEnvelope,
+  });
+  if (!customerId) {
     return { cards: [], accounts, phoneNumber, customerCardPanNumbers: [] };
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("An unknown error occurred while fetching card data.");
   }
+
+  const listCards = await fetchPssCardListByCustomerId({
+    customerId,
+    institution: cardListInstitution,
+    cardListUrl,
+    apiKey: cardListApiKey,
+    idmsg: cardListIdMsg,
+  });
+
+  const mapped = mapPssCardsToCardDetails(listCards);
+  const allowedBins = parseAllowedCardBinsFromEnv();
+  const cards = filterCardsByAllowedBins(mapped, allowedBins);
+  const customerCardPanNumbers = mapped
+    .map((c) => String(c.fullNumber ?? "").trim())
+    .filter(Boolean);
+
+  return { cards, accounts, phoneNumber, customerCardPanNumbers };
 }
 
-async function fetchCardsForAccount(
-  accountNumber: string,
-  url: string,
-  apiKey: string,
-  idMsg: string,
-  institution: string,
-): Promise<CardDetails[]> {
+export async function GET() {
+  let cards: CardDetails[] = [];
+  let accounts: AccountSummary[] = [];
+  let phoneNumber: string | null = null;
+  let customerCardPanNumbers: string[] = [];
+  let fetchError = null;
+
   try {
-    const cardListResponse = await fetchPss(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ApiKey: apiKey,
-      },
-      body: JSON.stringify({
-        header: {
-          idmsg: idMsg,
-        },
-        filter: {
-          account: accountNumber,
-          card: "",
-          pan: "",
-          customer: "",
-          name_on_card: "",
-          institution: institution,
-          start: "1",
-          end: "10",
-        },
-      }),
-      cache: "no-store",
-    });
-
-    if (!cardListResponse.ok) return [];
-
-    const cardListData = await cardListResponse.json();
-    const cardsFromApi = cardListData?.response?.body?.cards;
-
-    if (!cardsFromApi || !Array.isArray(cardsFromApi)) return [];
-
-    return cardsFromApi.map((card: any, index: number) => {
-      const status = card.cardstatus;
-      let cardStatus: CardDetails["status"] = "Inactive";
-      if (status === "Active" || status === "OK") {
-        cardStatus = "Active";
-      } else if (status === "Cancelled" || status === "Lost") {
-        cardStatus = "Inactive";
-      }
-
-      return {
-        id: card.card || `card-${accountNumber}-${index + 1}`,
-        fullNumber: card.clearpan,
-        maskedNumber: card.pan,
-        expiryDate: card.expiry,
-        cardholderName: card.name_on_card,
-        status: cardStatus,
-        type: card.cardtype,
-        balance: 0,
-        accountNumber: card.accountnumber,
-        currency: card.cardcurrency,
-        cardTypeNetwork: card.cardtypenetwork,
-        cvv: card.cvv2,
-      };
-    });
-  } catch (err) {
-    return [];
+    const data = await getCardData();
+    cards = data.cards;
+    accounts = data.accounts;
+    phoneNumber = data.phoneNumber;
+    customerCardPanNumbers = data.customerCardPanNumbers;
+  } catch (error: unknown) {
+    fetchError = error instanceof Error ? error.message : "Unknown error";
   }
-}
 
-async function getSettings() {
-  const prisma = getPrismaClient();
   try {
     const allowSelfCardRequest = await prisma.settings.findUnique({
       where: { key: "allowSelfCardRequest" },
@@ -204,52 +185,19 @@ async function getSettings() {
       where: { key: "defaultCheckerId" },
     });
 
-    return {
-      allowSelfCardRequest: allowSelfCardRequest?.value === "true",
-      defaultCheckerId: defaultCheckerId?.value || null,
-    };
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const accountNumber = searchParams.get("accountNumber");
-
-  let cards: CardDetails[] = [];
-  let accounts: any[] = [];
-  let phoneNumber: string | null = null;
-  let customerCardPanNumbers: string[] = [];
-  let fetchError = null;
-
-  try {
-    const data = await getCardData(accountNumber);
-    cards = data.cards;
-    accounts = data.accounts;
-    phoneNumber = data.phoneNumber;
-    customerCardPanNumbers = data.customerCardPanNumbers;
-  } catch (error: any) {
-    fetchError = error.message;
-  }
-
-  try {
-    const settings = await getSettings();
-
     return NextResponse.json({
       cards,
       accounts,
       phoneNumber,
       customerCardPanNumbers,
-      allowSelfRequest: settings.allowSelfCardRequest,
-      defaultCheckerId: settings.defaultCheckerId,
+      allowSelfRequest: allowSelfCardRequest?.value === "true",
+      defaultCheckerId: defaultCheckerId?.value || null,
       error: fetchError,
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
       { message: "Failed to fetch necessary data." },
       { status: 500 },
     );
   }
 }
-

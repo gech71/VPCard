@@ -50,9 +50,7 @@ function RequestCardForm() {
 
     async function fetchUserData() {
       try {
-        const cardRes = await fetch(
-          `/api/get-cards?accountNumber=${encodeURIComponent(accountNumber)}`,
-        );
+        const cardRes = await fetch("/api/get-cards");
         const cardData = await cardRes.json();
         if (cardData.phoneNumber) {
           setPhoneNumber(cardData.phoneNumber);

@@ -1,3 +1,25 @@
+export function extractCustomerIdFromCustDetail(
+  detail: Record<string, unknown> | null | undefined,
+): string | undefined {
+  if (!detail || typeof detail !== "object") return undefined;
+  const raw =
+    detail.CustomerId ||
+    detail.customerId ||
+    detail.customerID ||
+    detail.id;
+  return raw != null && String(raw).trim() ? String(raw).trim() : undefined;
+}
+
+/** Customer id on get-accounts rows / envelope (no generic `id` field). */
+export function extractCustomerIdFromAccountSource(
+  source: Record<string, unknown> | null | undefined,
+): string | undefined {
+  if (!source || typeof source !== "object") return undefined;
+  const raw =
+    source.CustomerId || source.customerId || source.customerID;
+  return raw != null && String(raw).trim() ? String(raw).trim() : undefined;
+}
+
 /**
  * Map prepaid cust-info-by-acct `detail` fields into values used for PSS card creation.
  * Gender: MALE -> "1", FEMALE -> "3" (PSS codes).

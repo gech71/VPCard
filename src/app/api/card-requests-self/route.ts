@@ -12,7 +12,11 @@ import {
   fetchCustInfoByAccount,
   getCustDetailFromResponse,
 } from "@/lib/prepaid-api";
-import { extractPssFieldsFromCustDetail } from "@/lib/cust-detail";
+import {
+  extractCustomerIdFromCustDetail,
+  extractPssFieldsFromCustDetail,
+} from "@/lib/cust-detail";
+import { cacheCustomerIdMappings } from "@/lib/customer-id-cache";
 
 const selfRequestSchema = z.object({
   accountNumber: z.coerce.string().regex(/^7000\d{9}$/, "Account number must start with 7000 and be exactly 13 digits"),
@@ -189,14 +193,17 @@ export async function POST(request: NextRequest) {
       (detail.customerPhone as string | undefined) ||
       undefined;
 
-    const customerIdRaw =
-      detail.CustomerId ||
-      detail.customerId ||
-      detail.customerID ||
-      detail.id;
-    const customerId = customerIdRaw ? String(customerIdRaw) : undefined;
+    const customerId = extractCustomerIdFromCustDetail(detail);
 
     const pssMeta = extractPssFieldsFromCustDetail(detail);
+
+    if (customerId) {
+      await cacheCustomerIdMappings({
+        customerId,
+        phoneNumber: customerPhone ?? phoneNumber,
+        accountNumbers: [accountNumber],
+      });
+    }
 
     const cardRequest = await prisma.cardRequest.create({
       data: {
