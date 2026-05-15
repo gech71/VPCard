@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 
 type DashboardClientProps = {
   cards: CardDetails[];
+  allowSelfRequest: boolean;
+  accountNumber: string;
 };
 
 const initialTransactionState = {
@@ -27,7 +29,11 @@ const initialTransactionState = {
   error: null as string | null,
 };
 
-export default function DashboardClient({ cards }: DashboardClientProps) {
+export default function DashboardClient({
+  cards,
+  allowSelfRequest,
+  accountNumber,
+}: DashboardClientProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -133,6 +139,8 @@ export default function DashboardClient({ cards }: DashboardClientProps) {
                 card={selectedCard}
                 balance={txFormState.balance}
                 isLoading={isLoading}
+                allowSelfRequest={allowSelfRequest}
+                accountNumber={accountNumber}
               />
             )}
           </div>

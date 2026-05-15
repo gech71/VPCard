@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CircleDot, KeyRound, CreditCard, Eye, EyeOff, ShieldCheck, Hash, Banknote, Network } from "lucide-react";
+import { CircleDot, CreditCard, Eye, EyeOff, Hash, Banknote, Network, Plus } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
 import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
@@ -21,9 +21,17 @@ type CardDetailsViewProps = {
   card: CardDetails;
   balance: number | null;
   isLoading: boolean;
+  allowSelfRequest?: boolean;
+  accountNumber?: string;
 };
 
-export default function CardDetailsView({ card, balance, isLoading }: CardDetailsViewProps) {
+export default function CardDetailsView({
+  card,
+  balance,
+  isLoading,
+  allowSelfRequest = false,
+  accountNumber,
+}: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -106,18 +114,21 @@ export default function CardDetailsView({ card, balance, isLoading }: CardDetail
           </div>
         </div>
         
-        {/* <div className="grid grid-cols-1 gap-2 pt-4">
-            <Link href={`/limits?card_numb=${card.fullNumber}`} passHref className="w-full">
-                 <Button variant="outline" className="w-full">
-                    <ShieldCheck className="mr-2 h-4 w-4" /> Manage Limits
-                </Button>
-            </Link>
-            <Link href={`/change-pin?card_numb=${card.fullNumber}`} passHref>
-                <Button variant="outline" className="w-full">
-                  <KeyRound className="mr-2 h-4 w-4" /> Change PIN
-                </Button>
-            </Link>
-        </div> */}
+        <div className="pt-2">
+          {allowSelfRequest && accountNumber ? (
+            <Button variant="default" className="w-full" asChild>
+              <Link href={`/request-card?accountNumber=${encodeURIComponent(accountNumber)}`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Request New Card
+              </Link>
+            </Button>
+          ) : accountNumber ? (
+            <p className="text-xs text-muted-foreground text-center">
+              Self-service requests are turned off. Contact support to request
+              another card.
+            </p>
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );

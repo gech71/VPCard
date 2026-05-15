@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
 
 function RequestCardForm() {
   const router = useRouter();
@@ -33,6 +35,7 @@ function RequestCardForm() {
     { code: string; name: string; bin: string }[]
   >([]);
   const [selectedCardProgram, setSelectedCardProgram] = useState("");
+  const [allowSelfRequest, setAllowSelfRequest] = useState(false);
 
   useEffect(() => {
     if (!accountNumber) {
@@ -42,31 +45,52 @@ function RequestCardForm() {
         description: "Account number is missing. Redirecting...",
       });
       router.push("/");
+      return;
     }
 
     async function fetchUserData() {
       try {
-        const res = await fetch("/api/get-cards");
-        const data = await res.json();
-        if (data.phoneNumber) {
-          setPhoneNumber(data.phoneNumber);
+        const cardRes = await fetch(
+          `/api/get-cards?accountNumber=${encodeURIComponent(accountNumber)}`,
+        );
+        const cardData = await cardRes.json();
+        if (cardData.phoneNumber) {
+          setPhoneNumber(cardData.phoneNumber);
         }
+        setAllowSelfRequest(cardData.allowSelfRequest === true);
+
+        const customerPans: string[] = cardData.customerCardPanNumbers || [];
+
         const progRes = await fetch("/api/card-programs?audience=self");
         const progData = await progRes.json();
-        if (progRes.ok && progData.programs) {
-          setCardPrograms(progData.programs);
+        if (progRes.ok && Array.isArray(progData.programs)) {
+          setCardPrograms(
+            filterProgramsNotOwnedByCustomerPans(
+              progData.programs,
+              customerPans,
+            ),
+          );
         }
-      } catch (err) {
+      } catch {
       } finally {
         setLoadingUser(false);
       }
     }
-    fetchUserData();
+    void fetchUserData();
   }, [accountNumber, router, toast]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!accountNumber) return;
+
+    if (!allowSelfRequest) {
+      toast({
+        variant: "destructive",
+        title: "Not available",
+        description: "Self-initiated card requests are not enabled.",
+      });
+      return;
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -166,6 +190,16 @@ function RequestCardForm() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
+            {!loadingUser && !allowSelfRequest && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Self-service requests disabled</AlertTitle>
+                <AlertDescription>
+                  Your organization has not enabled self-initiated card requests.
+                  Please contact support if you need a new card.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label htmlFor="accountNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -175,6 +209,7 @@ function RequestCardForm() {
                   id="accountNumber"
                   value={accountNumber}
                   readOnly
+                  disabled={loadingUser || !allowSelfRequest}
                   className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                 />
               </div>
@@ -187,6 +222,7 @@ function RequestCardForm() {
                     id="phoneNumber"
                     value={loadingUser ? "Loading..." : phoneNumber}
                     readOnly
+                    disabled={loadingUser || !allowSelfRequest}
                     className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                   />
                   {loadingUser && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />}
@@ -200,13 +236,15 @@ function RequestCardForm() {
               </Label>
               {cardPrograms.length === 0 ? (
                 <p className="text-sm text-amber-700">
-                  No card programs are available for self-service requests right
-                  now. Please contact the bank.
+                  {allowSelfRequest
+                    ? "No additional self-service card types are available — you may already hold all offered products, or none are configured."
+                    : "No card programs are available for self-service requests."}
                 </p>
               ) : (
                 <Select
                   value={selectedCardProgram}
                   onValueChange={setSelectedCardProgram}
+                  disabled={loadingUser || !allowSelfRequest}
                 >
                   <SelectTrigger id="cardProgram" className="h-12 text-lg border-2">
                     <SelectValue placeholder="Select card type" />
@@ -234,6 +272,7 @@ function RequestCardForm() {
                 placeholder="Enter your email address for notifications"
                 className="h-12 text-lg border-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
                 required
+                disabled={loadingUser || !allowSelfRequest}
               />
             </div>
             <div className="space-y-3">
@@ -246,6 +285,7 @@ function RequestCardForm() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Briefly describe the purpose of this card (e.g., Online Subscriptions, Business Expenses)"
+                disabled={loadingUser || !allowSelfRequest}
               />
             </div>
           </CardContent>
@@ -253,7 +293,12 @@ function RequestCardForm() {
             <Button
               type="submit"
               className="w-full h-14 text-lg font-bold shadow-md hover:shadow-lg transition-all"
-              disabled={isSubmitting || cardPrograms.length === 0 || !selectedCardProgram}
+              disabled={
+                isSubmitting ||
+                !allowSelfRequest ||
+                cardPrograms.length === 0 ||
+                !selectedCardProgram
+              }
             >
               {isSubmitting ? (
                 <>

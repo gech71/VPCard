@@ -7,6 +7,10 @@ import {
 } from "@/lib/auth";
 import { type CardDetails } from "@/lib/data";
 import { fetchPss } from "@/lib/pss-fetch";
+import {
+  filterCardsByAllowedBins,
+  parseAllowedCardBinsFromEnv,
+} from "@/lib/allowed-card-bins";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -25,6 +29,7 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
   cards: CardDetails[];
   accounts: any[];
   phoneNumber: string | null;
+  customerCardPanNumbers: string[];
 }> {
   try {
     const phoneNumber = await getDecryptedPhoneFromCookie();
@@ -48,20 +53,25 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
 
     // If an account is already selected, skip the accounts retrieval and fetch cards directly
     if (selectedAccountNumber) {
-      const cards = await fetchCardsForAccount(
+      const mapped = await fetchCardsForAccount(
         selectedAccountNumber,
         cardListUrl,
         cardListApiKey,
         cardListIdMsg,
         cardListInstitution,
       );
-      return { cards, accounts: [], phoneNumber };
+      const allowedBins = parseAllowedCardBinsFromEnv();
+      const cards = filterCardsByAllowedBins(mapped, allowedBins);
+      const customerCardPanNumbers = mapped
+        .map((c) => String(c.fullNumber ?? "").trim())
+        .filter(Boolean);
+      return { cards, accounts: [], phoneNumber, customerCardPanNumbers };
     }
 
     // Otherwise, check for cached accounts first
     const cachedAccounts = await getAccountsFromCookie();
     if (cachedAccounts && cachedAccounts.length > 0) {
-      return { cards: [], accounts: cachedAccounts, phoneNumber };
+      return { cards: [], accounts: cachedAccounts, phoneNumber, customerCardPanNumbers: [] };
     }
 
     // If no cache, fetch the list of accounts first
@@ -106,7 +116,7 @@ async function getCardData(selectedAccountNumber?: string | null): Promise<{
       await setAccountsCookie(accounts);
     }
 
-    return { cards: [], accounts, phoneNumber };
+    return { cards: [], accounts, phoneNumber, customerCardPanNumbers: [] };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -210,6 +220,7 @@ export async function GET(request: NextRequest) {
   let cards: CardDetails[] = [];
   let accounts: any[] = [];
   let phoneNumber: string | null = null;
+  let customerCardPanNumbers: string[] = [];
   let fetchError = null;
 
   try {
@@ -217,6 +228,7 @@ export async function GET(request: NextRequest) {
     cards = data.cards;
     accounts = data.accounts;
     phoneNumber = data.phoneNumber;
+    customerCardPanNumbers = data.customerCardPanNumbers;
   } catch (error: any) {
     fetchError = error.message;
   }
@@ -228,6 +240,7 @@ export async function GET(request: NextRequest) {
       cards,
       accounts,
       phoneNumber,
+      customerCardPanNumbers,
       allowSelfRequest: settings.allowSelfCardRequest,
       defaultCheckerId: settings.defaultCheckerId,
       error: fetchError,
