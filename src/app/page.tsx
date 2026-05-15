@@ -9,6 +9,7 @@ import { AlertTriangle, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
 
 interface CardResponse {
   cards: CardDetails[];
@@ -24,6 +25,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
+  const [canRequestNewCard, setCanRequestNewCard] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const { toast } = useToast();
@@ -40,10 +42,26 @@ export default function Home() {
         if (data.error) {
           throw new Error(data.error);
         }
-        setAllowSelfRequest(data.allowSelfRequest || false);
+        const selfServiceEnabled = data.allowSelfRequest === true;
+        setAllowSelfRequest(selfServiceEnabled);
         setCards(data.cards || []);
         const list = data.accounts || [];
         setAccounts(list);
+
+        let hasEligibleProducts = false;
+        if (selfServiceEnabled) {
+          const customerPans: string[] = data.customerCardPanNumbers || [];
+          const progRes = await fetch("/api/card-programs?audience=self");
+          const progData = await progRes.json();
+          if (progRes.ok && Array.isArray(progData.programs)) {
+            hasEligibleProducts =
+              filterProgramsNotOwnedByCustomerPans(
+                progData.programs,
+                customerPans,
+              ).length > 0;
+          }
+        }
+        setCanRequestNewCard(hasEligibleProducts);
 
         if (list.length > 0) {
           setSelectedAccount(list[0].accountNumber);
@@ -108,19 +126,19 @@ export default function Home() {
                   There are no cards associated with this customer
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
-                  {allowSelfRequest ? (
+                  {canRequestNewCard ? (
                     <Button asChild>
                       <Link href={`/request-card?accountNumber=${selectedAccount}`}>
                         <Plus className="mr-2 h-4 w-4" />
                         Request a Card
                       </Link>
                     </Button>
-                  ) : (
+                  ) : !allowSelfRequest ? (
                     <p className="text-sm text-muted-foreground">
                       Self-service card requests are not available. Please
                       contact support if you need assistance.
                     </p>
-                  )}
+                  ) : null}
                 </AlertDescription>
               </Alert>
             )}
@@ -129,6 +147,7 @@ export default function Home() {
               <DashboardClient
                 cards={cards}
                 allowSelfRequest={allowSelfRequest}
+                canRequestNewCard={canRequestNewCard}
                 accountNumber={selectedAccount}
               />
             )}

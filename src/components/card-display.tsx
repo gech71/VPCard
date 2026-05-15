@@ -37,6 +37,29 @@ function formatValidThru(expiry: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
 }
 
+function CardField({
+  label,
+  value,
+  className,
+  "aria-label": ariaLabel,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  return (
+    <div className={className} aria-label={ariaLabel}>
+      <p className="text-[7px] font-medium uppercase leading-none tracking-[0.14em] text-neutral-800/90 sm:text-[8px]">
+        {label}
+      </p>
+      <p className="mt-0.5 font-mono text-sm font-bold tabular-nums leading-none text-neutral-900 sm:text-base">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export default function CardDisplay({ card }: CardDisplayProps) {
   const [isRevealed, setIsRevealed] = useState(false);
 
@@ -45,6 +68,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
   );
   const cardholderName = (card.cardholderName || "CARDHOLDER").toUpperCase();
   const validThru = formatValidThru(card.expiryDate);
+  const showCvc = Boolean(card.cvv);
 
   return (
     <Card className="mx-auto flex h-full w-full max-w-md flex-col shadow-md">
@@ -63,67 +87,65 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             sizes="(max-width: 768px) 100vw, 448px"
           />
 
-          <div className="absolute inset-0 flex flex-col justify-end px-4 pb-4 pt-16 sm:px-6 sm:pb-5">
-            <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
-              <p
-                className="font-mono text-[15px] font-semibold leading-tight tracking-[0.18em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] sm:text-xl sm:tracking-[0.22em]"
-                aria-label={
-                  isRevealed
-                    ? "Primary account number"
-                    : "Masked primary account number"
-                }
-              >
-                {panDisplay}
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 text-neutral-900 hover:bg-black/10"
-                onClick={() => setIsRevealed((v) => !v)}
-                aria-label={isRevealed ? "Hide card number" : "Show card number"}
-                aria-pressed={isRevealed}
-              >
-                {isRevealed ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
-
-            <div className="flex items-end justify-between gap-3 pr-14 sm:pr-20">
-              <div className="min-w-0 flex-1">
-                <p className="text-[8px] font-medium uppercase leading-none tracking-[0.12em] text-neutral-800/90 sm:text-[9px]">
-                  Cardholder
-                </p>
-                <p className="truncate text-xs font-bold uppercase tracking-wide text-neutral-900 sm:text-sm">
-                  {cardholderName}
-                </p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <p className="text-[8px] font-medium uppercase leading-none tracking-[0.12em] text-neutral-800/90 sm:text-[9px]">
-                  Valid Thru
-                </p>
-                <p className="font-mono text-sm font-bold tabular-nums text-neutral-900 sm:text-base">
-                  {validThru}
-                </p>
-              </div>
-
-              {card.cvv && isRevealed && (
-                <div
-                  className="shrink-0 text-right"
-                  aria-label="Card security code"
+          {/* Lower card face: PAN → Valid Thru/CVC → cardholder */}
+          <div className="absolute inset-0 flex flex-col justify-end px-4 pb-4 sm:px-6 sm:pb-5">
+            <div className="flex w-full max-w-[calc(100%-0.5rem)] flex-col items-start pr-12 sm:pr-16">
+              {/* 1. PAN */}
+              <div className="flex w-full min-w-0 items-center gap-2 pr-1">
+                <p
+                  className="min-w-0 flex-1 font-mono text-base font-bold leading-tight tabular-nums tracking-[0.18em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.65)] sm:text-xl sm:tracking-[0.22em] md:text-2xl md:tracking-[0.24em]"
+                  style={{ wordSpacing: "0.3em" }}
+                  aria-label={
+                    isRevealed
+                      ? "Primary account number"
+                      : "Masked primary account number"
+                  }
                 >
-                  <p className="text-[8px] font-medium uppercase leading-none tracking-[0.12em] text-neutral-800/90 sm:text-[9px]">
-                    CVC
-                  </p>
-                  <p className="font-mono text-sm font-bold tabular-nums text-neutral-900 sm:text-base">
-                    {card.cvv}
-                  </p>
-                </div>
-              )}
+                  {panDisplay}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-neutral-900 hover:bg-black/10"
+                  onClick={() => setIsRevealed((v) => !v)}
+                  aria-label={
+                    isRevealed ? "Hide card number" : "Show card number"
+                  }
+                  aria-pressed={isRevealed}
+                >
+                  {isRevealed ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+
+              {/* 2. Valid Thru + CVC (same row) */}
+              <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-1 sm:mt-4 sm:gap-x-8">
+                <CardField label="Valid Thru" value={validThru} />
+                {showCvc && (
+                  <CardField
+                    label="CVC"
+                    value={isRevealed ? String(card.cvv) : "***"}
+                    className={isRevealed ? undefined : "select-none"}
+                    aria-label={
+                      isRevealed
+                        ? "Card security code"
+                        : "Card security code hidden"
+                    }
+                  />
+                )}
+              </div>
+
+              {/* 3. Cardholder */}
+              <p
+                className="mt-2 max-w-full truncate text-sm font-bold uppercase leading-tight tracking-[0.08em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)] sm:mt-2.5 sm:text-[0.95rem]"
+                title={cardholderName}
+              >
+                {cardholderName}
+              </p>
             </div>
           </div>
         </div>

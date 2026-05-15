@@ -22,6 +22,7 @@ type CardDetailsViewProps = {
   balance: number | null;
   isLoading: boolean;
   allowSelfRequest?: boolean;
+  canRequestNewCard?: boolean;
   accountNumber?: string;
 };
 
@@ -30,6 +31,7 @@ export default function CardDetailsView({
   balance,
   isLoading,
   allowSelfRequest = false,
+  canRequestNewCard = false,
   accountNumber,
 }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
@@ -115,14 +117,14 @@ export default function CardDetailsView({
         </div>
         
         <div className="pt-2">
-          {allowSelfRequest && accountNumber ? (
+          {canRequestNewCard && accountNumber ? (
             <Button variant="default" className="w-full" asChild>
               <Link href={`/request-card?accountNumber=${encodeURIComponent(accountNumber)}`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Request New Card
               </Link>
             </Button>
-          ) : accountNumber ? (
+          ) : !allowSelfRequest && accountNumber ? (
             <p className="text-xs text-muted-foreground text-center">
               Self-service requests are turned off. Contact support to request
               another card.
