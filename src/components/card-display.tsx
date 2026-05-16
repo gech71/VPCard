@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
 
 type CardDisplayProps = {
@@ -87,43 +85,24 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             sizes="(max-width: 768px) 100vw, 448px"
           />
 
-          {/* Lower card face: PAN → Valid Thru/CVC → cardholder */}
-          <div className="absolute inset-0 flex flex-col justify-end px-4 pb-4 sm:px-6 sm:pb-5">
-            <div className="flex w-full max-w-[calc(100%-0.5rem)] flex-col items-start pr-12 sm:pr-16">
-              {/* 1. PAN */}
-              <div className="flex w-full min-w-0 items-center gap-2 pr-1">
-                <p
-                  className="min-w-0 flex-1 font-mono text-base font-bold leading-tight tabular-nums tracking-[0.18em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.65)] sm:text-xl sm:tracking-[0.22em] md:text-2xl md:tracking-[0.24em]"
-                  style={{ wordSpacing: "0.3em" }}
-                  aria-label={
-                    isRevealed
-                      ? "Primary account number"
-                      : "Masked primary account number"
-                  }
-                >
-                  {panDisplay}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 text-neutral-900 hover:bg-black/10"
-                  onClick={() => setIsRevealed((v) => !v)}
-                  aria-label={
-                    isRevealed ? "Hide card number" : "Show card number"
-                  }
-                  aria-pressed={isRevealed}
-                >
-                  {isRevealed ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
+          <div className="absolute inset-0 flex flex-col justify-end px-3 pb-3.5 sm:px-5 sm:pb-4">
+            <div className="flex w-full flex-col items-stretch pr-10 sm:pr-14">
+              <button
+                type="button"
+                onClick={() => setIsRevealed((v) => !v)}
+                className="w-full min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left font-mono text-sm font-bold leading-tight tabular-nums tracking-[0.16em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.65)] transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30 focus-visible:ring-offset-1 sm:text-base sm:tracking-[0.18em] md:text-lg md:tracking-[0.2em]"
+                style={{ wordSpacing: "0.28em" }}
+                aria-label={
+                  isRevealed
+                    ? "Primary account number, click to hide"
+                    : "Masked primary account number, click to reveal"
+                }
+                aria-pressed={isRevealed}
+              >
+                {panDisplay}
+              </button>
 
-              {/* 2. Valid Thru + CVC (same row) */}
-              <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-1 sm:mt-4 sm:gap-x-8">
+              <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-1 sm:mt-3.5 sm:gap-x-8">
                 <CardField label="Valid Thru" value={validThru} />
                 {showCvc && (
                   <CardField
@@ -139,7 +118,6 @@ export default function CardDisplay({ card }: CardDisplayProps) {
                 )}
               </div>
 
-              {/* 3. Cardholder */}
               <p
                 className="mt-2 max-w-full truncate text-sm font-bold uppercase leading-tight tracking-[0.08em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)] sm:mt-2.5 sm:text-[0.95rem]"
                 title={cardholderName}

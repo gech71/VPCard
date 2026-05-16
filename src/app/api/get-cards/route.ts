@@ -10,7 +10,12 @@ import {
   filterCardsByAllowedBins,
   parseAllowedCardBinsFromEnv,
 } from "@/lib/allowed-card-bins";
-import { resolveCustomerIdWithCache } from "@/lib/customer-id-cache";
+import {
+  cacheCustomerIdMappings,
+  getCachedAccountsByCustomerId,
+  getCachedCustomerIdByPhone,
+  resolveCustomerIdWithCache,
+} from "@/lib/customer-id-cache";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +83,7 @@ async function getCardData(): Promise<{
   let accounts: AccountSummary[] = [];
   let rawAccounts: Record<string, unknown>[] = [];
   let accountsEnvelope: Record<string, unknown> | undefined;
+  let customerId: string | undefined;
 
   const cachedAccounts = await getAccountsFromCookie();
   if (cachedAccounts && cachedAccounts.length > 0) {
@@ -86,7 +92,19 @@ async function getCardData(): Promise<{
       name: acc.name != null ? String(acc.name) : undefined,
       status: acc.status != null ? String(acc.status) : undefined,
     }));
-  } else {
+  }
+
+  customerId = await getCachedCustomerIdByPhone(phoneNumber);
+
+  if (customerId && accounts.length === 0) {
+    const dbAccounts = await getCachedAccountsByCustomerId(customerId);
+    accounts = dbAccounts.map((a) => ({ accountNumber: a.accountNumber }));
+    if (accounts.length > 0) {
+      await setAccountsCookie(accounts);
+    }
+  }
+
+  if (!customerId && accounts.length === 0) {
     const getAccountsUrl = process.env.GET_ACCOUNTS_URL;
     const getAccountsUser = process.env.GET_ACCOUNTS_USER;
     const getAccountsPass = process.env.GET_ACCOUNTS_PASS;
@@ -131,12 +149,20 @@ async function getCardData(): Promise<{
     }
   }
 
-  const customerId = await resolveCustomerIdWithCache({
-    phoneNumber,
-    accounts,
-    rawAccounts,
-    accountsEnvelope,
-  });
+  if (!customerId) {
+    customerId = await resolveCustomerIdWithCache({
+      phoneNumber,
+      accounts,
+      rawAccounts,
+      accountsEnvelope,
+    });
+  } else {
+    await cacheCustomerIdMappings({
+      customerId,
+      phoneNumber,
+      accountNumbers: accounts.map((a) => a.accountNumber),
+    });
+  }
   if (!customerId) {
     return { cards: [], accounts, phoneNumber, customerCardPanNumbers: [] };
   }
@@ -164,40 +190,35 @@ export async function GET() {
   let accounts: AccountSummary[] = [];
   let phoneNumber: string | null = null;
   let customerCardPanNumbers: string[] = [];
-  let fetchError = null;
+  let fetchError: string | null = null;
+  let allowSelfRequest = false;
+  let defaultCheckerId: string | null = null;
 
   try {
-    const data = await getCardData();
+    const [data, allowSelfCardRequest, defaultCheckerSetting] =
+      await Promise.all([
+        getCardData(),
+        prisma.settings.findUnique({ where: { key: "allowSelfCardRequest" } }),
+        prisma.settings.findUnique({ where: { key: "defaultCheckerId" } }),
+      ]);
+
     cards = data.cards;
     accounts = data.accounts;
     phoneNumber = data.phoneNumber;
     customerCardPanNumbers = data.customerCardPanNumbers;
+    allowSelfRequest = allowSelfCardRequest?.value === "true";
+    defaultCheckerId = defaultCheckerSetting?.value || null;
   } catch (error: unknown) {
     fetchError = error instanceof Error ? error.message : "Unknown error";
   }
 
-  try {
-    const allowSelfCardRequest = await prisma.settings.findUnique({
-      where: { key: "allowSelfCardRequest" },
-    });
-
-    const defaultCheckerId = await prisma.settings.findUnique({
-      where: { key: "defaultCheckerId" },
-    });
-
-    return NextResponse.json({
-      cards,
-      accounts,
-      phoneNumber,
-      customerCardPanNumbers,
-      allowSelfRequest: allowSelfCardRequest?.value === "true",
-      defaultCheckerId: defaultCheckerId?.value || null,
-      error: fetchError,
-    });
-  } catch {
-    return NextResponse.json(
-      { message: "Failed to fetch necessary data." },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json({
+    cards,
+    accounts,
+    phoneNumber,
+    customerCardPanNumbers,
+    allowSelfRequest,
+    defaultCheckerId,
+    error: fetchError,
+  });
 }

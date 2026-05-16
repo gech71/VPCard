@@ -39,6 +39,33 @@ export async function getCachedCustomerIdByAccount(
   return row?.customerId;
 }
 
+export type CachedAccountSummary = {
+  accountNumber: string;
+};
+
+/** Account numbers previously linked to a customer id in CustomerLookup. */
+export async function getCachedAccountsByCustomerId(
+  customerId: string,
+): Promise<CachedAccountSummary[]> {
+  const rows = await prisma.customerLookup.findMany({
+    where: {
+      customerId,
+      lookupKey: { startsWith: ACCOUNT_PREFIX },
+    },
+    select: { lookupKey: true },
+  });
+
+  const seen = new Set<string>();
+  const accounts: CachedAccountSummary[] = [];
+  for (const row of rows) {
+    const accountNumber = row.lookupKey.slice(ACCOUNT_PREFIX.length).trim();
+    if (!accountNumber || seen.has(accountNumber)) continue;
+    seen.add(accountNumber);
+    accounts.push({ accountNumber });
+  }
+  return accounts;
+}
+
 export async function cacheCustomerIdMappings(params: {
   customerId: string;
   phoneNumber?: string | null;

@@ -65,6 +65,8 @@ export default function Home() {
 
         if (list.length > 0) {
           setSelectedAccount(list[0].accountNumber);
+        } else if (data.cards?.length > 0 && data.cards[0].accountNumber) {
+          setSelectedAccount(data.cards[0].accountNumber);
         }
       } catch (e: any) {
         setError(e.message || "An unknown error occurred.");
