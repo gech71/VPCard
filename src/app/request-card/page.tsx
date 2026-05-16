@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, CreditCard, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, AlertTriangle, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -36,6 +36,7 @@ function RequestCardForm() {
   >([]);
   const [selectedCardProgram, setSelectedCardProgram] = useState("");
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   useEffect(() => {
     if (!accountNumber) {
@@ -56,6 +57,10 @@ function RequestCardForm() {
           setPhoneNumber(cardData.phoneNumber);
         }
         setAllowSelfRequest(cardData.allowSelfRequest === true);
+
+        const pendingAccounts: string[] =
+          cardData.pendingCardRequestAccountNumbers || [];
+        setHasPendingRequest(pendingAccounts.includes(accountNumber));
 
         const customerPans: string[] = cardData.customerCardPanNumbers || [];
 
@@ -188,7 +193,17 @@ function RequestCardForm() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
-            {!loadingUser && !allowSelfRequest && (
+            {!loadingUser && hasPendingRequest && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Card request pending</AlertTitle>
+                <AlertDescription>
+                  Your card request is waiting for approval. You cannot submit
+                  another request until it has been reviewed.
+                </AlertDescription>
+              </Alert>
+            )}
+            {!loadingUser && !allowSelfRequest && !hasPendingRequest && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Self-service requests disabled</AlertTitle>
@@ -207,7 +222,7 @@ function RequestCardForm() {
                   id="accountNumber"
                   value={accountNumber}
                   readOnly
-                  disabled={loadingUser || !allowSelfRequest}
+                  disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
                   className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                 />
               </div> */}
@@ -220,7 +235,7 @@ function RequestCardForm() {
                     id="phoneNumber"
                     value={loadingUser ? "Loading..." : phoneNumber}
                     readOnly
-                    disabled={loadingUser || !allowSelfRequest}
+                    disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
                     className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
                   />
                   {loadingUser && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />}
@@ -242,7 +257,7 @@ function RequestCardForm() {
                 <Select
                   value={selectedCardProgram}
                   onValueChange={setSelectedCardProgram}
-                  disabled={loadingUser || !allowSelfRequest}
+                  disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
                 >
                   <SelectTrigger id="cardProgram" className="h-12 text-lg border-2">
                     <SelectValue placeholder="Select card type" />
@@ -270,7 +285,7 @@ function RequestCardForm() {
                 placeholder="Enter your email address for notifications"
                 className="h-12 text-lg border-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
                 required
-                disabled={loadingUser || !allowSelfRequest}
+                disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
               />
             </div>
             <div className="space-y-3">
@@ -283,7 +298,7 @@ function RequestCardForm() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Briefly describe the purpose of this card (e.g., Online Subscriptions, Business Expenses)"
-                disabled={loadingUser || !allowSelfRequest}
+                disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
               />
             </div>
           </CardContent>
@@ -294,6 +309,7 @@ function RequestCardForm() {
               disabled={
                 isSubmitting ||
                 !allowSelfRequest ||
+                hasPendingRequest ||
                 cardPrograms.length === 0 ||
                 !selectedCardProgram
               }

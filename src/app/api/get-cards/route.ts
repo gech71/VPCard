@@ -185,6 +185,23 @@ async function getCardData(): Promise<{
   return { cards, accounts, phoneNumber, customerCardPanNumbers };
 }
 
+async function getPendingCardRequestAccountNumbers(
+  accountNumbers: string[],
+): Promise<string[]> {
+  const unique = [...new Set(accountNumbers.map((n) => n.trim()).filter(Boolean))];
+  if (unique.length === 0) return [];
+
+  const pending = await prisma.cardRequest.findMany({
+    where: {
+      accountNumber: { in: unique },
+      status: "PENDING",
+    },
+    select: { accountNumber: true },
+  });
+
+  return [...new Set(pending.map((r) => r.accountNumber))];
+}
+
 export async function GET() {
   let cards: CardDetails[] = [];
   let accounts: AccountSummary[] = [];
@@ -193,6 +210,7 @@ export async function GET() {
   let fetchError: string | null = null;
   let allowSelfRequest = false;
   let defaultCheckerId: string | null = null;
+  let pendingCardRequestAccountNumbers: string[] = [];
 
   try {
     const [data, allowSelfCardRequest, defaultCheckerSetting] =
@@ -208,6 +226,13 @@ export async function GET() {
     customerCardPanNumbers = data.customerCardPanNumbers;
     allowSelfRequest = allowSelfCardRequest?.value === "true";
     defaultCheckerId = defaultCheckerSetting?.value || null;
+
+    const accountNumbers = [
+      ...accounts.map((a) => a.accountNumber),
+      ...cards.map((c) => c.accountNumber),
+    ];
+    pendingCardRequestAccountNumbers =
+      await getPendingCardRequestAccountNumbers(accountNumbers);
   } catch (error: unknown) {
     fetchError = error instanceof Error ? error.message : "Unknown error";
   }
@@ -219,6 +244,7 @@ export async function GET() {
     customerCardPanNumbers,
     allowSelfRequest,
     defaultCheckerId,
+    pendingCardRequestAccountNumbers,
     error: fetchError,
   });
 }

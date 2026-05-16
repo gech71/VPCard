@@ -21,6 +21,7 @@ type DashboardClientProps = {
   cards: CardDetails[];
   allowSelfRequest: boolean;
   canRequestNewCard: boolean;
+  pendingRequestAccounts: string[];
   accountNumber: string;
 };
 
@@ -34,8 +35,11 @@ export default function DashboardClient({
   cards,
   allowSelfRequest,
   canRequestNewCard,
+  pendingRequestAccounts,
   accountNumber,
 }: DashboardClientProps) {
+  const hasPendingCardRequest = pendingRequestAccounts.includes(accountNumber);
+  const showRequestNewCard = canRequestNewCard && !hasPendingCardRequest;
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -142,7 +146,8 @@ export default function DashboardClient({
                 balance={txFormState.balance}
                 isLoading={isLoading}
                 allowSelfRequest={allowSelfRequest}
-                canRequestNewCard={canRequestNewCard}
+                canRequestNewCard={showRequestNewCard}
+                hasPendingCardRequest={hasPendingCardRequest}
                 accountNumber={accountNumber}
               />
             )}

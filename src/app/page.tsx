@@ -5,7 +5,7 @@ import { type CardDetails } from "@/lib/data";
 import DashboardHeader from "@/components/dashboard-header";
 import DashboardClient from "@/components/dashboard-client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Loader2, Plus } from "lucide-react";
+import { AlertTriangle, Info, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ interface CardResponse {
   allowSelfRequest?: boolean;
   defaultCheckerId?: string | null;
   customerCardPanNumbers?: string[];
+  pendingCardRequestAccountNumbers?: string[];
   error?: string | null;
 }
 
@@ -26,6 +27,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
   const [canRequestNewCard, setCanRequestNewCard] = useState(false);
+  const [pendingRequestAccounts, setPendingRequestAccounts] = useState<string[]>(
+    [],
+  );
   const [accounts, setAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const { toast } = useToast();
@@ -62,6 +66,9 @@ export default function Home() {
           }
         }
         setCanRequestNewCard(hasEligibleProducts);
+        setPendingRequestAccounts(
+          data.pendingCardRequestAccountNumbers || [],
+        );
 
         if (list.length > 0) {
           setSelectedAccount(list[0].accountNumber);
@@ -84,6 +91,13 @@ export default function Home() {
 
   const showNoCardsMessage =
     !isLoading && accounts.length > 0 && (!cards || cards.length === 0);
+
+  const selectedHasPendingRequest =
+    Boolean(selectedAccount) &&
+    pendingRequestAccounts.includes(selectedAccount!);
+
+  const showRequestCardButton =
+    canRequestNewCard && !selectedHasPendingRequest;
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -122,13 +136,26 @@ export default function Home() {
         {!isLoading && !error && accounts.length > 0 && (
           <>
             {showNoCardsMessage && (
-              <Alert className="mt-4">
-                <AlertTriangle className="h-4 w-4" />
+              <Alert
+                className="mt-4"
+                variant={selectedHasPendingRequest ? "default" : undefined}
+              >
+                {selectedHasPendingRequest ? (
+                  <Info className="h-4 w-4" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4" />
+                )}
                 <AlertTitle>
-                  There are no cards associated with this customer
+                  {selectedHasPendingRequest
+                    ? "Card request pending"
+                    : "There are no cards associated with this customer"}
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
-                  {canRequestNewCard ? (
+                  {selectedHasPendingRequest ? (
+                    <p className="text-sm text-muted-foreground">
+                      Your card request is waiting for approval.
+                    </p>
+                  ) : showRequestCardButton ? (
                     <Button asChild>
                       <Link href={`/request-card?accountNumber=${selectedAccount}`}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -150,6 +177,7 @@ export default function Home() {
                 cards={cards}
                 allowSelfRequest={allowSelfRequest}
                 canRequestNewCard={canRequestNewCard}
+                pendingRequestAccounts={pendingRequestAccounts}
                 accountNumber={selectedAccount}
               />
             )}

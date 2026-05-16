@@ -23,6 +23,7 @@ type CardDetailsViewProps = {
   isLoading: boolean;
   allowSelfRequest?: boolean;
   canRequestNewCard?: boolean;
+  hasPendingCardRequest?: boolean;
   accountNumber?: string;
 };
 
@@ -32,6 +33,7 @@ export default function CardDetailsView({
   isLoading,
   allowSelfRequest = false,
   canRequestNewCard = false,
+  hasPendingCardRequest = false,
   accountNumber,
 }: CardDetailsViewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(false);
@@ -117,7 +119,11 @@ export default function CardDetailsView({
         </div>
         
         <div className="pt-2">
-          {canRequestNewCard && accountNumber ? (
+          {hasPendingCardRequest ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Your card request is waiting for approval.
+            </p>
+          ) : canRequestNewCard && accountNumber ? (
             <Button variant="default" className="w-full" asChild>
               <Link href={`/request-card?accountNumber=${encodeURIComponent(accountNumber)}`}>
                 <Plus className="mr-2 h-4 w-4" />
