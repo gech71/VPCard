@@ -3,15 +3,19 @@
 ## 1. Executive Summary
 
 ### Project overview
+
 The project is a prepaid virtual card portal focused on card request initiation, approval workflows, and customer card dashboards. It is implemented as a Next.js web application with a PostgreSQL backend and integrates with customer lookup APIs, account list services, and virtual card provisioning services.
 
 ### Purpose of the system
+
 The system enables bank staff to create and review prepaid card requests using Maker/Checker controls, while enabling customers to view their virtual card balances, recent transactions, and request new cards when self-service is enabled.
 
 ### Business problem being solved
+
 Financial institutions need a secure, audited workflow for issuing prepaid virtual cards tied to customer accounts. Existing manual or fragmented processes expose the business to operational risk, poor customer experience, and compliance gaps for card issuance and approval.
 
 ### Expected business value
+
 - Reduce manual processing time for virtual card requests.
 - Improve compliance with audit trails, role-based controls, and PCI-related card data protections.
 - Increase customer satisfaction through faster request submission and status transparency.
@@ -20,9 +24,11 @@ Financial institutions need a secure, audited workflow for issuing prepaid virtu
 ## 2. Business Context and Objectives
 
 ### Current business situation
+
 The product is designed to support virtual card issuance for customers linked to bank accounts customerID(CID).
 
 ### Business challenges
+
 - Ensuring secure card issuance while preventing unauthorized requests.
 - Verifying customer account details through external banking APIs.
 - Tracking card creation and approval decisions in an auditable manner.
@@ -30,6 +36,7 @@ The product is designed to support virtual card issuance for customers linked to
 - Managing multiple card programs and ensuring proper program eligibility.
 
 ### Strategic objectives
+
 - Establish a digital workflow for prepaid card request creation and approval.
 - Enforce role-based separation of duties for request initiation and review.
 - Maintain strong security controls for authentication, session management, and sensitive card data.
@@ -37,6 +44,7 @@ The product is designed to support virtual card issuance for customers linked to
 - Support configurable self-service request policies.
 
 ### Success criteria
+
 - Makers can create prepaid card requests after verifying customer data.
 - Checkers can approve or reject requests and trigger virtual card provisioning.
 - Super Admins can manage card program visibility, self-service settings, and audit logs.
@@ -44,6 +52,7 @@ The product is designed to support virtual card issuance for customers linked to
 - All operational actions generate audit logs.
 
 ### KPIs
+
 - Number of card requests created per day.
 - Average request approval turnaround time.
 - Percentage of requests approved versus rejected.
@@ -54,6 +63,7 @@ The product is designed to support virtual card issuance for customers linked to
 ## 3. Project Scope
 
 ### 3.1 In Scope
+
 - Web application for card request submission, approval, and customer dashboard views.
 - Role-based Maker/Checker/Super Admin dashboards for request workflows.
 - Customer-facing dashboards for virtual card balances and transaction history.
@@ -71,6 +81,7 @@ The product is designed to support virtual card issuance for customers linked to
 - Responsive UI using Tailwind CSS and component library.
 
 ### 3.2 Out of Scope
+
 - Physical card production and delivery.
 - Card funding, transaction authorization, or settlement workflows beyond issuance.
 - Advanced customer onboarding or KYC beyond account lookup.
@@ -83,6 +94,7 @@ The product is designed to support virtual card issuance for customers linked to
 ## 4. Stakeholders and Users
 
 ### Stakeholders
+
 - Business owners: Bank prepaid card program managers.
 - Operations administrators: staff responsible for card product configuration and audit oversight.
 - Compliance and risk managers: maintain PCI, data protection and approval policies.
@@ -93,26 +105,31 @@ The product is designed to support virtual card issuance for customers linked to
 ### User Roles
 
 #### Super Admin
+
 - Responsibilities: configure system settings, enable self-service requests, assign default checker, view audit logs, manage users.
 - Permissions: full access to admin dashboard, audit logs, settings, user lists, card request reports.
 - Main workflows: configure card program availability, set default checker, review audit history.
 
 #### Maker
+
 - Responsibilities: initiate new prepaid card requests for customers, search customer accounts, select card programs, assign a checker.
 - Permissions: access Maker dashboard, create card requests, view own requests, search customers, select eligible card programs.
 - Main workflows: verify customer account, submit card request, monitor request status.
 
 #### Checker
+
 - Responsibilities: review and approve or reject card requests assigned by Makers or self-service flows.
 - Permissions: access Checker dashboard, view assigned requests, approve or reject requests.
 - Main workflows: evaluate request details, approve or reject with review notes, trigger PSS card creation on approval.
 
 #### Customer / Self-Service User
+
 - Responsibilities: initiate card requests through the Nibtera SuperApp if enabled.
 - Permissions: view customer dashboard, request card products, receive request status and notifications.
 - Main workflows: select eligible account, choose card program, submit request, wait for review.
 
 #### External Systems
+
 - Prepaid API provider: validates customer account details and returns account metadata.
 - PSS virtual card service: provisions virtual card PAN and expiry details on approval.
 - Token validation endpoint: supports legacy auth by validating external bearer tokens and returning phone identifiers.
@@ -271,6 +288,7 @@ The product is designed to support virtual card issuance for customers linked to
 ## 6. Assumptions, Dependencies, and Constraints
 
 ### Assumptions
+
 - The business requires Maker/Checker separation for card issuance.
 - Customer account data and card provisioning are available through external APIs.
 - The portal is primarily intended for bank employees and optionally for authenticated customers.
@@ -279,6 +297,7 @@ The product is designed to support virtual card issuance for customers linked to
 - There is a defined default checker for self-service request approval.
 
 ### Dependencies
+
 - PostgreSQL database managed through Prisma.
 - External API for customer account lookup.
 - External PSS virtual card provisioning API.
@@ -288,6 +307,7 @@ The product is designed to support virtual card issuance for customers linked to
 - Environment variables for secrets, API URLs, and integration credentials.
 
 ### Constraints
+
 - Only web browser access is supported; no mobile native app.
 - Card request approval depends on external PSS availability.
 - Customer self-service is conditional on admin settings.
@@ -298,7 +318,9 @@ The product is designed to support virtual card issuance for customers linked to
 ## 7. High-Level Business Process
 
 ### Current State Process
+
 Based on system implementation, the existing manual customer onboarding process is likely:
+
 - Customer or Maker identifies a need for a virtual card.
 - Maker obtains customer account details.
 - Maker submits a request to a Checker for approval.
@@ -306,13 +328,16 @@ Based on system implementation, the existing manual customer onboarding process 
 - Audit data is recorded in spreadsheets or separate logs.
 
 Current pain points:
+
 - Manual request assignment and tracking.
 - Lack of centralized approval and audit tracking.
 - Potential delays due to manual verification.
 - Inconsistent card program eligibility enforcement.
 
 ### Future State Process
+
 The proposed automated workflow is:
+
 1. Maker logs in and searches customer account by account number.
 2. System verifies customer details via external API.
 3. Maker selects an eligible card program and assigns a Checker.
@@ -325,6 +350,7 @@ The proposed automated workflow is:
 ## 8. System Overview
 
 ### High-level architecture summary
+
 - Frontend: Next.js application with React components and Tailwind UI.
 - Backend: API routes implemented in Next.js server runtime.
 - Database: PostgreSQL accessed through Prisma ORM.
@@ -332,6 +358,7 @@ The proposed automated workflow is:
 - Authentication: JWT-based dashboard sessions and legacy phone-token auth for other routes.
 
 ### Core modules
+
 - Authentication: `/api/auth/login`, `/api/auth/logout`, JWT generation, token revocation, cookie management.
 - Request workflows: `/api/card-requests`, `/api/card-requests-self`, `/api/customer/search`.
 - Administration: `/api/admin/settings`, `/api/admin/requests`, `/api/users/checkers`, `/api/audit-logs`.
@@ -340,6 +367,7 @@ The proposed automated workflow is:
 - Card provisioning: PSS integration via secure fetch and encrypted data storage.
 
 ### External integrations
+
 - Account Lookup API: Customer lookup by account number.
 - PSS virtual card service: Virtual card issuance upon request approval.
 - Token validation endpoint: Legacy bearer token authentication for customers.
@@ -347,6 +375,7 @@ The proposed automated workflow is:
 - Email service: implied for password reset flows.
 
 ### Authentication flow
+
 - Users enter credentials on login.
 - Successful login generates a JWT stored in `auth-token` cookie.
 - Middleware verifies JWT and refreshes cookie expiry on each request.
@@ -354,6 +383,7 @@ The proposed automated workflow is:
 - Legacy routes may validate an external bearer token and set encrypted phone cookie for customer identity.
 
 ### Data flow overview
+
 - Customer account search triggers external account lookup API.
 - Card requests are stored in `card_requests` with maker/checker associations.
 - Approval invokes PSS and stores encrypted PAN and expiry details.
@@ -362,49 +392,53 @@ The proposed automated workflow is:
 
 ## 9. Risks and Mitigation
 
-| Risk | Impact | Probability | Mitigation strategy |
-|---|---|---|---|
-| External prepaid API unavailability | High | Medium | Implement retry, error handling, and user-friendly messages. |
-| PSS card provisioning failure | High | Medium | Validate response codes, log failures, and escalate to support. |
-| Weak password or credential compromise | High | Medium | Enforce password complexity, lockout, and audit failed logins. |
-| Unauthorized access to admin functions | High | Low | Enforce RBAC, verify roles server-side, and protect admin routes. |
-| Card data leak | High | Low | Encrypt PAN, never store CVV, use secure cookies and TLS. |
-| Missing default checker configuration | Medium | Medium | Validate settings and block self-service if no checker configured. |
-| Inconsistent card program eligibility | Medium | Medium | Apply server-side audience filtering for card programs. |
-| Legacy auth token misuse | Medium | Medium | Validate token endpoint and encrypt phone cookie. |
+| Risk                                   | Impact | Probability | Mitigation strategy                                                |
+| -------------------------------------- | ------ | ----------- | ------------------------------------------------------------------ |
+| External prepaid API unavailability    | High   | Medium      | Implement retry, error handling, and user-friendly messages.       |
+| PSS card provisioning failure          | High   | Medium      | Validate response codes, log failures, and escalate to support.    |
+| Weak password or credential compromise | High   | Medium      | Enforce password complexity, lockout, and audit failed logins.     |
+| Unauthorized access to admin functions | High   | Low         | Enforce RBAC, verify roles server-side, and protect admin routes.  |
+| Card data leak                         | High   | Low         | Encrypt PAN, never store CVV, use secure cookies and TLS.          |
+| Missing default checker configuration  | Medium | Medium      | Validate settings and block self-service if no checker configured. |
+| Inconsistent card program eligibility  | Medium | Medium      | Apply server-side audience filtering for card programs.            |
+| Legacy auth token misuse               | Medium | Medium      | Validate token endpoint and encrypt phone cookie.                  |
 
 ## 10. Benefits and Expected Outcomes
 
 ### Operational benefits
+
 - Streamlined card request processing.
 - Clear, auditable workflows and approvals.
 - Reduced manual handoffs and operational risk.
 
 ### Financial benefits
+
 - Faster issuance leads to increased prepaid card adoption.
 - Reduced cost of manual processing and error remediation.
 
 ### User benefits
+
 - Makers and Checkers get dedicated dashboards and workflows.
 - Customers receive guided self-service card request capability.
 - Improved transparency for pending requests.
 
 ### Technical benefits
+
 - Modular architecture with configurable external integrations.
 - Secure session management and data encryption.
 - Audit logging for governance and compliance.
 
 ## 11. High-Level Timeline
 
-| Phase | Duration | Activities |
-|---|---|---|
-| Discovery | 1-2 weeks | Requirements gathering, stakeholder interviews, system inventory. |
-| Design | 2-3 weeks | UI/UX design, process flows, data model review, security plan. |
+| Phase       | Duration  | Activities                                                               |
+| ----------- | --------- | ------------------------------------------------------------------------ |
+| Discovery   | 1-2 weeks | Requirements gathering, stakeholder interviews, system inventory.        |
+| Design      | 2-3 weeks | UI/UX design, process flows, data model review, security plan.           |
 | Development | 6-8 weeks | Build dashboards, API workflows, integrations, auth, and audit features. |
-| Testing | 2-3 weeks | Functional QA, security testing, integration tests, user acceptance. |
-| Deployment | 1 week | Infrastructure provisioning, environment setup, release to production. |
-| Training | 1-2 weeks | Training sessions for makers, checkers, admins, and support staff. |
-| Maintenance | Ongoing | Monitoring, support, bug fixes, enhancements. |
+| Testing     | 2-3 weeks | Functional QA, security testing, integration tests, user acceptance.     |
+| Deployment  | 1 week    | Infrastructure provisioning, environment setup, release to production.   |
+| Training    | 1-2 weeks | Training sessions for makers, checkers, admins, and support staff.       |
+| Maintenance | Ongoing   | Monitoring, support, bug fixes, enhancements.                            |
 
 ## 12. Acceptance Criteria
 
@@ -419,12 +453,12 @@ The proposed automated workflow is:
 
 ## 13. Approval and Sign-Off
 
-| Stakeholder name | Role | Signature | Date |
-|---|---|---|---|
-| [Business Owner] | Prepaid Card Program Lead |  |  |
-| [Operations Manager] | Card Operations |  |  |
-| [Compliance Officer] | Risk & Compliance |  |  |
-| [IT Sponsor] | Delivery Sponsor |  |  |
+| Stakeholder name     | Role                      | Signature | Date |
+| -------------------- | ------------------------- | --------- | ---- |
+| [Business Owner]     | Prepaid Card Program Lead |           |      |
+| [Operations Manager] | Card Operations           |           |      |
+| [Compliance Officer] | Risk & Compliance         |           |      |
+| [IT Sponsor]         | Delivery Sponsor          |           |      |
 
 ---
 
