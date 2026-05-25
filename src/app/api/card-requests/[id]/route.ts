@@ -6,6 +6,7 @@ import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
 import { fetchPss } from "@/lib/pss-fetch";
 import { buildPssVirtualCardInitiator } from "@/lib/pss-virtual-card";
+import { activatePssEcommerce } from "@/lib/pss-ecommerce-activation";
 import {
   fetchPssCardListByCustomerId,
   resolveCustomertypeFromCardBins,
@@ -94,6 +95,18 @@ export async function PATCH(request: NextRequest) {
       const cardListInstitution =
         process.env.CARD_LIST_INSTITUTION || institution || "";
 
+      if (!pssUrl || !apiKey || !idmsg) {
+        return NextResponse.json(
+          { error: "Server configuration error for virtual card creation" },
+          { status: 500 },
+        );
+      }
+
+      const ecommerceActivationUrl = process.env.ECOMMERCE_ACTIVATION_URL || "";
+      const ecommerceActivationKey = process.env.ECOMMERCE_ACTIVATION_KEY || "";
+      const ecommerceActivationBankCode =
+        process.env.CARD_LIST_BANK_CODE || cardListInstitution || "";
+
       const allPrograms = await prisma.cardProgram.findMany({
         select: { bin: true },
       });
@@ -161,6 +174,39 @@ export async function PATCH(request: NextRequest) {
           const panPlaintext = additionalData?.PAN || null;
           const cvv = additionalData?.cvv2 || null; // CVV received but NOT stored
           const expiryDatePlaintext = additionalData?.["expiry date"] || null;
+
+          if (!panPlaintext) {
+            return NextResponse.json(
+              { error: "PSS Error: PAN was not returned for activation" },
+              { status: 400 },
+            );
+          }
+
+          if (!ecommerceActivationBankCode) {
+            return NextResponse.json(
+              { error: "Server configuration error for ecommerce activation" },
+              { status: 500 },
+            );
+          }
+
+          try {
+            await activatePssEcommerce({
+              url: ecommerceActivationUrl,
+              apiKey: ecommerceActivationKey,
+              idmsg,
+              bankcode: ecommerceActivationBankCode,
+              card: panPlaintext,
+            });
+          } catch (err) {
+            return NextResponse.json(
+              {
+                error:
+                  "PSS Ecommerce Activation Error: " +
+                  (err instanceof Error ? err.message : "Unknown error"),
+              },
+              { status: 400 },
+            );
+          }
 
           // Encrypt PAN and expiryDate before storage (PCI DSS Requirement 3.4)
           const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || "";

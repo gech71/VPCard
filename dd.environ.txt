@@ -41,3 +41,6 @@ NEXT_PUBLIC_BASE_URL=https://vcminiapp.nibbank.com.et
 PSS_HOST=pssapi.pss.et
 PSS_CA_CERT_PATH=certs/pss.crt
 NEXT_PUBLIC_ALLOWED_CARD_BINS=52624735,956805
+ECOMMERCE_ACTIVATION_URL=https://pssapi.pss.et/EcommerceActivation/1.0
+ECOMMERCE_ACTIVATION_KEY=eyJ4NXQ
+
