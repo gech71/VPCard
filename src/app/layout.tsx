@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import { COOKIE_NAME } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Nib Virtual Card",
-  description: "Manage your virtual cards with ease.",
+  title: "Nib Prepaid Card",
+  description: "Manage your prepaid cards with ease.",
 };
 
 export default async function RootLayout({

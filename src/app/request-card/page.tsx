@@ -188,7 +188,7 @@ function RequestCardForm() {
             <CardTitle className="text-2xl font-bold tracking-tight">Request a New Card</CardTitle>
           </div>
           <CardDescription className="text-base">
-            Submit a request for a new virtual card. Your request will be reviewed by a bank official.
+            Submit a request for a new prepaid card. Your request will be reviewed by a bank official.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

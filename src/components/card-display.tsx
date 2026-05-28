@@ -74,7 +74,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         <div
           className="relative aspect-[1.586] w-full overflow-hidden rounded-xl shadow-lg"
           role="img"
-          aria-label={`${card.cardTypeNetwork || card.type} virtual prepaid card ending in ${card.maskedNumber.slice(-4)}`}
+          aria-label={`${card.cardTypeNetwork || card.type} prepaid card ending in ${card.maskedNumber.slice(-4)}`}
         >
           <Image
             src="/Virtual-Card.jpeg"
