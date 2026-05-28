@@ -23,6 +23,19 @@ const CARD_PROGRAMS_SEED: {
   { code: "29741", name: "NIB MC PREPAID CARD", bin: "54299767" },
 ];
 
+const CUSTOMER_ID_MAPPING_SEED: {
+  nibCusId: string;
+  pssCusId: string;
+}[] = [
+  { nibCusId: "1006752907", pssCusId: "00002P00118289" },
+  { nibCusId: "1000423265", pssCusId: "00002P00142501" },
+  { nibCusId: "1010070712", pssCusId: "00002P00109265" },
+  { nibCusId: "1010037452", pssCusId: "00002P00132573" },
+  { nibCusId: "1010474731", pssCusId: "00002P00108917" },
+  { nibCusId: "1004742926", pssCusId: "00002P00154277" },
+  { nibCusId: "1006227706", pssCusId: "00002P00154457" },
+];
+
 async function seedCardPrograms(prisma: PrismaClient) {
   for (const p of CARD_PROGRAMS_SEED) {
     await prisma.cardProgram.upsert({
@@ -42,12 +55,28 @@ async function seedCardPrograms(prisma: PrismaClient) {
   }
 }
 
+async function seedCustomerIdMappings(prisma: PrismaClient) {
+  for (const mapping of CUSTOMER_ID_MAPPING_SEED) {
+    await prisma.customerIdMapping.upsert({
+      where: { nibCusId: mapping.nibCusId },
+      create: {
+        nibCusId: mapping.nibCusId,
+        pssCusId: mapping.pssCusId,
+      },
+      update: {
+        pssCusId: mapping.pssCusId,
+      },
+    });
+  }
+}
+
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   await seedCardPrograms(prisma);
+  await seedCustomerIdMappings(prisma);
 
   // Check if Super Admin already exists
   const existingAdmin = await prisma.user.findFirst({
@@ -74,5 +103,6 @@ async function main() {
 }
 
 main().catch((e) => {
+  console.error("Seed script error:", e);
   process.exit(1);
 });

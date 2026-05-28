@@ -165,3 +165,14 @@ model CustomerLookup {
 
   @@map("customer_lookups")
 }
+
+/// Maps NIB customer IDs to PSS customer IDs
+model CustomerIdMapping {
+  id        String   @id @default(uuid())
+  nibCusId  String   @unique
+  pssCusId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("customer_id_mappings")
+}

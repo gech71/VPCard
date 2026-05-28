@@ -11,6 +11,10 @@ import {
   fetchPssCardListByCustomerId,
   resolveCustomertypeFromCardBins,
 } from "@/lib/pss-card-list";
+import {
+  getPssCustomerId,
+  setCustomerIdMapping,
+} from "@/lib/customer-id-mapping";
 
 const reviewSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -121,8 +125,13 @@ export async function PATCH(request: NextRequest) {
         cardListInstitution
       ) {
         try {
+          // Retrieve the PSS customer ID from the mapping table
+          const pssCustomerId = await getPssCustomerId(
+            String(cardRequest.customerId),
+          );
+
           const listCards = await fetchPssCardListByCustomerId({
-            customerId: String(cardRequest.customerId),
+            customerId: pssCustomerId,
             institution: String(cardListInstitution),
             cardListUrl,
             apiKey,
@@ -219,6 +228,20 @@ export async function PATCH(request: NextRequest) {
 
           // CVV is intentionally NOT stored - PCI DSS strictly prohibits storing CVV after authorization
           // CVV should only exist in memory briefly and be discarded
+
+          // Insert customer ID mapping for newly created card
+          // For newly created cards, both IDs are initially the same
+          if (cardRequest.customerId) {
+            try {
+              await setCustomerIdMapping(
+                String(cardRequest.customerId),
+                String(cardRequest.customerId),
+              );
+            } catch (mappingErr) {
+              // Log but don't fail the approval if mapping insertion fails
+              console.error("Failed to store customer ID mapping:", mappingErr);
+            }
+          }
         } else {
           return NextResponse.json(
             {

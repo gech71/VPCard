@@ -16,6 +16,7 @@ import {
   getCachedCustomerIdByPhone,
   resolveCustomerIdWithCache,
 } from "@/lib/customer-id-cache";
+import { getPssCustomerId } from "@/lib/customer-id-mapping";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -167,8 +168,11 @@ async function getCardData(): Promise<{
     return { cards: [], accounts, phoneNumber, customerCardPanNumbers: [] };
   }
 
+  // Retrieve the PSS customer ID from the mapping table
+  const pssCustomerId = await getPssCustomerId(customerId);
+
   const listCards = await fetchPssCardListByCustomerId({
-    customerId,
+    customerId: pssCustomerId,
     institution: cardListInstitution,
     cardListUrl,
     apiKey: cardListApiKey,
@@ -188,7 +192,9 @@ async function getCardData(): Promise<{
 async function getPendingCardRequestAccountNumbers(
   accountNumbers: string[],
 ): Promise<string[]> {
-  const unique = [...new Set(accountNumbers.map((n) => n.trim()).filter(Boolean))];
+  const unique = [
+    ...new Set(accountNumbers.map((n) => n.trim()).filter(Boolean)),
+  ];
   if (unique.length === 0) return [];
 
   const pending = await prisma.cardRequest.findMany({
