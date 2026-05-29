@@ -34,6 +34,7 @@ const CUSTOMER_ID_MAPPING_SEED: {
   { nibCusId: "1010474731", pssCusId: "00002P00108917" },
   { nibCusId: "1004742926", pssCusId: "00002P00154277" },
   { nibCusId: "1006227706", pssCusId: "00002P00154457" },
+  { nibCusId: "1006150143", pssCusId: "00002P00160137" },
 ];
 
 async function seedCardPrograms(prisma: PrismaClient) {
