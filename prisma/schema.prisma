@@ -169,10 +169,11 @@ model CustomerLookup {
 /// Maps NIB customer IDs to PSS customer IDs
 model CustomerIdMapping {
   id        String   @id @default(uuid())
-  nibCusId  String   @unique
+  nibCusId  String
   pssCusId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([nibCusId, pssCusId])
   @@map("customer_id_mappings")
 }

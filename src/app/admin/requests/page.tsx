@@ -223,6 +223,7 @@ export default function AdminRequestsPage() {
             <a href="/admin/users" className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition">User Management</a>
             <a href="/admin/requests" className="py-4 px-2 border-b-2 border-primary font-medium text-primary">Card Requests</a>
             <a href="/admin/audit" className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition">Audit Logs</a>
+            <a href="/admin/customer-mapping" className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition">Customer Mapping</a>
             <a href="/admin/settings" className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition">Settings</a>
           </div>
         </div>

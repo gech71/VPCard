@@ -9,8 +9,9 @@ export async function getPssCustomerId(nibCusId: string): Promise<string> {
     throw new Error("NIB customer ID is required");
   }
 
-  const mapping = await prisma.customerIdMapping.findUnique({
+  const mapping = await prisma.customerIdMapping.findFirst({
     where: { nibCusId },
+    orderBy: { updatedAt: "desc" },
   });
 
   // If mapping exists, return the PSS customer ID
@@ -35,14 +36,14 @@ export async function setCustomerIdMapping(
   }
 
   await prisma.customerIdMapping.upsert({
-    where: { nibCusId },
+    where: {
+      nibCusId_pssCusId: { nibCusId, pssCusId },
+    },
     create: {
       nibCusId,
       pssCusId,
     },
-    update: {
-      pssCusId,
-    },
+    update: {},
   });
 }
 

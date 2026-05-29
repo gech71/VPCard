@@ -275,6 +275,12 @@ export default function AdminSettings() {
               Card Requests
             </a>
             <a
+              href="/admin/customer-mapping"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Customer Mapping
+            </a>
+            <a
               href="/admin/settings"
               className="py-4 px-2 border-b-2 border-primary font-medium text-primary"
             >

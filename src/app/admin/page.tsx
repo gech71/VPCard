@@ -72,6 +72,12 @@ export default async function SuperAdminDashboard() {
               Card Requests
             </Link>
             <Link
+              href="/admin/customer-mapping"
+              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
+            >
+              Customer Mapping
+            </Link>
+            <Link
               href="/admin/settings"
               className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
             >
@@ -165,6 +171,12 @@ export default async function SuperAdminDashboard() {
               className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition"
             >
               View Audit Logs
+            </Link>
+            <Link
+              href="/admin/customer-mapping"
+              className="px-4 py-2 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition"
+            >
+              Customer Mapping Import
             </Link>
           </div>
         </div>
