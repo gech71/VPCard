@@ -20,6 +20,9 @@ export type Transaction = {
   description: string;
   amount: number;
   status: 'Completed' | 'Pending' | 'Failed';
+  /** ISO 4217 alpha code for display (e.g. USD, ETB). */
+  currencyCode: string;
+  currencyLabel?: string;
 };
 
 export type Limit = {

@@ -166,6 +166,18 @@ model CustomerLookup {
   @@map("customer_lookups")
 }
 
+/// ISO numeric currency codes (CUR_IDE) from PSS / reference import
+model Currency {
+  id           String   @id @default(uuid())
+  curIde       String   @unique
+  curLabel     String
+  curAlphaCode String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("currencies")
+}
+
 /// Maps NIB customer IDs to PSS customer IDs
 model CustomerIdMapping {
   id        String   @id @default(uuid())

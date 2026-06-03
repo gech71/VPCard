@@ -28,11 +28,20 @@ type TransactionHistoryProps = {
   isLoading: boolean;
 };
 
+function formatTransactionAmount(amount: number, currencyCode: string): string {
+  const code = currencyCode?.trim() || "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+    }).format(amount);
+  } catch {
+    const sign = amount > 0 ? "+" : "";
+    return `${sign}${code} ${Math.abs(amount).toFixed(2)}`;
+  }
+}
+
 export default function TransactionHistory({ transactions, isLoading }: TransactionHistoryProps) {
-  const currencyFormatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
 
   const getStatusVariant = (status: Transaction['status']) => {
     switch (status) {
@@ -144,7 +153,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                           )}
                         >
                           {tx.amount > 0 ? "+" : ""}
-                          {currencyFormatter.format(tx.amount)}
+                          {formatTransactionAmount(tx.amount, tx.currencyCode)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -170,7 +179,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                         )}
                       >
                         {tx.amount > 0 ? "+" : ""}
-                        {currencyFormatter.format(tx.amount)}
+                        {formatTransactionAmount(tx.amount, tx.currencyCode)}
                       </p>
                     </div>
                   ))}

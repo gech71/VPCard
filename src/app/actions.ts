@@ -5,17 +5,25 @@ import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 import { fetchPss } from "@/lib/pss-fetch";
+import {
+  extractCurIdeFromTransaction,
+  getCurrencyMapByIde,
+  resolveCurrencyFromMap,
+} from "@/lib/currency-lookup";
 
 const CardNumbSchema = z.object({
   card_numb: z.string(),
 });
 
-type TransactionApiResponse = {
+type TransactionApiResponse = Record<string, unknown> & {
   "transaction date": string;
   "transaction type name": string;
   Amount: number;
   Status: "Approval" | "Decline" | string;
   "Reference number": string;
+  /** Numeric ISO currency code from PSS (same value as CUR_IDE in reference data). */
+  Currency?: string | number;
+  CUR_IDE?: string | number;
 };
 
 export type LimitApiResponse = {
@@ -108,6 +116,8 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
       },
     });
 
+    const currencyMap = await getCurrencyMapByIde();
+
     const formattedTransactions: Transaction[] = (
       Array.isArray(transactionsFromApi) ? transactionsFromApi : []
     ).map((tx: TransactionApiResponse) => {
@@ -118,12 +128,17 @@ export async function getCardTransactions(prevState: any, formData: FormData) {
         status = "Pending";
       }
 
+      const curIde = extractCurIdeFromTransaction(tx);
+      const currency = resolveCurrencyFromMap(currencyMap, curIde);
+
       return {
-        id: tx["Reference number"],
-        date: new Date(tx["transaction date"]).toLocaleDateString(),
-        description: tx["transaction type name"],
-        amount: tx.Status === "Approval" ? -tx.Amount : tx.Amount,
-        status: status,
+        id: String(tx["Reference number"] ?? ""),
+        date: new Date(String(tx["transaction date"])).toLocaleDateString(),
+        description: String(tx["transaction type name"] ?? ""),
+        amount: tx.Status === "Approval" ? -Number(tx.Amount) : Number(tx.Amount),
+        status,
+        currencyCode: currency.curAlphaCode,
+        currencyLabel: currency.curLabel,
       };
     });
 

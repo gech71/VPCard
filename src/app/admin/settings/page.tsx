@@ -20,7 +20,20 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Save, Download, Upload, Database, Coins } from "lucide-react";
+import type {
+  CurrencyImportRow,
+  CurrencyImportSummary,
+} from "@/lib/currency-import";
 
 interface Checker {
   id: string;
@@ -51,9 +64,35 @@ export default function AdminSettings() {
   const [newProgramBin, setNewProgramBin] = useState("");
   const [addingProgram, setAddingProgram] = useState(false);
 
+  const [currencyCount, setCurrencyCount] = useState(0);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(true);
+  const [validatingCurrency, setValidatingCurrency] = useState(false);
+  const [importingCurrency, setImportingCurrency] = useState(false);
+  const [currencyImportRows, setCurrencyImportRows] = useState<
+    CurrencyImportRow[]
+  >([]);
+  const [currencySummary, setCurrencySummary] =
+    useState<CurrencyImportSummary | null>(null);
+  const [currencyFileName, setCurrencyFileName] = useState<string | null>(null);
+
   useEffect(() => {
     fetchSettings();
+    void loadCurrencyCount();
   }, []);
+
+  async function loadCurrencyCount() {
+    try {
+      const res = await fetch("/api/admin/currencies");
+      const data = await res.json();
+      if (res.ok) {
+        setCurrencyCount(data.count ?? 0);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingCurrencies(false);
+    }
+  }
 
   async function fetchSettings() {
     try {
@@ -156,6 +195,130 @@ export default function AdminSettings() {
     } finally {
       setSavingPrograms(false);
     }
+  }
+
+  async function handleDownloadCurrencyTemplate() {
+    try {
+      const res = await fetch("/api/admin/currencies/template");
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "currency-template.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not download currency template.",
+      });
+    }
+  }
+
+  async function handleCurrencyFileChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setValidatingCurrency(true);
+    setCurrencyFileName(file.name);
+    setCurrencyImportRows([]);
+    setCurrencySummary(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/currencies/validate", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          variant: "destructive",
+          title: "Validation failed",
+          description: data.error || "Could not validate file.",
+        });
+        return;
+      }
+
+      setCurrencyImportRows(data.rows || []);
+      setCurrencySummary(data.summary || null);
+      toast({
+        title: "Currency file validated",
+        description: `${data.summary?.validRows ?? 0} row(s) ready to import.`,
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred during validation.",
+      });
+    } finally {
+      setValidatingCurrency(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleCurrencyImport() {
+    if (!currencySummary || currencySummary.validRows === 0) {
+      toast({
+        variant: "destructive",
+        title: "Nothing to import",
+        description: "Upload and validate a file with at least one valid row.",
+      });
+      return;
+    }
+
+    setImportingCurrency(true);
+    try {
+      const res = await fetch("/api/admin/currencies/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: currencyImportRows }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          variant: "destructive",
+          title: "Import failed",
+          description: data.error || "Could not save currencies.",
+        });
+        return;
+      }
+
+      toast({
+        title: "Currency import complete",
+        description: data.message,
+      });
+      setCurrencyImportRows([]);
+      setCurrencySummary(null);
+      setCurrencyFileName(null);
+      setLoadingCurrencies(true);
+      await loadCurrencyCount();
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred during import.",
+      });
+    } finally {
+      setImportingCurrency(false);
+    }
+  }
+
+  function currencyStatusVariant(
+    status: CurrencyImportRow["status"],
+  ): "default" | "destructive" | "secondary" {
+    if (status === "valid") return "default";
+    if (status === "duplicate") return "secondary";
+    return "destructive";
   }
 
   async function handleAddCardProgram() {
@@ -372,6 +535,152 @@ export default function AdminSettings() {
 
           <Card>
             <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5" />
+                Currency reference data
+              </CardTitle>
+              <CardDescription>
+                Import currencies from Excel matching{" "}
+                <span className="font-mono text-sm">currency.xls</span> (columns:{" "}
+                CUR_IDE, CUR_LABE, CUR_ALPH_CODE). Transaction history maps PSS{" "}
+                <span className="font-mono">Currency</span> (e.g. 840) via{" "}
+                <span className="font-mono">CUR_IDE</span> to the alpha code for
+                display.
+                {!loadingCurrencies && (
+                  <span className="block mt-1">
+                    {currencyCount} currency record
+                    {currencyCount === 1 ? "" : "s"} in database.
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleDownloadCurrencyTemplate()}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Template
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  asChild
+                  disabled={validatingCurrency}
+                >
+                  <label className="cursor-pointer flex items-center">
+                    {validatingCurrency ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    {validatingCurrency ? "Validating…" : "Upload & Validate"}
+                    <input
+                      type="file"
+                      accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="sr-only"
+                      disabled={validatingCurrency}
+                      onChange={handleCurrencyFileChange}
+                    />
+                  </label>
+                </Button>
+                <Button
+                  type="button"
+                  disabled={
+                    importingCurrency ||
+                    !currencySummary ||
+                    currencySummary.validRows === 0
+                  }
+                  onClick={() => void handleCurrencyImport()}
+                >
+                  {importingCurrency ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="mr-2 h-4 w-4" />
+                  )}
+                  Import to Database
+                </Button>
+              </div>
+
+              {currencyFileName && (
+                <p className="text-sm text-muted-foreground">
+                  Last file:{" "}
+                  <span className="font-medium">{currencyFileName}</span>
+                </p>
+              )}
+
+              {currencySummary && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <CurrencySummaryBox
+                    label="Total rows"
+                    value={currencySummary.totalRows}
+                  />
+                  <CurrencySummaryBox
+                    label="Valid"
+                    value={currencySummary.validRows}
+                    className="text-green-700"
+                  />
+                  <CurrencySummaryBox
+                    label="Failed"
+                    value={currencySummary.failedRows}
+                    className="text-red-700"
+                  />
+                  <CurrencySummaryBox
+                    label="Duplicate CUR_IDE"
+                    value={currencySummary.duplicateRows}
+                    className="text-amber-700"
+                  />
+                </div>
+              )}
+
+              {currencyImportRows.length > 0 && (
+                <div className="overflow-x-auto max-h-64 border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-14">Row</TableHead>
+                        <TableHead>CUR_IDE</TableHead>
+                        <TableHead>CUR_LABE</TableHead>
+                        <TableHead>CUR_ALPH_CODE</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currencyImportRows.slice(0, 50).map((row) => (
+                        <TableRow key={row.rowNumber}>
+                          <TableCell>{row.rowNumber}</TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {row.curIde || "—"}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[200px] truncate">
+                            {row.curLabel || "—"}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {row.curAlphaCode || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={currencyStatusVariant(row.status)}>
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {currencyImportRows.length > 50 && (
+                    <p className="text-xs text-muted-foreground p-2">
+                      Showing first 50 of {currencyImportRows.length} rows.
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Card programs</CardTitle>
               <CardDescription>
                 Control which card products Makers and self-initiated customers
@@ -511,6 +820,25 @@ export default function AdminSettings() {
           </Card>
         </div>
       </main>
+    </div>
+  );
+}
+
+function CurrencySummaryBox({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: number;
+  className?: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className={`text-2xl font-bold mt-1 ${className}`}>{value}</p>
     </div>
   );
 }
