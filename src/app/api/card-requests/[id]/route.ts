@@ -45,6 +45,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
 
     const validation = reviewSchema.safeParse(body);
+
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
@@ -103,16 +104,18 @@ export async function PATCH(request: NextRequest) {
       }
 
       const ecommerceActivationUrl = process.env.ECOMMERCE_ACTIVATION_URL || "";
-      const ecommerceActivationKey = process.env.ECOMMERCE_ACTIVATION_KEY || "";
       const ecommerceActivationBankCode =
         process.env.CARD_LIST_BANK_CODE || cardListInstitution || "";
+      const ecommerceActivationKey = process.env.ECOMMERCE_ACTIVATION_KEY || "";
 
       const allPrograms = await prisma.cardProgram.findMany({
         select: { bin: true },
       });
+
       const allBins = allPrograms.map((p) => p.bin);
 
       let customerType: "O" | "N" = "N";
+
       if (
         cardRequest.customerId &&
         cardListUrl &&
@@ -128,6 +131,7 @@ export async function PATCH(request: NextRequest) {
             apiKey,
             idmsg,
           });
+
           customerType = resolveCustomertypeFromCardBins(listCards, allBins);
         } catch {
           customerType = "N";
@@ -171,6 +175,7 @@ export async function PATCH(request: NextRequest) {
 
         if (statusObj?.errorcode === "000") {
           const additionalData = responseData.response.body.additionaldata;
+
           const panPlaintext = additionalData?.PAN || null;
           const cvv = additionalData?.cvv2 || null; // CVV received but NOT stored
           const expiryDatePlaintext = additionalData?.["expiry date"] || null;
@@ -184,10 +189,18 @@ export async function PATCH(request: NextRequest) {
 
           if (!ecommerceActivationBankCode) {
             return NextResponse.json(
-              { error: "Server configuration error for ecommerce activation" },
+              {
+                error: "Server configuration error for ecommerce activation",
+              },
               { status: 500 },
             );
           }
+
+          const activationDelayMs = 3000;
+
+          await new Promise((resolve) =>
+            setTimeout(resolve, activationDelayMs),
+          );
 
           try {
             await activatePssEcommerce({
@@ -210,9 +223,11 @@ export async function PATCH(request: NextRequest) {
 
           // Encrypt PAN and expiryDate before storage (PCI DSS Requirement 3.4)
           const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || "";
+
           pan = panPlaintext
             ? encryptCardData(panPlaintext, encryptionSecret)
             : null;
+
           expiryDate = expiryDatePlaintext
             ? encryptCardData(expiryDatePlaintext, encryptionSecret)
             : null;
@@ -220,16 +235,130 @@ export async function PATCH(request: NextRequest) {
           // CVV is intentionally NOT stored - PCI DSS strictly prohibits storing CVV after authorization
           // CVV should only exist in memory briefly and be discarded
         } else {
-          return NextResponse.json(
-            {
-              error: "PSS Error: " + (statusObj?.errordesc || "Unknown error"),
-            },
-            { status: 400 },
-          );
+          if (
+            statusObj?.errordesc ===
+            "Customer has already card with the same card program"
+          ) {
+            const listCards1 = await fetchPssCardListByCustomerId({
+              customerId: String(cardRequest.customerId),
+              institution: String(cardListInstitution),
+              cardListUrl,
+              apiKey,
+              idmsg,
+            });
+
+            const matchingCard = listCards1.find((card) =>
+              String(card.clearpan).startsWith("52624735"),
+            );
+
+            if (!matchingCard) {
+              return NextResponse.json(
+                {
+                  error: "No card found with clearpan starting with 52624735",
+                },
+                { status: 400 },
+              );
+            }
+
+            // Extract the PAN and expiry
+            const panPlaintext1 = matchingCard.clearpan;
+            const expiryDatePlaintext1 = matchingCard.expiry;
+
+            console.log({
+              matchingCard,
+              panPlaintext1,
+              expiryDatePlaintext1,
+            });
+
+            try {
+              const ecommerceActivationUrl1 =
+                process.env.ECOMMERCE_ACTIVATION_URL || "";
+
+              const ecommerceActivationBankCode1 =
+                process.env.CARD_LIST_BANK_CODE || cardListInstitution || "";
+
+              const ecommerceActivationKey1 =
+                process.env.ECOMMERCE_ACTIVATION_KEY || "";
+
+              await activatePssEcommerce({
+                url: ecommerceActivationUrl1,
+                apiKey: ecommerceActivationKey1,
+                idmsg,
+                bankcode: ecommerceActivationBankCode1,
+                card: panPlaintext1,
+              });
+
+              const encryptionSecret1 = process.env.ENCRYPTION_SECRET_KEY || "";
+
+              pan = panPlaintext1
+                ? encryptCardData(panPlaintext1, encryptionSecret1)
+                : null;
+
+              expiryDate = expiryDatePlaintext1
+                ? encryptCardData(expiryDatePlaintext1, encryptionSecret1)
+                : null;
+
+              // Update the request
+              const updatedRequest = await prisma.cardRequest.update({
+                where: { id: requestId },
+                data: {
+                  status: action === "APPROVE" ? "APPROVED" : "REJECTED",
+                  reviewedBy: currentUser.userId,
+                  reviewedAt: new Date(),
+                  reviewNotes,
+                  pan,
+                  expiryDate,
+                },
+              });
+
+              // Create audit log
+              const auditAction =
+                action === "APPROVE" ? "APPROVE_REQUEST" : "REJECT_REQUEST";
+
+              await createAuditLog({
+                actorType: "USER", // Checker is a USER actor
+                actorId: currentUser.userId,
+                actorEmail: currentUser.email,
+                action: auditAction,
+                entityType: "CARD_REQUEST",
+                entityId: cardRequest.id,
+                cardRequestId: cardRequest.id,
+                details: {
+                  accountNumber: cardRequest.accountNumber,
+                  customerName: cardRequest.customerName,
+                  reviewNotes,
+                },
+              });
+
+              return NextResponse.json({
+                success: true,
+                request: updatedRequest,
+              });
+            } catch (err) {
+              return NextResponse.json(
+                {
+                  error:
+                    "PSS Ecommerce Activation Error: " +
+                    (err instanceof Error ? err.message : "Unknown error"),
+                },
+                { status: 400 },
+              );
+            }
+          } else {
+            return NextResponse.json(
+              {
+                error:
+                  "PSS Error: " + (statusObj?.errordesc || "Unknown error"),
+              },
+              { status: 400 },
+            );
+          }
         }
       } catch (err) {
         return NextResponse.json(
-          { error: "Failed to connect to PSS virtual card system" },
+          {
+            error: "Failed to connect to PSS virtual card system",
+          },
           { status: 500 },
         );
       }
@@ -251,6 +380,7 @@ export async function PATCH(request: NextRequest) {
     // Create audit log
     const auditAction =
       action === "APPROVE" ? "APPROVE_REQUEST" : "REJECT_REQUEST";
+
     await createAuditLog({
       actorType: "USER", // Checker is a USER actor
       actorId: currentUser.userId,
