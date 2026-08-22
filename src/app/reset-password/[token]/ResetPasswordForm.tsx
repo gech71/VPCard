@@ -50,10 +50,15 @@ export default function ResetPasswordForm({ token }: { token: string }) {
             minLength={8}
             autoComplete="new-password"
             aria-invalid={state?.errors?.password ? true : undefined}
+            aria-describedby="password-rules"
             className="h-11 pl-9"
             placeholder="At least 8 characters"
           />
         </div>
+        {/* State the policy up front — the server enforces all three rules. */}
+        <p id="password-rules" className="text-xs text-muted-foreground">
+          Must be at least 8 characters and include a letter and a number.
+        </p>
         {state?.errors?.password && (
           <p className="text-sm font-medium text-destructive">
             {state.errors.password[0]}

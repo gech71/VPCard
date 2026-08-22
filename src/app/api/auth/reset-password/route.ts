@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     // Save token to database
-    await prisma.passwordResetToken.create({
+    const createdToken = await prisma.passwordResetToken.create({
       data: {
         userId: targetUser.id,
         token: hashedToken,
@@ -68,6 +68,12 @@ export async function POST(request: NextRequest) {
     const emailSent = await sendPasswordResetEmail(targetUser.email, rawToken);
 
     if (!emailSent) {
+      // Revoke the token we just issued so an undelivered link is not left live.
+      await prisma.passwordResetToken.update({
+        where: { id: createdToken.id },
+        data: { used: true },
+      });
+
       return NextResponse.json(
         { error: "Failed to send reset email" },
         { status: 500 },

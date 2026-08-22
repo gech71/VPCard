@@ -27,9 +27,19 @@ export async function proxy(request: NextRequest) {
     String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))),
   );
 
+  // React's development build calls eval() to rebuild stack traces, and the
+  // Turbopack HMR client talks over a websocket. Both are dev-only concessions —
+  // the production policy stays strict: nonce only, no eval, no ws.
+  const isDev = process.env.NODE_ENV === "development";
+  const scriptSrc = isDev
+    ? `'self' 'unsafe-eval' 'nonce-${nonce}'`
+    : `'self' 'nonce-${nonce}'`;
+  const devConnectSrc = isDev ? "connect-src 'self' ws: wss:;" : "";
+
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}';
+    script-src ${scriptSrc};
+    ${devConnectSrc}
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' https://picsum.photos https://play-lh.googleusercontent.com;
     font-src 'self' https://fonts.gstatic.com;
