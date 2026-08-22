@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { COOKIE_NAME, encrypt } from "@/lib/auth";
+import { COOKIE_NAME, TOKEN_COOKIE_NAME, encrypt } from "@/lib/auth";
 import { verifyToken } from "@/lib/jwt-auth";
 
 // Public paths that don't require authentication
@@ -15,6 +15,9 @@ const publicPaths = [
   // Opened from an email, so it must work without a session - the token in
   // the URL is the proof of ownership.
   "/verify-email-change",
+  // The bank posts payment confirmations here with its own bearer token,
+  // which the route validates itself per step 5 of the integration guide.
+  "/api/payments/callback",
 ];
 
 // Check if path is public
@@ -111,11 +114,31 @@ export async function proxy(request: NextRequest) {
   // If the requested route is not part of the dashboard and is not public,
   // enforce the strict legacy phone token system even if they have an active auth-token
   if (!isPublicPath(pathname) && !isDashboardRoute) {
+    const authHeader = request.headers.get("Authorization");
+
+    // Capture the MiniApp token on EVERY request that carries one, not only on
+    // the request that first establishes the phone cookie. The phone cookie
+    // lives for a day and short-circuits the branch below, so keying this off
+    // "no phone cookie yet" left every established session without a token -
+    // and step 3 of the payment flow cannot run without it.
+    if (authHeader && /^Bearer\s+/i.test(authHeader)) {
+      response.cookies.set(
+        TOKEN_COOKIE_NAME,
+        encrypt(authHeader.replace(/^Bearer\s+/i, "").trim()),
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV !== "development",
+          sameSite: "strict",
+          maxAge: 60 * 60 * 24, // 1 day
+          path: "/",
+        },
+      );
+    }
+
     // If the phone number cookie already exists, we assume the user is authenticated in legacy app
     if (request.cookies.has(COOKIE_NAME)) {
       // Legacy auth - allow through
     } else {
-      const authHeader = request.headers.get("Authorization");
       let authFailed = false;
 
       if (!authHeader) {
@@ -146,6 +169,8 @@ export async function proxy(request: NextRequest) {
                 maxAge: 60 * 60 * 24, // 1 day
                 path: "/",
               });
+
+              // The token itself was already captured above, on the way in.
             } else {
               authFailed = true; // Token valid but no phone number
             }

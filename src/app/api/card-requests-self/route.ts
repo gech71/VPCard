@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/jwt-auth";
 import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { resolveTermsAcceptance } from "@/lib/terms";
+import { getCardRequestFeeConfig } from "@/lib/card-request-fee";
 import { z } from "zod";
 import {
   assertCardProgramAllowed,
@@ -38,6 +39,8 @@ const selfRequestSchema = z.object({
   // the checkbox on the form is a convenience, not the control.
   termsAccepted: z.boolean().optional(),
   termsVersionId: z.string().optional(),
+  /// Guest card-request fee payment, when the Super Admin has one switched on.
+  paymentTransactionId: z.string().optional(),
 });
 
 // Create a self-initiated card request
@@ -112,6 +115,7 @@ export async function POST(request: NextRequest) {
       cardProgramCode,
       termsAccepted,
       termsVersionId,
+      paymentTransactionId,
     } = validation.data;
 
     // Refuse the request outright unless the submitter agreed to the terms
@@ -121,6 +125,76 @@ export async function POST(request: NextRequest) {
 
     if (!terms.ok) {
       return NextResponse.json({ error: terms.error }, { status: 400 });
+    }
+
+    // Guest card-request fee. Only a Guest MiniApp session pays: any
+    // signed-in user reaching this endpoint - a Maker above all - is exempt
+    // under every configuration, per the business rules.
+    const isGuest = !currentUser && Boolean(phoneNumber);
+    const feeConfig = await getCardRequestFeeConfig();
+    let paidPaymentId: string | null = null;
+
+    if (isGuest && feeConfig.paymentEnforced) {
+      if (!paymentTransactionId) {
+        return NextResponse.json(
+          {
+            error:
+              "Payment is required before this card request can be submitted.",
+            paymentRequired: true,
+          },
+          { status: 402 },
+        );
+      }
+
+      const payment = await prisma.cardRequestPayment.findUnique({
+        where: { transactionId: paymentTransactionId },
+        include: { cardRequest: { select: { id: true } } },
+      });
+
+      // Scoped to the paying Guest so one session cannot spend another
+      // session's payment.
+      if (!payment || payment.phoneNumber !== phoneNumber) {
+        return NextResponse.json(
+          { error: "No payment was found for this session.", paymentRequired: true },
+          { status: 402 },
+        );
+      }
+
+      if (payment.status !== "SUCCESS") {
+        return NextResponse.json(
+          {
+            error:
+              "Your payment has not been confirmed yet. Complete the payment before submitting.",
+            paymentRequired: true,
+          },
+          { status: 402 },
+        );
+      }
+
+      if (payment.cardRequest) {
+        return NextResponse.json(
+          {
+            error:
+              "This payment has already been used for another card request.",
+            paymentRequired: true,
+          },
+          { status: 409 },
+        );
+      }
+
+      // The fee may have been raised after this Guest paid.
+      if (Number(payment.amount) < feeConfig.amount) {
+        return NextResponse.json(
+          {
+            error:
+              "The card request fee has changed since you paid. Please start a new request.",
+            paymentRequired: true,
+          },
+          { status: 402 },
+        );
+      }
+
+      paidPaymentId = payment.id;
     }
 
     const programAllowed = await assertCardProgramAllowed(
@@ -221,7 +295,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const cardRequest = await prisma.cardRequest.create({
+    // The unique paymentId column is what ultimately stops one payment
+    // buying two card requests: if two submissions race, the second create
+    // violates the constraint rather than quietly succeeding.
+    let cardRequest;
+
+    try {
+      cardRequest = await prisma.cardRequest.create({
       data: {
         customerId,
         accountNumber,
@@ -238,8 +318,27 @@ export async function POST(request: NextRequest) {
         genderCode: pssMeta.gender,
         title: pssMeta.title || null,
         ...terms.data,
+        paymentId: paidPaymentId,
       },
-    });
+      });
+    } catch (err) {
+      if (
+        paidPaymentId &&
+        typeof err === "object" &&
+        err !== null &&
+        (err as { code?: string }).code === "P2002"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "This payment has already been used for another card request.",
+            paymentRequired: true,
+          },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
 
     // Create audit logs
     const logUserId = currentUser?.userId || null;

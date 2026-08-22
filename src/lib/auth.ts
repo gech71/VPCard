@@ -3,6 +3,12 @@ import { cookies } from "next/headers";
 
 const ENCRYPTION_SECRET_KEY = process.env.ENCRYPTION_SECRET_KEY;
 export const COOKIE_NAME = "user-phone";
+/**
+ * The MiniApp bearer token from step 1, kept because step 3 has to send it
+ * back to the bank when asking for a payment token. Encrypted at rest and
+ * httpOnly, exactly like the phone number it arrives with.
+ */
+export const TOKEN_COOKIE_NAME = "miniapp-token";
 const ALGORITHM = "aes-256-gcm";
 
 if (!ENCRYPTION_SECRET_KEY) {
@@ -86,6 +92,20 @@ export async function clearAuthCookies() {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, "", { maxAge: 0 });
   cookieStore.set("user-accounts", "", { maxAge: 0 });
+  cookieStore.set(TOKEN_COOKIE_NAME, "", { maxAge: 0 });
+}
+
+/** The Guest MiniApp token, for the payment steps. Null when not present. */
+export async function getDecryptedMiniAppToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(TOKEN_COOKIE_NAME);
+  if (!cookie?.value) return null;
+
+  try {
+    return decrypt(cookie.value) || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {

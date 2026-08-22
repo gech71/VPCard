@@ -21,6 +21,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
 import TermsAgreement, { type PublishedTerms } from "@/components/terms-agreement";
+import CardRequestPayment from "@/components/card-request-payment";
+import { BadgeCheck } from "lucide-react";
 
 function RequestCardForm() {
   const router = useRouter();
@@ -45,6 +47,16 @@ function RequestCardForm() {
   const [terms, setTerms] = useState<PublishedTerms | null>(null);
   const [termsLoaded, setTermsLoaded] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Card request fee. The Super Admin decides whether this Guest pays; the
+  // amount is never chosen here, only displayed.
+  const [feeLoading, setFeeLoading] = useState(true);
+  const [paymentRequired, setPaymentRequired] = useState(false);
+  const [feeAmount, setFeeAmount] = useState(0);
+  const [feeCurrency, setFeeCurrency] = useState("ETB");
+  const [paymentTransactionId, setPaymentTransactionId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!accountNumber) {
@@ -88,6 +100,30 @@ function RequestCardForm() {
       }
     }
     void fetchUserData();
+
+    // Read live, so a Super Admin toggling the fee applies to the very next
+    // Guest request without a redeploy.
+    async function loadFee() {
+      try {
+        const res = await fetch("/api/card-request-fee");
+        const data = await res.json();
+        if (!res.ok) return;
+
+        setPaymentRequired(data.paymentRequired === true);
+        setFeeAmount(Number(data.amount) || 0);
+        setFeeCurrency(data.currency || "ETB");
+
+        // A fee already paid for an attempt that was never finished.
+        if (data.existingPayment?.transactionId) {
+          setPaymentTransactionId(data.existingPayment.transactionId);
+        }
+      } catch {
+        /* the gate below stays closed until the fee is known */
+      } finally {
+        setFeeLoading(false);
+      }
+    }
+    void loadFee();
   }, [accountNumber, router, toast]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -144,6 +180,7 @@ function RequestCardForm() {
             notes,
             termsAccepted: terms ? termsAccepted : undefined,
             termsVersionId: terms?.id,
+            paymentTransactionId: paymentTransactionId ?? undefined,
         }),
       });
 
@@ -208,8 +245,40 @@ function RequestCardForm() {
           </CardDescription>
         </CardHeader>
 
+        {feeLoading ? (
+          <CardContent className="space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+          </CardContent>
+        ) : paymentRequired && !paymentTransactionId ? (
+          /* Paid flow: the fee must clear before the form is reachable. */
+          <CardContent>
+            <CardRequestPayment
+              amount={feeAmount}
+              currency={feeCurrency}
+              onPaid={setPaymentTransactionId}
+            />
+          </CardContent>
+        ) : (
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
+            {paymentRequired ? (
+              <div className="flex items-center gap-2.5 rounded-lg border border-success/25 bg-success-muted px-3 py-2.5 text-sm text-success-muted-foreground">
+                <BadgeCheck className="h-4 w-4 shrink-0" />
+                <span>
+                  Card request fee of{" "}
+                  <span className="font-semibold">
+                    {feeAmount.toFixed(2)} {feeCurrency}
+                  </span>{" "}
+                  paid. Complete your request below.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 rounded-lg border border-info/25 bg-info-muted px-3 py-2.5 text-sm text-info-muted-foreground">
+                <BadgeCheck className="h-4 w-4 shrink-0" />
+                <span>This card request is currently free of charge.</span>
+              </div>
+            )}
             {!loadingUser && hasPendingRequest && (
               <Alert variant="warning" className="animate-fade-in">
                 <Info />
@@ -353,6 +422,7 @@ function RequestCardForm() {
             </Button>
           </CardFooter>
         </form>
+        )}
       </Card>
     </div>
   );

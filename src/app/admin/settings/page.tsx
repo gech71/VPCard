@@ -34,6 +34,7 @@ import StatCard from "@/components/stat-card";
 import StatusBadge from "@/components/status-badge";
 import EmptyState from "@/components/empty-state";
 import AccountSecurity from "@/components/account-security";
+import CardRequestFeeSettings from "@/components/card-request-fee-settings";
 import {
   CheckCircle2,
   Coins,
@@ -404,6 +405,8 @@ export default function AdminSettings() {
       />
 
       <AccountSecurity />
+
+      <CardRequestFeeSettings />
 
       <form onSubmit={handleSaveSettings}>
         <Card className="animate-fade-in-up">

@@ -16,6 +16,10 @@ export type AuditAction =
   | "PUBLISH_TERMS"
   | "DELETE_TERMS"
   | "ACCEPT_TERMS"
+  | "UPDATE_CARD_REQUEST_FEE"
+  | "INITIATE_PAYMENT"
+  | "PAYMENT_CONFIRMED"
+  | "PAYMENT_FAILED"
   | "CREATE_REQUEST"
   | "SELF_REQUEST"
   | "ASSIGN_REQUEST"
@@ -34,7 +38,9 @@ export type AuditEntityType =
   | "CARD_REQUEST"
   | "AUTH"
   | "CARD"
-  | "TERMS";
+  | "TERMS"
+  | "SETTINGS"
+  | "PAYMENT";
 export type AuditActorType = "USER" | "SYSTEM" | "ADMIN";
 
 interface AuditLogParams {

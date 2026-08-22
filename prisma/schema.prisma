@@ -24,6 +24,13 @@ enum TermsStatus {
   ARCHIVED
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -132,6 +139,12 @@ model CardRequest {
   termsVersionNo  Int?
   termsAcceptedAt DateTime?
 
+  // Card request fee paid by a Guest before submitting. Null for Maker
+  // requests, which never carry a fee, and for Guest requests made while the
+  // Super Admin had the fee switched off.
+  paymentId       String?             @unique
+  payment         CardRequestPayment? @relation(fields: [paymentId], references: [id])
+
   // Maker who created the request
   makerId         String
   maker           User          @relation("MakerRequests", fields: [makerId], references: [id])
@@ -207,6 +220,40 @@ model TermsVersion {
   acceptances CardRequest[]
 
   @@map("terms_versions")
+}
+
+/// A Guest card-request fee payment, following steps 3-5 of the NIBtera
+/// MiniApp integration. One row per attempt: created PENDING when the payment
+/// token is obtained, moved to SUCCESS only once the bank confirms.
+///
+/// The one-to-one relation to CardRequest is what stops a single payment being
+/// spent on more than one request - the unique paymentId on CardRequest makes
+/// a second attempt to consume it fail at the database level.
+model CardRequestPayment {
+  id            String        @id @default(uuid())
+  /// Our originator id, sent to the bank and echoed back in the callback.
+  transactionId String        @unique
+  /// The Guest, identified the same way the rest of the MiniApp identifies
+  /// them: the phone number returned by token validation in step 2.
+  phoneNumber   String
+  amount        Decimal       @db.Decimal(12, 2)
+  currency      String        @default("ETB")
+  status        PaymentStatus @default(PENDING)
+  /// Token returned by the bank in step 3, handed to the Super App in step 4.
+  paymentToken  String?
+  txnRef        String?
+  paidAmount    String?
+  paidByNumber  String?
+  paidAt        DateTime?
+  failureReason String?
+
+  cardRequest CardRequest?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phoneNumber, status])
+  @@map("card_request_payments")
 }
 
 model RevokedToken {
