@@ -33,6 +33,7 @@ import PageHeader from "@/components/page-header";
 import StatCard from "@/components/stat-card";
 import StatusBadge from "@/components/status-badge";
 import EmptyState from "@/components/empty-state";
+import AccountSecurity from "@/components/account-security";
 import {
   CheckCircle2,
   Coins,
@@ -399,8 +400,10 @@ export default function AdminSettings() {
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <PageHeader
         title="Settings"
-        description="Control self-service card requests, currency reference data, and which card products are available."
+        description="Manage your own account security, self-service card requests, currency reference data, and which card products are available."
       />
+
+      <AccountSecurity />
 
       <form onSubmit={handleSaveSettings}>
         <Card className="animate-fade-in-up">

@@ -8,6 +8,7 @@ import { Loader2, Lock, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
@@ -83,18 +84,15 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="password"
-            id="password"
-            name="password"
-            required
-            autoComplete="current-password"
-            className="h-11 pl-9"
-            placeholder="Enter your password"
-          />
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          autoComplete="current-password"
+          startIcon={Lock}
+          className="h-11"
+          placeholder="Enter your password"
+        />
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={loading}>

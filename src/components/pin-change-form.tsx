@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useActionState } from "react";
@@ -54,10 +54,12 @@ function PinField({
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <PasswordInput
         id={id}
         name={id}
-        type="password"
+        revealLabel="PIN"
+        centered
+        wrapperClassName="max-w-[12rem]"
         inputMode="numeric"
         pattern="[0-9]*"
         maxLength={4}
@@ -65,7 +67,7 @@ function PinField({
         placeholder="••••"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="max-w-[10rem] text-center font-mono text-lg tracking-[0.5em]"
+        className="font-mono text-lg tracking-[0.5em]"
         required
       />
       {error && (

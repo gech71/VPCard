@@ -12,6 +12,9 @@ const publicPaths = [
   "/login",
   "/register",
   "/reset-password",
+  // Opened from an email, so it must work without a session - the token in
+  // the URL is the proof of ownership.
+  "/verify-email-change",
 ];
 
 // Check if path is public

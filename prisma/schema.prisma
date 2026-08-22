@@ -33,6 +33,7 @@ model User {
   assignedRequests   CardRequest[] @relation("CheckerRequests")
   auditLogs          AuditLog[]
   passwordResetTokens PasswordResetToken[]
+  emailChangeTokens   EmailChangeToken[]
 
   @@map("users")
 }
@@ -48,6 +49,23 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+/// Verification tokens for the account email-change flow. Stored hashed like
+/// password resets, but carrying the requested address, so the account email
+/// only moves once the new mailbox has proved it is reachable.
+model EmailChangeToken {
+  id        String   @id @default(uuid())
+  userId    String
+  newEmail  String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_change_tokens")
 }
 
 model CardProgram {

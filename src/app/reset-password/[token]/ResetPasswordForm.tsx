@@ -6,7 +6,7 @@ import { CheckCircle2, Loader2, Lock } from "lucide-react";
 
 import { resetPasswordAction } from "@/app/lib/auth-actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export default function ResetPasswordForm({ token }: { token: string }) {
@@ -40,21 +40,18 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
       <div className="space-y-2">
         <Label htmlFor="password">New password</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="password"
-            id="password"
-            name="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            aria-invalid={state?.errors?.password ? true : undefined}
-            aria-describedby="password-rules"
-            className="h-11 pl-9"
-            placeholder="At least 8 characters"
-          />
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          aria-invalid={state?.errors?.password ? true : undefined}
+          aria-describedby="password-rules"
+          startIcon={Lock}
+          className="h-11"
+          placeholder="At least 8 characters"
+        />
         {/* State the policy up front — the server enforces all three rules. */}
         <p id="password-rules" className="text-xs text-muted-foreground">
           Must be at least 8 characters and include a letter and a number.
@@ -68,20 +65,17 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm password</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            aria-invalid={state?.errors?.confirmPassword ? true : undefined}
-            className="h-11 pl-9"
-            placeholder="Re-enter your new password"
-          />
-        </div>
+        <PasswordInput
+          id="confirmPassword"
+          name="confirmPassword"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          aria-invalid={state?.errors?.confirmPassword ? true : undefined}
+          startIcon={Lock}
+          className="h-11"
+          placeholder="Re-enter your new password"
+        />
         {state?.errors?.confirmPassword && (
           <p className="text-sm font-medium text-destructive">
             {state.errors.confirmPassword[0]}
