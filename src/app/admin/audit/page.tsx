@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -17,7 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Search } from "lucide-react";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import PageHeader from "@/components/page-header";
+import EmptyState from "@/components/empty-state";
+import DataPagination from "@/components/data-pagination";
+import TableSkeleton from "@/components/table-skeleton";
+import { usePagination } from "@/hooks/use-pagination";
+import { ScrollText, Search, SearchX } from "lucide-react";
 
 interface AuditLog {
   id: string;
@@ -36,6 +44,20 @@ interface AuditLog {
     email: string;
     role: string;
   } | null;
+}
+
+/** Colour-codes an action name so scanning the log is faster. */
+function actionTone(action: string): NonNullable<BadgeProps["variant"]> {
+  if (action.includes("LOGIN") || action.includes("LOGOUT")) return "brand";
+  if (
+    action.includes("CREATE") ||
+    action.includes("ASSIGN") ||
+    action.includes("SELF")
+  )
+    return "success";
+  if (action.includes("APPROVE")) return "info";
+  if (action.includes("REJECT") || action.includes("DELETE")) return "danger";
+  return "neutral";
 }
 
 export default function AuditLogsPage() {
@@ -66,195 +88,178 @@ export default function AuditLogsPage() {
     }
   }
 
-  const filteredLogs = filter
-    ? logs.filter(
-        (log) =>
-          log.action.toLowerCase().includes(filter.toLowerCase()) ||
-          log.user?.email.toLowerCase().includes(filter.toLowerCase()) ||
-          log.actorEmail?.toLowerCase().includes(filter.toLowerCase()) ||
-          log.actorId?.toLowerCase().includes(filter.toLowerCase()) ||
-          log.entityType.toLowerCase().includes(filter.toLowerCase()),
-      )
-    : logs;
+  const filteredLogs = useMemo(
+    () =>
+      filter
+        ? logs.filter(
+            (log) =>
+              log.action.toLowerCase().includes(filter.toLowerCase()) ||
+              log.user?.email.toLowerCase().includes(filter.toLowerCase()) ||
+              log.actorEmail?.toLowerCase().includes(filter.toLowerCase()) ||
+              log.actorId?.toLowerCase().includes(filter.toLowerCase()) ||
+              log.entityType.toLowerCase().includes(filter.toLowerCase()),
+          )
+        : logs,
+    [logs, filter],
+  );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const pagination = usePagination(filteredLogs, 25);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Prepaid Card Admin - Audit Logs</h1>
-          <form action="/api/auth/logout" method="POST">
-            <button
-              type="submit"
-              className="text-sm bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition"
-            >
-              Logout
-            </button>
-          </form>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-6">
-            <a
-              href="/admin"
-              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
-            >
-              Dashboard
-            </a>
-            <a
-              href="/admin/users"
-              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
-            >
-              User Management
-            </a>
-            <a
-              href="/admin/audit"
-              className="py-4 px-2 border-b-2 border-primary font-medium text-primary"
-            >
-              Audit Logs
-            </a>
-            <a
-              href="/admin/requests"
-              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
-            >
-              Card Requests
-            </a>
-            <a
-              href="/admin/customer-mapping"
-              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
-            >
-              Customer Mapping
-            </a>
-            <a
-              href="/admin/settings"
-              className="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-primary transition"
-            >
-              Settings
-            </a>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Audit Logs</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search logs..."
+    <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader
+        title="Audit logs"
+        description="Track user actions and system events across the platform."
+        actions={
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search action, actor or entity"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              aria-label="Search audit logs"
+              className="pl-9"
             />
           </div>
-        </div>
+        }
+      />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>System Activity Log</CardTitle>
-            <CardDescription>
-              Track all user actions and system events
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <Card className="animate-fade-in-up overflow-hidden">
+        <CardHeader>
+          <CardTitle>System activity log</CardTitle>
+          <CardDescription>
+            {loading
+              ? "Loading recorded events…"
+              : `${filteredLogs.length} event${filteredLogs.length === 1 ? "" : "s"}${
+                  filter ? ` matching “${filter}”` : ""
+                }.`}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {loading ? (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Timestamp</TableHead>
                   <TableHead>Actor</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Target/Entity</TableHead>
+                  <TableHead>Target / entity</TableHead>
                   <TableHead>Details</TableHead>
-                  <TableHead>IP Address</TableHead>
+                  <TableHead>IP address</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-sm">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-400 mb-0.5">
-                          {log.actorType}
-                        </span>
-                        <p className="font-medium text-sm">
-                          {log.actorEmail || log.user?.email || "System"}
-                        </p>
-                        {log.actorId && log.actorId !== log.actorEmail && (
-                          <p className="text-[10px] text-gray-500 font-mono">
-                            ID: {log.actorId}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium w-fit ${
-                            log.action.includes("LOGIN") ||
-                            log.action.includes("LOGOUT")
-                              ? "bg-primary/20 text-primary"
-                              : log.action.includes("CREATE") ||
-                                  log.action.includes("ASSIGN") ||
-                                  log.action.includes("SELF")
-                                ? "bg-green-100 text-green-700"
-                                : log.action.includes("APPROVE")
-                                  ? "bg-purple-100 text-purple-700"
-                                  : log.action.includes("REJECT")
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {log.action}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium">
-                          {log.entityType}
-                        </span>
-                        {log.targetUserId && (
-                          <span className="text-[10px] text-primary">
-                            Target: {log.targetUserId.slice(0, 8)}...
-                          </span>
-                        )}
-                        {log.entityId && (
-                          <span className="text-[10px] text-gray-500">
-                            ID: {log.entityId.slice(0, 8)}...
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs max-w-[200px]">
-                      <div className="bg-gray-50 p-1.5 rounded border text-[10px] font-mono overflow-auto max-h-20">
-                        {JSON.stringify(log.details, null, 2)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[10px] font-mono">
-                      {log.ipAddress}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                <TableSkeleton columns={6} rows={8} />
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+          ) : logs.length === 0 ? (
+            <EmptyState
+              icon={ScrollText}
+              title="No audit events"
+              description="Actions performed in the system will be recorded here."
+            />
+          ) : filteredLogs.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              title="No matching events"
+              description={`Nothing matches “${filter}”. Try a different search term.`}
+              action={
+                <Button variant="outline" size="sm" onClick={() => setFilter("")}>
+                  Clear search
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <Table containerClassName="max-h-[36rem] overflow-y-auto" className="table-sticky-head">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="min-w-[11rem]">Timestamp</TableHead>
+                    <TableHead className="min-w-[13rem]">Actor</TableHead>
+                    <TableHead className="min-w-[10rem]">Action</TableHead>
+                    <TableHead className="min-w-[10rem]">
+                      Target / entity
+                    </TableHead>
+                    <TableHead className="min-w-[14rem]">Details</TableHead>
+                    <TableHead className="min-w-[8rem]">IP address</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagination.pageItems.map((log) => (
+                    <TableRow key={log.id} className="align-top">
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                            {log.actorType}
+                          </span>
+                          <span className="truncate text-sm font-medium text-foreground">
+                            {log.actorEmail || log.user?.email || "System"}
+                          </span>
+                          {log.actorId && log.actorId !== log.actorEmail && (
+                            <span className="truncate font-mono text-[10px] text-muted-foreground">
+                              ID: {log.actorId}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge variant={actionTone(log.action)}>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-medium text-foreground">
+                            {log.entityType}
+                          </span>
+                          {log.targetUserId && (
+                            <span className="font-mono text-[10px] text-primary-muted-foreground">
+                              Target: {log.targetUserId.slice(0, 8)}…
+                            </span>
+                          )}
+                          {log.entityId && (
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              ID: {log.entityId.slice(0, 8)}…
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {log.details ? (
+                          <pre className="max-h-24 max-w-[18rem] overflow-auto rounded-md border border-border bg-muted/60 p-2 font-mono text-[10px] leading-relaxed text-muted-foreground">
+                            {JSON.stringify(log.details, null, 2)}
+                          </pre>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                        {log.ipAddress || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <DataPagination
+                pagination={pagination}
+                itemLabel="events"
+                pageSizeOptions={[25, 50, 100]}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </main>
   );
 }

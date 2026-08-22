@@ -1,14 +1,21 @@
-
 "use client";
 
 import { useState, useActionState } from "react";
-import { Skeleton } from "./ui/skeleton";
+import { Loader2, SlidersHorizontal } from "lucide-react";
+
 import { type LimitApiResponse, setCardLimit } from "@/app/actions";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import EmptyState from "./empty-state";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./ui/accordion";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Skeleton } from "./ui/skeleton";
 
 type LimitSummaryProps = {
   allLimits: LimitApiResponse[];
@@ -76,19 +83,33 @@ export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSu
 
   const renderSkeleton = () => (
     Array.from({ length: 3 }).map((_, index) => (
-      <div key={index} className="border rounded-md p-3 bg-muted/30">
-        <Skeleton className="h-6 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-1/2" />
+      <div key={index} className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+        <Skeleton className="h-5 w-2/5" />
+        <div className="flex items-center justify-between border-t border-border/70 pt-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-24" />
+        </div>
       </div>
     ))
   );
 
+  if (!isLoading && summary.length === 0) {
+    return (
+      <EmptyState
+        icon={SlidersHorizontal}
+        title="No limits configured"
+        description="There are no transaction limits available for this channel."
+        compact
+      />
+    );
+  }
+
   return (
-    <div className="py-4 space-y-4">
-      <Accordion 
-        type="single" 
-        collapsible 
-        className="w-full space-y-2"
+    <div className="space-y-3 py-2">
+      <Accordion
+        type="single"
+        collapsible
+        className="w-full space-y-3"
         value={activeAccordionItem ?? undefined}
         onValueChange={(value) => setActiveAccordionItem(value)}
       >
@@ -96,35 +117,50 @@ export default function LimitSummary({ allLimits, isLoading, onUpdate }: LimitSu
           renderSkeleton()
         ) : (
           summary.map((limit) => (
-            <AccordionItem value={limit.originalData.risk_code} key={limit.originalData.risk_code} className="border rounded-md bg-muted/30">
-              <AccordionTrigger className="p-3 hover:no-underline text-left">
-                <div className="w-full">
-                  <p className="font-semibold text-base text-foreground mb-2">{limit.transaction_type}</p>
-                   <div className="flex justify-between border-t pt-2 mt-2 text-sm">
-                    <p className="font-medium text-foreground">Limit:</p>
-                    <p className="font-semibold text-foreground">{currencyFormatter(limit.limit)}</p>
+            <AccordionItem
+              value={limit.originalData.risk_code}
+              key={limit.originalData.risk_code}
+              className="overflow-hidden rounded-lg border border-border bg-card transition-colors data-[state=open]:border-primary/40 data-[state=open]:bg-muted/30"
+            >
+              <AccordionTrigger className="px-4 py-3.5 text-left hover:no-underline">
+                <div className="w-full min-w-0 space-y-2 pr-2">
+                  <p className="truncate text-base font-semibold text-foreground">
+                    {limit.transaction_type}
+                  </p>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-border/70 pt-2">
+                    <span className="text-sm text-muted-foreground">Limit</span>
+                    <span className="text-sm font-semibold tabular-nums text-foreground">
+                      {currencyFormatter(limit.limit)}
+                    </span>
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="p-4 border-t">
+
+              <AccordionContent className="border-t border-border bg-background px-4 pb-4 pt-4">
                 <form onSubmit={handleFormSubmit} className="space-y-4">
                   <input type="hidden" name="limitData" value={JSON.stringify(limit.originalData)} />
-                  <div>
-                    <label htmlFor="newLimit" className="block text-sm font-medium text-foreground mb-1">Set New Limit</label>
+                  <div className="space-y-2">
+                    <Label htmlFor={`newLimit-${limit.originalData.risk_code}`}>
+                      Set new limit
+                    </Label>
                     <Input
-                        id="newLimit"
+                        id={`newLimit-${limit.originalData.risk_code}`}
                         name="newLimit"
                         type="number"
+                        inputMode="numeric"
                         placeholder="Enter new limit amount"
                         required
                         value={newLimit}
                         onChange={(e) => setNewLimit(e.target.value)}
-                        className="max-w-xs"
+                        className="max-w-xs tabular-nums"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Current limit: {currencyFormatter(limit.limit)}
+                    </p>
                   </div>
                   <Button type="submit" disabled={pending}>
-                    {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
+                    {pending && <Loader2 className="animate-spin" />}
+                    Save changes
                   </Button>
                 </form>
               </AccordionContent>

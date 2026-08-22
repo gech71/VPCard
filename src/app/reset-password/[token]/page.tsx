@@ -1,6 +1,10 @@
-import { validateResetToken } from "@/app/lib/auth-actions";
-import ResetPasswordForm from "./ResetPasswordForm";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
+
+import { validateResetToken } from "@/app/lib/auth-actions";
+import AuthShell from "@/components/auth-shell";
+import { Button } from "@/components/ui/button";
+import ResetPasswordForm from "./ResetPasswordForm";
 
 export default async function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {
   const resolvedParams = await params;
@@ -8,25 +12,27 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
   const isValid = await validateResetToken(token);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary">
-      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-primary/20">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-primary">New Password</h1>
-          <p className="text-gray-500 mt-2">Enter your new password below</p>
-        </div>
-
-        {!isValid ? (
-          <div className="bg-red-50 text-red-700 p-4 rounded-lg text-center mb-6 border border-red-200">
-            <p className="font-medium">Invalid or Expired Token</p>
-            <p className="text-sm mt-1">This password reset link is invalid or has expired.</p>
-            <Link href="/forgot-password" className="mt-4 block text-sm font-medium text-primary hover:underline">
-              Request a new link
-            </Link>
+    <AuthShell title="New password" description="Enter your new password below">
+      {!isValid ? (
+        <div className="flex animate-scale-in flex-col items-center gap-4 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive-muted text-destructive">
+            <AlertTriangle className="h-6 w-6" />
+          </span>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">
+              Invalid or expired link
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              This password reset link is invalid or has expired.
+            </p>
           </div>
-        ) : (
-          <ResetPasswordForm token={token} />
-        )}
-      </div>
-    </div>
+          <Button asChild className="w-full">
+            <Link href="/forgot-password">Request a new link</Link>
+          </Button>
+        </div>
+      ) : (
+        <ResetPasswordForm token={token} />
+      )}
+    </AuthShell>
   );
 }

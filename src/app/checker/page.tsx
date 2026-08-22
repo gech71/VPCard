@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -26,10 +27,26 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, FileText, CheckCircle, XCircle, Eye } from "lucide-react";
+import AppHeader from "@/components/app-header";
+import PageHeader from "@/components/page-header";
+import StatCard from "@/components/stat-card";
+import StatusBadge from "@/components/status-badge";
+import EmptyState from "@/components/empty-state";
+import DataPagination from "@/components/data-pagination";
+import TableSkeleton from "@/components/table-skeleton";
+import { usePagination } from "@/hooks/use-pagination";
+import {
+  CheckCircle,
+  Eye,
+  FileText,
+  Inbox,
+  Loader2,
+  Search,
+  SearchX,
+  XCircle,
+} from "lucide-react";
 
 interface CardRequest {
   id: string;
@@ -50,6 +67,30 @@ interface CardRequest {
   };
 }
 
+/** Label/value pair inside the review dialog summary. */
+function DetailItem({
+  label,
+  value,
+  className = "",
+  mono = true,
+}: {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={`truncate text-sm font-medium text-foreground ${mono ? "font-mono" : ""}`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default function CheckerDashboard() {
   const { toast } = useToast();
   const [requests, setRequests] = useState<CardRequest[]>([]);
@@ -63,6 +104,10 @@ export default function CheckerDashboard() {
   >(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Presentation-only filters over the rows already loaded.
+  const [pendingFilter, setPendingFilter] = useState("");
+  const [reviewedFilter, setReviewedFilter] = useState("");
 
   useEffect(() => {
     fetchRequests();
@@ -151,254 +196,352 @@ export default function CheckerDashboard() {
   const pendingRequests = requests.filter((r) => r.status === "PENDING");
   const reviewedRequests = requests.filter((r) => r.status !== "PENDING");
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+  const filteredPending = useMemo(() => {
+    const term = pendingFilter.trim().toLowerCase();
+    if (!term) return pendingRequests;
+    return pendingRequests.filter(
+      (r) =>
+        r.accountNumber.toLowerCase().includes(term) ||
+        r.customerName.toLowerCase().includes(term) ||
+        r.customerEmail?.toLowerCase().includes(term) ||
+        r.maker.email.toLowerCase().includes(term),
     );
-  }
+  }, [pendingRequests, pendingFilter]);
+
+  const filteredReviewed = useMemo(() => {
+    const term = reviewedFilter.trim().toLowerCase();
+    if (!term) return reviewedRequests;
+    return reviewedRequests.filter(
+      (r) =>
+        r.accountNumber.toLowerCase().includes(term) ||
+        r.customerName.toLowerCase().includes(term) ||
+        r.status.toLowerCase().includes(term) ||
+        r.reviewNotes?.toLowerCase().includes(term),
+    );
+  }, [reviewedRequests, reviewedFilter]);
+
+  const pendingPagination = usePagination(filteredPending, 10);
+  const reviewedPagination = usePagination(filteredReviewed, 10);
+
+  const approvedCount = reviewedRequests.filter(
+    (r) => r.status === "APPROVED",
+  ).length;
+  const rejectedCount = reviewedRequests.filter(
+    (r) => r.status === "REJECTED",
+  ).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">
-            Prepaid Card - Checker Dashboard
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm">Checker</span>
-            <form action="/api/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="text-sm bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition"
-              >
-                Logout
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-dvh bg-background">
+      <AppHeader
+        title="NIB Prepaid Card"
+        subtitle="Checker dashboard"
+        role="Checker"
+        showLogout
+      />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Pending Review</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {pendingRequests.length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <PageHeader
+          title="Checker dashboard"
+          description="Review the prepaid card requests assigned to you and approve or reject them."
+        />
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Approved</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {
-                      reviewedRequests.filter((r) => r.status === "APPROVED")
-                        .length
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <XCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Rejected</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {
-                      reviewedRequests.filter((r) => r.status === "REJECTED")
-                        .length
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Pending review"
+            value={pendingRequests.length}
+            icon={FileText}
+            tone="warning"
+            hint="Awaiting your decision"
+            isLoading={loading}
+          />
+          <StatCard
+            label="Approved"
+            value={approvedCount}
+            icon={CheckCircle}
+            tone="success"
+            hint="Sent to PSS"
+            isLoading={loading}
+          />
+          <StatCard
+            label="Rejected"
+            value={rejectedCount}
+            icon={XCircle}
+            tone="danger"
+            hint="Returned to maker"
+            isLoading={loading}
+          />
         </div>
 
         <Tabs defaultValue="pending" className="w-full">
           <TabsList>
             <TabsTrigger value="pending">
-              Pending ({pendingRequests.length})
+              Pending
+              <span className="rounded-full bg-warning-muted px-1.5 text-xs font-semibold tabular-nums text-warning-muted-foreground">
+                {pendingRequests.length}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="reviewed">
-              Reviewed ({reviewedRequests.length})
+              Reviewed
+              <span className="rounded-full bg-muted-foreground/15 px-1.5 text-xs font-semibold tabular-nums">
+                {reviewedRequests.length}
+              </span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending">
-            <Card>
-              <CardHeader>
-                <CardTitle>Requests Pending Review</CardTitle>
-                <CardDescription>
-                  Review and approve or reject card requests assigned to you
-                </CardDescription>
+            <Card className="overflow-hidden">
+              <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                <div className="space-y-0.5">
+                  <CardTitle>Requests pending review</CardTitle>
+                  <CardDescription>
+                    Review and approve or reject card requests assigned to you
+                  </CardDescription>
+                </div>
+                {pendingRequests.length > 0 && (
+                  <div className="relative w-full sm:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      value={pendingFilter}
+                      onChange={(e) => setPendingFilter(e.target.value)}
+                      placeholder="Filter pending"
+                      aria-label="Filter pending requests"
+                      className="h-9 pl-9"
+                    />
+                  </div>
+                )}
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Created By</TableHead>
-                      <TableHead>Created At</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingRequests.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={5}
-                          className="text-center text-gray-500 py-8"
-                        >
-                          No pending requests
-                        </TableCell>
+
+              <CardContent className="p-0">
+                {loading ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Account</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Created by</TableHead>
+                        <TableHead>Created at</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ) : (
-                      pendingRequests.map((req) => (
-                        <TableRow key={req.id}>
-                          <TableCell className="font-mono text-sm">
-                            {req.accountNumber}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{req.customerName}</p>
-                              {req.customerEmail && (
-                                <p className="text-xs text-gray-500">
-                                  {req.customerEmail}
-                                </p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {req.maker.email}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {new Date(req.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openReviewDialog(req, "APPROVE")}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openReviewDialog(req, "REJECT")}
-                              >
-                                <XCircle className="w-4 h-4 mr-1 text-red-600" />
-                                Reject
-                              </Button>
-                            </div>
-                          </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      <TableSkeleton columns={5} />
+                    </TableBody>
+                  </Table>
+                ) : pendingRequests.length === 0 ? (
+                  <EmptyState
+                    icon={Inbox}
+                    title="No pending requests"
+                    description="You are all caught up. New requests assigned to you will appear here."
+                  />
+                ) : filteredPending.length === 0 ? (
+                  <EmptyState
+                    icon={SearchX}
+                    title="No matching requests"
+                    description="Try a different account number, customer or maker."
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPendingFilter("")}
+                      >
+                        Clear filter
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead>Account</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Created by</TableHead>
+                          <TableHead>Created at</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingPagination.pageItems.map((req) => (
+                          <TableRow key={req.id}>
+                            <TableCell className="whitespace-nowrap font-mono text-sm">
+                              {req.accountNumber}
+                            </TableCell>
+                            <TableCell>
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">
+                                  {req.customerName}
+                                </p>
+                                {req.customerEmail && (
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {req.customerEmail}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {req.maker.email}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                              {new Date(req.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-success hover:border-success/40 hover:bg-success-muted hover:text-success"
+                                  onClick={() =>
+                                    openReviewDialog(req, "APPROVE")
+                                  }
+                                >
+                                  <CheckCircle />
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:border-destructive/40 hover:bg-destructive-muted hover:text-destructive"
+                                  onClick={() => openReviewDialog(req, "REJECT")}
+                                >
+                                  <XCircle />
+                                  Reject
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    <DataPagination
+                      pagination={pendingPagination}
+                      itemLabel="pending requests"
+                    />
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="reviewed">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviewed Requests</CardTitle>
-                <CardDescription>
-                  History of requests you have reviewed
-                </CardDescription>
+            <Card className="overflow-hidden">
+              <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                <div className="space-y-0.5">
+                  <CardTitle>Reviewed requests</CardTitle>
+                  <CardDescription>
+                    History of requests you have reviewed
+                  </CardDescription>
+                </div>
+                {reviewedRequests.length > 0 && (
+                  <div className="relative w-full sm:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      value={reviewedFilter}
+                      onChange={(e) => setReviewedFilter(e.target.value)}
+                      placeholder="Filter reviewed"
+                      aria-label="Filter reviewed requests"
+                      className="h-9 pl-9"
+                    />
+                  </div>
+                )}
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Reviewed At</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reviewedRequests.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-center text-gray-500 py-8"
-                        >
-                          No reviewed requests
-                        </TableCell>
+
+              <CardContent className="p-0">
+                {loading ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Account</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Reviewed at</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
                       </TableRow>
-                    ) : (
-                      reviewedRequests.map((req) => (
-                        <TableRow key={req.id}>
-                          <TableCell className="font-mono text-sm">
-                            {req.accountNumber}
-                          </TableCell>
-                          <TableCell>{req.customerName}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                req.status === "APPROVED"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {req.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {req.reviewedAt
-                              ? new Date(req.reviewedAt).toLocaleDateString()
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-500 max-w-xs truncate">
-                            {req.reviewNotes || "-"}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openReviewDialog(req, "VIEW")}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                          </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      <TableSkeleton columns={6} />
+                    </TableBody>
+                  </Table>
+                ) : reviewedRequests.length === 0 ? (
+                  <EmptyState
+                    icon={FileText}
+                    title="No reviewed requests"
+                    description="Requests you approve or reject will be listed here."
+                  />
+                ) : filteredReviewed.length === 0 ? (
+                  <EmptyState
+                    icon={SearchX}
+                    title="No matching requests"
+                    description="Try a different account number, customer or status."
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReviewedFilter("")}
+                      >
+                        Clear filter
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead>Account</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Reviewed at</TableHead>
+                          <TableHead>Notes</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {reviewedPagination.pageItems.map((req) => (
+                          <TableRow key={req.id}>
+                            <TableCell className="whitespace-nowrap font-mono text-sm">
+                              {req.accountNumber}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {req.customerName}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={req.status} withIcon />
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                              {req.reviewedAt
+                                ? new Date(req.reviewedAt).toLocaleDateString()
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="max-w-[16rem] truncate text-sm text-muted-foreground">
+                              {req.reviewNotes || "—"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openReviewDialog(req, "VIEW")}
+                                >
+                                  <Eye />
+                                  View
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    <DataPagination
+                      pagination={reviewedPagination}
+                      itemLabel="reviewed requests"
+                    />
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -406,14 +549,14 @@ export default function CheckerDashboard() {
 
         {/* Review Dialog */}
         <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {reviewAction === "VIEW"
-                  ? "Request Details"
+                  ? "Request details"
                   : reviewAction === "APPROVE"
-                    ? "Approve Request"
-                    : "Reject Request"}
+                    ? "Approve request"
+                    : "Reject request"}
               </DialogTitle>
               <DialogDescription>
                 {reviewAction === "VIEW"
@@ -423,86 +566,72 @@ export default function CheckerDashboard() {
                     : "This will reject the card request. The maker will be notified."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleReview} className="space-y-4">
+
+            <form onSubmit={handleReview} className="space-y-5">
               {selectedRequest && (
-                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-                  <h4 className="font-semibold text-primary border-b pb-2 mb-2 flex justify-between items-center">
-                    <span>Request Details</span>
+                <div className="space-y-4 rounded-lg border border-border bg-muted/40 p-4">
+                  <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Request details
+                    </h4>
                     {reviewAction === "VIEW" && (
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full uppercase ${
-                          selectedRequest.status === "APPROVED"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {selectedRequest.status}
-                      </span>
+                      <StatusBadge status={selectedRequest.status} withIcon />
                     )}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 font-medium">Card program</p>
-                      <p className="font-mono text-xs">
-                        {selectedRequest.cardProgramName ||
-                          selectedRequest.cardProgramCode ||
-                          "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">Customer Name</p>
-                      <p className="font-mono">
-                        {selectedRequest.customerName}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">
-                        Account Number
-                      </p>
-                      <p className="font-mono">
-                        {selectedRequest.accountNumber}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">Customer ID</p>
-                      <p className="font-mono">
-                        {selectedRequest.customerId || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">Phone Number</p>
-                      <p className="font-mono">
-                        {selectedRequest.customerPhone || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">Email Address</p>
-                      <p
-                        className="font-mono text-[11px] truncate"
-                        title={selectedRequest.customerEmail || ""}
-                      >
-                        {selectedRequest.customerEmail || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium">Created At</p>
-                      <p className="font-mono">
-                        {new Date(
-                          selectedRequest.createdAt,
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-gray-500 font-medium">Requested By</p>
-                      <p className="font-mono">{selectedRequest.maker.email}</p>
-                    </div>
                   </div>
+
+                  <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <DetailItem
+                      label="Card program"
+                      value={
+                        selectedRequest.cardProgramName ||
+                        selectedRequest.cardProgramCode ||
+                        "N/A"
+                      }
+                      mono={false}
+                    />
+                    <DetailItem
+                      label="Customer name"
+                      value={selectedRequest.customerName}
+                      mono={false}
+                    />
+                    <DetailItem
+                      label="Account number"
+                      value={selectedRequest.accountNumber}
+                    />
+                    <DetailItem
+                      label="Customer ID"
+                      value={selectedRequest.customerId || "N/A"}
+                    />
+                    <DetailItem
+                      label="Phone number"
+                      value={selectedRequest.customerPhone || "N/A"}
+                    />
+                    <DetailItem
+                      label="Email address"
+                      value={
+                        <span title={selectedRequest.customerEmail || ""}>
+                          {selectedRequest.customerEmail || "N/A"}
+                        </span>
+                      }
+                    />
+                    <DetailItem
+                      label="Created at"
+                      value={new Date(
+                        selectedRequest.createdAt,
+                      ).toLocaleDateString()}
+                    />
+                    <DetailItem
+                      label="Requested by"
+                      value={selectedRequest.maker.email}
+                    />
+                  </dl>
+
                   {selectedRequest.notes && (
-                    <div className="mt-3 pt-2 border-t text-sm">
-                      <p className="text-gray-500 font-medium mb-1">
-                        Maker's Notes
+                    <div className="border-t border-border pt-3">
+                      <p className="mb-1.5 text-xs text-muted-foreground">
+                        Maker&rsquo;s notes
                       </p>
-                      <p className="bg-white p-2 rounded border italic">
+                      <p className="rounded-md border border-border bg-card p-2.5 text-sm italic text-foreground">
                         {selectedRequest.notes}
                       </p>
                     </div>
@@ -510,39 +639,27 @@ export default function CheckerDashboard() {
                 </div>
               )}
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="reviewNotes">
                   {reviewAction === "VIEW"
-                    ? "Reviewer Notes"
-                    : "Review Notes (Optional)"}
+                    ? "Reviewer notes"
+                    : "Review notes (optional)"}
                 </Label>
-                <textarea
+                <Textarea
                   id="reviewNotes"
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
                   disabled={reviewAction === "VIEW"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-500"
                   rows={3}
                   placeholder={
-                    reviewAction === "VIEW" ? "" : "Add your review notes..."
+                    reviewAction === "VIEW" ? "" : "Add your review notes…"
                   }
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 {reviewAction !== "VIEW" ? (
                   <>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={submitting}
-                    >
-                      {submitting
-                        ? "Processing..."
-                        : reviewAction === "APPROVE"
-                          ? "Approve"
-                          : "Reject"}
-                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -550,11 +667,35 @@ export default function CheckerDashboard() {
                     >
                       Cancel
                     </Button>
+                    <Button
+                      type="submit"
+                      variant={
+                        reviewAction === "REJECT" ? "destructive" : "success"
+                      }
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="animate-spin" />
+                          Processing&hellip;
+                        </>
+                      ) : reviewAction === "APPROVE" ? (
+                        <>
+                          <CheckCircle />
+                          Approve
+                        </>
+                      ) : (
+                        <>
+                          <XCircle />
+                          Reject
+                        </>
+                      )}
+                    </Button>
                   </>
                 ) : (
                   <Button
                     type="button"
-                    className="w-full"
+                    className="w-full sm:w-auto"
                     onClick={() => setIsReviewOpen(false)}
                   >
                     Close

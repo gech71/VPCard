@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2, Lock, Mail } from "lucide-react";
+
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
@@ -58,53 +64,57 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Email Address
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-          placeholder="admin@vpcard.com"
-        />
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email address</Label>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="email"
+            id="email"
+            name="email"
+            required
+            autoComplete="username"
+            className="h-11 pl-9"
+            placeholder="admin@vpcard.com"
+          />
+        </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Password
-        </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          required
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-          placeholder="••••••••"
-        />
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autoComplete="current-password"
+            className="h-11 pl-9"
+            placeholder="Enter your password"
+          />
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? "Signing in..." : "Sign In"}
-      </button>
+      <Button type="submit" size="lg" className="w-full" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="animate-spin" />
+            Signing in&hellip;
+          </>
+        ) : (
+          "Sign in"
+        )}
+      </Button>
 
-      <div className="text-center mt-4">
-        <a href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+      <div className="text-center">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary/80 hover:underline"
+        >
           Forgot your password?
-        </a>
+        </Link>
       </div>
     </form>
   );

@@ -1,75 +1,105 @@
 "use client";
 
 import { useActionState } from "react";
-import { resetPasswordAction } from "@/app/lib/auth-actions";
 import Link from "next/link";
+import { CheckCircle2, Loader2, Lock } from "lucide-react";
+
+import { resetPasswordAction } from "@/app/lib/auth-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ResetPasswordForm({ token }: { token: string }) {
   const [state, formAction, isPending] = useActionState(resetPasswordAction, null);
 
   if (state?.success) {
     return (
-      <div className="bg-green-50 text-green-700 p-4 rounded-lg text-center border border-green-200">
-        <p className="font-medium">Password Reset Successfully</p>
-        <p className="text-sm mt-1">Your password has been changed. You can now login with your new credentials.</p>
-        <Link href="/login" className="mt-4 block text-sm font-medium text-primary hover:underline">
-          Go to Login
-        </Link>
+      <div className="flex animate-scale-in flex-col items-center gap-4 text-center">
+        <span className="flex h-12 w-12 animate-check-pop items-center justify-center rounded-full bg-success-muted text-success">
+          <CheckCircle2 className="h-6 w-6" />
+        </span>
+        <div className="space-y-1">
+          <p className="font-semibold text-foreground">
+            Password reset successfully
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Your password has been changed. You can now log in with your new
+            credentials.
+          </p>
+        </div>
+        <Button asChild className="w-full">
+          <Link href="/login">Go to login</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} className="space-y-5">
       <input type="hidden" name="token" value={token} />
-      
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-          New Password
-        </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          required
-          minLength={8}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-          placeholder="••••••••"
-        />
+
+      <div className="space-y-2">
+        <Label htmlFor="password">New password</Label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="password"
+            id="password"
+            name="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            aria-invalid={state?.errors?.password ? true : undefined}
+            className="h-11 pl-9"
+            placeholder="At least 8 characters"
+          />
+        </div>
         {state?.errors?.password && (
-          <p className="text-sm text-red-500 mt-2">{state.errors.password[0]}</p>
+          <p className="text-sm font-medium text-destructive">
+            {state.errors.password[0]}
+          </p>
         )}
       </div>
-      
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-          Confirm Password
-        </label>
-        <input
-          type="password"
-          id="confirmPassword"
-          name="confirmPassword"
-          required
-          minLength={8}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-          placeholder="••••••••"
-        />
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            aria-invalid={state?.errors?.confirmPassword ? true : undefined}
+            className="h-11 pl-9"
+            placeholder="Re-enter your new password"
+          />
+        </div>
         {state?.errors?.confirmPassword && (
-          <p className="text-sm text-red-500 mt-2">{state.errors.confirmPassword[0]}</p>
+          <p className="text-sm font-medium text-destructive">
+            {state.errors.confirmPassword[0]}
+          </p>
         )}
       </div>
 
       {state?.error && (
-        <p className="text-sm text-red-500">{state.error}</p>
+        <p className="rounded-md border border-destructive/25 bg-destructive-muted px-3 py-2 text-sm font-medium text-destructive-muted-foreground">
+          {state.error}
+        </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isPending ? "Resetting..." : "Reset Password"}
-      </button>
+      <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+        {isPending ? (
+          <>
+            <Loader2 className="animate-spin" />
+            Resetting&hellip;
+          </>
+        ) : (
+          "Reset password"
+        )}
+      </Button>
     </form>
   );
 }

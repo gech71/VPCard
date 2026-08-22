@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import AdminNav from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -19,14 +19,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import PageHeader from "@/components/page-header";
+import StatCard from "@/components/stat-card";
+import StatusBadge from "@/components/status-badge";
+import EmptyState from "@/components/empty-state";
+import DataPagination from "@/components/data-pagination";
+import TableSkeleton from "@/components/table-skeleton";
+import { usePagination } from "@/hooks/use-pagination";
 import {
+  CheckCircle2,
+  Copy,
+  Database,
   Download,
   FileSpreadsheet,
+  ListChecks,
   Loader2,
-  Database,
+  Search,
+  SearchX,
   Upload,
+  XCircle,
 } from "lucide-react";
 import type {
   CustomerMappingImportRow,
@@ -40,14 +51,6 @@ type DbMapping = {
   updatedAt: string;
 };
 
-function statusBadgeVariant(
-  status: CustomerMappingImportRow["status"],
-): "default" | "destructive" | "secondary" {
-  if (status === "valid") return "default";
-  if (status === "duplicate") return "secondary";
-  return "destructive";
-}
-
 export default function CustomerMappingImportPage() {
   const { toast } = useToast();
   const [dbMappings, setDbMappings] = useState<DbMapping[]>([]);
@@ -59,6 +62,9 @@ export default function CustomerMappingImportPage() {
     null,
   );
   const [fileName, setFileName] = useState<string | null>(null);
+
+  // Presentation-only search across mappings already loaded.
+  const [mappingFilter, setMappingFilter] = useState("");
 
   const loadDbMappings = useCallback(async () => {
     try {
@@ -201,245 +207,324 @@ export default function CustomerMappingImportPage() {
     }
   }
 
-  const displayRows =
-    importRows.length > 0 ? importRows : null;
+  const filteredMappings = useMemo(() => {
+    const term = mappingFilter.trim().toLowerCase();
+    if (!term) return dbMappings;
+    return dbMappings.filter(
+      (m) =>
+        m.nibCusId.toLowerCase().includes(term) ||
+        m.pssCusId.toLowerCase().includes(term),
+    );
+  }, [dbMappings, mappingFilter]);
+
+  const dbPagination = usePagination(filteredMappings, 25);
+  const previewPagination = usePagination(importRows, 25);
+
+  const canMigrate = Boolean(summary && summary.validRows > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">
-            Prepaid Card Admin - Customer Mapping
-          </h1>
-          <form action="/api/auth/logout" method="POST">
-            <button
-              type="submit"
-              className="text-sm bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition"
-            >
-              Logout
-            </button>
-          </form>
-        </div>
-      </header>
-
-      <AdminNav activePath="/admin/customer-mapping" />
-
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Customer Mapping Import
-          </h2>
-          <p className="text-muted-foreground mt-1">
+    <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader
+        title="Customer mapping import"
+        description={
+          <>
             Import NIB customer ID to PSS customer ID mappings from Excel
             (.xlsx). Format matches{" "}
-            <span className="font-mono text-sm">MigrationReadyFor All.xlsx</span>{" "}
+            <span className="font-mono text-[0.8125rem] text-foreground">
+              MigrationReadyFor All.xlsx
+            </span>{" "}
             (columns: NIBCustomerID, PSSCustomerID). A row is treated as a
             duplicate only when both NIBCusID and PSSCusId match exactly; the
             same NIB with a different PSS ID (or vice versa) is allowed.
-          </p>
-        </div>
+          </>
+        }
+      />
 
-        <Card>
+      <Card className="animate-fade-in-up">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-muted text-primary-muted-foreground">
+              <FileSpreadsheet className="h-4 w-4" />
+            </span>
+            <div className="space-y-0.5">
+              <CardTitle>Import file</CardTitle>
+              <CardDescription>
+                Download the template, fill in mappings, then upload for
+                validation before writing to the database.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-5">
+          <ol className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <li className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                1
+              </span>
+              <div className="min-w-0 space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  Get the template
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTemplate}
+                >
+                  <Download />
+                  Download
+                </Button>
+              </div>
+            </li>
+
+            <li className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                2
+              </span>
+              <div className="min-w-0 space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  Upload &amp; validate
+                </p>
+                <Button type="button" variant="secondary" size="sm" asChild disabled={validating}>
+                  <label className="flex cursor-pointer items-center">
+                    {validating ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Upload />
+                    )}
+                    {validating ? "Validating…" : "Choose file"}
+                    <input
+                      type="file"
+                      accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="sr-only"
+                      disabled={validating}
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                </Button>
+              </div>
+            </li>
+
+            <li className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3">
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  canMigrate
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted-foreground/25 text-muted-foreground"
+                }`}
+              >
+                3
+              </span>
+              <div className="min-w-0 space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  Write to database
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={migrating || !canMigrate}
+                  onClick={handleMigrate}
+                >
+                  {migrating ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Database />
+                  )}
+                  Start migration
+                </Button>
+              </div>
+            </li>
+          </ol>
+
+          {fileName && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileSpreadsheet className="h-4 w-4 shrink-0" />
+              Last file:{" "}
+              <span className="truncate font-medium text-foreground">
+                {fileName}
+              </span>
+            </p>
+          )}
+
+          {summary && (
+            <div className="stagger-children grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatCard
+                label="Total rows"
+                value={summary.totalRows}
+                icon={ListChecks}
+                tone="neutral"
+              />
+              <StatCard
+                label="Successful"
+                value={summary.validRows}
+                icon={CheckCircle2}
+                tone="success"
+              />
+              <StatCard
+                label="Failed"
+                value={summary.failedRows}
+                icon={XCircle}
+                tone="danger"
+              />
+              <StatCard
+                label="Duplicate pairs"
+                value={summary.duplicateRows}
+                icon={Copy}
+                tone="warning"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {importRows.length > 0 && (
+        <Card className="animate-fade-in-up overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
-              Import file
-            </CardTitle>
+            <CardTitle>Import preview</CardTitle>
             <CardDescription>
-              Download the template, fill in mappings, then upload for validation
-              before writing to the database.
+              Review validated rows before starting migration.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDownloadTemplate}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Template
-              </Button>
-              <Button type="button" variant="secondary" asChild disabled={validating}>
-                <label className="cursor-pointer flex items-center">
-                  {validating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
-                  {validating ? "Validating…" : "Upload & Validate"}
-                  <input
-                    type="file"
-                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    className="sr-only"
-                    disabled={validating}
-                    onChange={handleFileChange}
-                  />
-                </label>
-              </Button>
-              <Button
-                type="button"
-                disabled={
-                  migrating || !summary || summary.validRows === 0
-                }
-                onClick={handleMigrate}
-              >
-                {migrating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Database className="mr-2 h-4 w-4" />
-                )}
-                Start Migration / Database Write
-              </Button>
-            </div>
+          <CardContent className="p-0">
+            <Table containerClassName="max-h-[30rem] overflow-y-auto" className="table-sticky-head">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-16">Row</TableHead>
+                  <TableHead>NIBCusID</TableHead>
+                  <TableHead>PSSCusId</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Errors</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewPagination.pageItems.map((row) => (
+                  <TableRow key={row.rowNumber}>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {row.rowNumber}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {row.nibCusId || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {row.pssCusId || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={row.status} />
+                    </TableCell>
+                    <TableCell className="max-w-md text-sm text-muted-foreground">
+                      {row.errors.length > 0 ? row.errors.join(" ") : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-            {fileName && (
-              <p className="text-sm text-muted-foreground">
-                Last file: <span className="font-medium">{fileName}</span>
-              </p>
-            )}
-
-            {summary && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <SummaryCard label="Total rows" value={summary.totalRows} />
-                <SummaryCard
-                  label="Successful"
-                  value={summary.validRows}
-                  className="text-green-700"
-                />
-                <SummaryCard
-                  label="Failed"
-                  value={summary.failedRows}
-                  className="text-red-700"
-                />
-                <SummaryCard
-                  label="Duplicate pairs"
-                  value={summary.duplicateRows}
-                  className="text-amber-700"
-                />
-              </div>
-            )}
+            <DataPagination
+              pagination={previewPagination}
+              itemLabel="rows"
+              pageSizeOptions={[25, 50, 100]}
+            />
           </CardContent>
         </Card>
+      )}
 
-        {displayRows && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Import preview</CardTitle>
-              <CardDescription>
-                Review validated rows before starting migration.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">Row</TableHead>
-                    <TableHead>NIBCusID</TableHead>
-                    <TableHead>PSSCusId</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Errors</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayRows.map((row) => (
-                    <TableRow key={row.rowNumber}>
-                      <TableCell>{row.rowNumber}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {row.nibCusId || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {row.pssCusId || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusBadgeVariant(row.status)}>
-                          {row.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-md">
-                        {row.errors.length > 0
-                          ? row.errors.join(" ")
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
+      <Card className="animate-fade-in-up overflow-hidden">
+        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div className="space-y-0.5">
             <CardTitle>Database mappings</CardTitle>
             <CardDescription>
               All customer ID mappings currently stored in the system (
               {loadingDb ? "…" : dbMappings.length} record
               {dbMappings.length === 1 ? "" : "s"}).
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loadingDb ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : dbMappings.length === 0 ? (
-              <Alert>
-                <AlertTitle>No mappings yet</AlertTitle>
-                <AlertDescription>
-                  Import a file and run migration to populate customer mappings.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="overflow-x-auto max-h-[420px] overflow-y-auto border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>NIBCusID</TableHead>
-                      <TableHead>PSSCusId</TableHead>
-                      <TableHead>Last updated</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dbMappings.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-mono text-sm">
-                          {m.nibCusId}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {m.pssCusId}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(m.updatedAt).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  );
-}
+          </div>
+          {!loadingDb && dbMappings.length > 0 && (
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={mappingFilter}
+                onChange={(e) => setMappingFilter(e.target.value)}
+                placeholder="Search customer IDs"
+                aria-label="Search customer mappings"
+                className="h-9 pl-9"
+              />
+            </div>
+          )}
+        </CardHeader>
 
-function SummaryCard({
-  label,
-  value,
-  className = "",
-}: {
-  label: string;
-  value: number;
-  className?: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-muted/40 p-4">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className={`text-2xl font-bold mt-1 ${className}`}>{value}</p>
-    </div>
+        <CardContent className="p-0">
+          {loadingDb ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>NIBCusID</TableHead>
+                  <TableHead>PSSCusId</TableHead>
+                  <TableHead>Last updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableSkeleton columns={3} rows={6} />
+              </TableBody>
+            </Table>
+          ) : dbMappings.length === 0 ? (
+            <EmptyState
+              icon={Database}
+              title="No mappings yet"
+              description="Import a file and run migration to populate customer mappings."
+            />
+          ) : filteredMappings.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              title="No matching mappings"
+              description={`Nothing matches “${mappingFilter}”.`}
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMappingFilter("")}
+                >
+                  Clear search
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <Table containerClassName="max-h-[30rem] overflow-y-auto" className="table-sticky-head">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>NIBCusID</TableHead>
+                    <TableHead>PSSCusId</TableHead>
+                    <TableHead>Last updated</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dbPagination.pageItems.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-mono text-sm">
+                        {m.nibCusId}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {m.pssCusId}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {new Date(m.updatedAt).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <DataPagination
+                pagination={dbPagination}
+                itemLabel="mappings"
+                pageSizeOptions={[25, 50, 100]}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </main>
   );
 }

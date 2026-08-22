@@ -1,11 +1,12 @@
-
 'use client';
 
 import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, KeyRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PinChangeForm from '@/components/pin-change-form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,43 +16,58 @@ function ChangePinPageContent() {
   const cardNumber = searchParams.get('card_numb');
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-start">
-          <div className="flex items-center gap-3">
-            <KeyRound className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground font-headline">
-              Change PIN
-            </h1>
-          </div>
-        </div>
-      </header>
-      <main className="p-4 sm:p-6 lg:p-8 max-w-xl mx-auto">
-        <div className="flex justify-end mb-4">
-          <Button asChild variant="outline">
+    <div className="min-h-dvh w-full bg-background">
+      <AppHeader title="NIB Prepaid Card" subtitle="Change PIN" homeHref="/" />
+
+      <main className="mx-auto max-w-xl p-4 sm:p-6 lg:p-8">
+        <div className="mb-6">
+          <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground">
             <Link href="/" prefetch={false}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              <ArrowLeft />
+              Back to dashboard
             </Link>
           </Button>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Change Your PIN</CardTitle>
-            <CardDescription>
-                Enter your current PIN and a new 4-digit PIN for your card ending in {cardNumber ? `...${cardNumber.slice(-4)}` : ''}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {cardNumber ? (
+
+        {!cardNumber ? (
+          <Alert variant="destructive" className="animate-fade-in-up">
+            <AlertTriangle />
+            <AlertTitle>Card number missing</AlertTitle>
+            <AlertDescription>
+              Card number not found. Please go back to the dashboard and try
+              again.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Card className="animate-fade-in-up">
+            <CardHeader>
+              <CardTitle className="font-headline">Change your PIN</CardTitle>
+              <CardDescription>
+                Enter your current PIN and a new 4-digit PIN for your card ending
+                in{' '}
+                <span className="font-mono font-medium text-foreground">
+                  {`••••${cardNumber.slice(-4)}`}
+                </span>
+                .
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <PinChangeForm cardNumber={cardNumber} />
-            ) : (
-              <div className="text-destructive">
-                <p>Card number not found. Please go back to the dashboard and try again.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function ChangePinFallback() {
+  return (
+    <div className="min-h-dvh w-full bg-background">
+      <AppHeader title="NIB Prepaid Card" subtitle="Change PIN" homeHref="/" />
+      <main className="mx-auto max-w-xl space-y-6 p-4 sm:p-6 lg:p-8">
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="h-96 w-full rounded-xl" />
       </main>
     </div>
   );
@@ -59,7 +75,7 @@ function ChangePinPageContent() {
 
 export default function ChangePinPage() {
     return (
-        <Suspense fallback={<Skeleton className="w-full h-screen" />}>
+        <Suspense fallback={<ChangePinFallback />}>
             <ChangePinPageContent />
         </Suspense>
     );

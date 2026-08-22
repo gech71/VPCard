@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2, CreditCard, AlertTriangle, Info } from "lucide-react";
 import {
@@ -167,35 +168,42 @@ function RequestCardForm() {
 
   if (!accountNumber) return null;
 
+  const fieldsDisabled = loadingUser || !allowSelfRequest || hasPendingRequest;
+
   return (
-    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Button 
-        variant="ghost" 
-        className="mb-6 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+    <div className="mx-auto max-w-2xl animate-fade-in-up">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
         onClick={() => router.push("/")}
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
+        <ArrowLeft />
+        Back to dashboard
       </Button>
 
-      <Card className="border-2 shadow-lg overflow-hidden">
-        <div className="h-2 bg-primary w-full" />
-        <CardHeader className="space-y-1 pb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <CreditCard className="w-6 h-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">Request a New Card</CardTitle>
+      <Card className="overflow-hidden shadow-md">
+        <div aria-hidden="true" className="h-1.5 w-full bg-primary" />
+        <CardHeader className="pb-6">
+          <div className="mb-1 flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-muted text-primary-muted-foreground">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <CardTitle className="font-headline text-xl sm:text-2xl">
+              Request a New Card
+            </CardTitle>
           </div>
-          <CardDescription className="text-base">
-            Submit a request for a new prepaid card. Your request will be reviewed by a bank official.
+          <CardDescription>
+            Submit a request for a new prepaid card. Your request will be
+            reviewed by a bank official.
           </CardDescription>
         </CardHeader>
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             {!loadingUser && hasPendingRequest && (
-              <Alert>
-                <Info className="h-4 w-4" />
+              <Alert variant="warning" className="animate-fade-in">
+                <Info />
                 <AlertTitle>Card request pending</AlertTitle>
                 <AlertDescription>
                   Your card request is waiting for approval. You cannot submit
@@ -204,8 +212,8 @@ function RequestCardForm() {
               </Alert>
             )}
             {!loadingUser && !allowSelfRequest && !hasPendingRequest && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
+              <Alert variant="destructive" className="animate-fade-in">
+                <AlertTriangle />
                 <AlertTitle>Self-service requests disabled</AlertTitle>
                 <AlertDescription>
                   Your organization has not enabled self-initiated card requests.
@@ -213,42 +221,34 @@ function RequestCardForm() {
                 </AlertDescription>
               </Alert>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* <div className="space-y-3">
-                <Label htmlFor="accountNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  Linked Account
-                </Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone number</Label>
+              <div className="relative">
                 <Input
-                  id="accountNumber"
-                  value={accountNumber}
+                  id="phoneNumber"
+                  value={loadingUser ? "" : phoneNumber}
                   readOnly
-                  disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
-                  className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
+                  disabled={fieldsDisabled}
+                  className="h-11 font-mono"
                 />
-              </div> */}
-              <div className="space-y-3">
-                <Label htmlFor="phoneNumber" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  Phone Number
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="phoneNumber"
-                    value={loadingUser ? "Loading..." : phoneNumber}
-                    readOnly
-                    disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
-                    className="bg-muted font-mono text-lg h-12 border-none focus-visible:ring-0 cursor-not-allowed"
-                  />
-                  {loadingUser && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-muted-foreground" />}
-                </div>
+                {loadingUser && (
+                  <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                )}
               </div>
+              <p className="text-xs text-muted-foreground">
+                Taken from your registered account. It cannot be edited here.
+              </p>
             </div>
 
-            <div className="space-y-3">
-              <Label htmlFor="cardProgram" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Card product *
+            <div className="space-y-2">
+              <Label htmlFor="cardProgram">
+                Card product <span className="text-destructive">*</span>
               </Label>
-              {cardPrograms.length === 0 ? (
-                <p className="text-sm text-amber-700">
+              {loadingUser ? (
+                <Skeleton className="h-11 w-full" />
+              ) : cardPrograms.length === 0 ? (
+                <p className="rounded-md border border-warning/25 bg-warning-muted px-3 py-2.5 text-sm text-warning-muted-foreground">
                   {allowSelfRequest
                     ? "No additional self-service card types are available — you may already hold all offered products, or none are configured."
                     : "No card programs are available for self-service requests."}
@@ -257,9 +257,9 @@ function RequestCardForm() {
                 <Select
                   value={selectedCardProgram}
                   onValueChange={setSelectedCardProgram}
-                  disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
+                  disabled={fieldsDisabled}
                 >
-                  <SelectTrigger id="cardProgram" className="h-12 text-lg border-2">
+                  <SelectTrigger id="cardProgram" className="h-11">
                     <SelectValue placeholder="Select card type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -273,39 +273,43 @@ function RequestCardForm() {
               )}
             </div>
 
-            <div className="space-y-3">
-              <Label htmlFor="email" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Email Address *
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                Email address <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address for notifications"
-                className="h-12 text-lg border-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+                placeholder="you@example.com"
+                className="h-11"
                 required
-                disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
+                disabled={fieldsDisabled}
               />
+              <p className="text-xs text-muted-foreground">
+                We will send card notifications to this address.
+              </p>
             </div>
-            <div className="space-y-3">
-              <Label htmlFor="notes" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Additional Notes
-              </Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional notes</Label>
               <Textarea
                 id="notes"
-                className="min-h-[120px] resize-none text-base border-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+                className="min-h-[110px] resize-y"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Briefly describe the purpose of this card (e.g., Online Subscriptions, Business Expenses)"
-                disabled={loadingUser || !allowSelfRequest || hasPendingRequest}
+                placeholder="Briefly describe the purpose of this card (e.g., online subscriptions, business expenses)"
+                disabled={fieldsDisabled}
               />
             </div>
           </CardContent>
-          <CardFooter className="pt-2 pb-8">
+
+          <CardFooter className="pt-2">
             <Button
               type="submit"
-              className="w-full h-14 text-lg font-bold shadow-md hover:shadow-lg transition-all"
+              size="lg"
+              className="w-full"
               disabled={
                 isSubmitting ||
                 !allowSelfRequest ||
@@ -316,11 +320,11 @@ function RequestCardForm() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Processing Request...
+                  <Loader2 className="animate-spin" />
+                  Processing request&hellip;
                 </>
               ) : (
-                "Submit Card Request"
+                "Submit card request"
               )}
             </Button>
           </CardFooter>
@@ -330,17 +334,21 @@ function RequestCardForm() {
   );
 }
 
+function RequestCardFallback() {
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <Skeleton className="h-9 w-40" />
+      <Skeleton className="h-[36rem] w-full rounded-xl" />
+    </div>
+  );
+}
+
 export default function RequestCardPage() {
   return (
-    <div className="min-h-screen w-full bg-slate-50/50 dark:bg-slate-950">
+    <div className="min-h-dvh w-full bg-background">
       <DashboardHeader />
-      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-[50vh]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground font-medium">Loading request form...</p>
-            </div>
-        }>
+      <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <Suspense fallback={<RequestCardFallback />}>
           <RequestCardForm />
         </Suspense>
       </main>

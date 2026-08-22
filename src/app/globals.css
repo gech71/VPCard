@@ -4,76 +4,123 @@
 
 @layer base {
   :root {
-    --background: 40 50% 98%;
-    --foreground: 24 9.8% 10%;
+    /* Surfaces */
+    --background: 40 30% 98%;
+    --foreground: 24 12% 12%;
 
-    --card: 40 50% 100%;
-    --card-foreground: 24 9.8% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 12% 12%;
 
-    --popover: 40 50% 100%;
-    --popover-foreground: 24 9.8% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 12% 12%;
 
+    /* Brand */
     --primary: 38 92% 50%;
-    --primary-foreground: 24 9.8% 10%;
+    --primary-foreground: 24 20% 10%;
+    --primary-muted: 40 96% 93%;
+    --primary-muted-foreground: 30 90% 28%;
 
-    --secondary: 40 10% 96.1%;
-    --secondary-foreground: 24 9.8% 10%;
+    --secondary: 40 14% 95%;
+    --secondary-foreground: 24 12% 18%;
 
-    --muted: 40 10% 96.1%;
-    --muted-foreground: 24 5.9% 55.1%;
+    --muted: 40 14% 95.5%;
+    --muted-foreground: 24 7% 42%;
 
-    --accent: 40 10% 96.1%;
-    --accent-foreground: 24 9.8% 10%;
+    --accent: 40 14% 94%;
+    --accent-foreground: 24 12% 18%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    /* Status */
+    --destructive: 0 72% 47%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-muted: 0 86% 96%;
+    --destructive-muted-foreground: 0 70% 36%;
 
-    --border: 40 10% 91.4%;
-    --input: 40 10% 91.4%;
-    --ring: 38 92% 50%;
+    --success: 142 66% 30%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 143 60% 94%;
+    --success-muted-foreground: 143 68% 23%;
 
-    --chart-1: 12 76% 61%;
+    --warning: 35 92% 40%;
+    --warning-foreground: 0 0% 100%;
+    --warning-muted: 40 96% 92%;
+    --warning-muted-foreground: 30 88% 27%;
+
+    --info: 214 84% 45%;
+    --info-foreground: 0 0% 100%;
+    --info-muted: 213 95% 95%;
+    --info-muted-foreground: 214 82% 32%;
+
+    /* Lines & focus */
+    --border: 36 14% 89%;
+    --input: 36 14% 86%;
+    --ring: 38 92% 44%;
+
+    --shadow-color: 28 25% 20%;
+
+    --chart-1: 38 92% 50%;
     --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    
-    --radius: 0.5rem;
+    --chart-3: 214 84% 45%;
+    --chart-4: 280 55% 55%;
+    --chart-5: 0 72% 55%;
+
+    --radius: 0.625rem;
   }
+
   .dark {
-    --background: 24 9.8% 10%;
-    --foreground: 40 50% 98%;
+    --background: 24 12% 8%;
+    --foreground: 40 30% 96%;
 
-    --card: 24 9.8% 10%;
-    --card-foreground: 40 50% 98%;
+    --card: 24 10% 11%;
+    --card-foreground: 40 30% 96%;
 
-    --popover: 24 9.8% 10%;
-    --popover-foreground: 40 50% 98%;
-    
-    --primary: 38 92% 50%;
-    --primary-foreground: 24 9.8% 10%;
+    --popover: 24 10% 11%;
+    --popover-foreground: 40 30% 96%;
 
-    --secondary: 24 3.7% 15.9%;
-    --secondary-foreground: 40 50% 98%;
+    --primary: 38 92% 52%;
+    --primary-foreground: 24 25% 10%;
+    --primary-muted: 33 45% 18%;
+    --primary-muted-foreground: 40 92% 72%;
 
-    --muted: 24 3.7% 15.9%;
-    --muted-foreground: 24 5.9% 65.1%;
-    
-    --accent: 24 3.7% 15.9%;
-    --accent-foreground: 40 50% 98%;
+    --secondary: 24 8% 17%;
+    --secondary-foreground: 40 30% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --muted: 24 8% 16%;
+    --muted-foreground: 30 8% 66%;
 
-    --border: 24 3.7% 15.9%;
-    --input: 24 3.7% 15.9%;
-    --ring: 38 92% 50%;
-    
-    --chart-1: 220 70% 50%;
+    --accent: 24 8% 19%;
+    --accent-foreground: 40 30% 96%;
+
+    --destructive: 0 68% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-muted: 0 45% 18%;
+    --destructive-muted-foreground: 0 85% 80%;
+
+    --success: 142 62% 42%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 143 40% 16%;
+    --success-muted-foreground: 142 62% 72%;
+
+    --warning: 38 88% 52%;
+    --warning-foreground: 24 25% 10%;
+    --warning-muted: 34 45% 18%;
+    --warning-muted-foreground: 40 90% 72%;
+
+    --info: 214 88% 60%;
+    --info-foreground: 0 0% 100%;
+    --info-muted: 214 45% 19%;
+    --info-muted-foreground: 213 92% 78%;
+
+    --border: 24 7% 21%;
+    --input: 24 7% 24%;
+    --ring: 38 92% 52%;
+
+    --shadow-color: 0 0% 0%;
+
+    --chart-1: 38 92% 55%;
     --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-3: 214 88% 62%;
+    --chart-4: 280 60% 65%;
+    --chart-5: 0 72% 62%;
   }
 }
 
@@ -81,7 +128,124 @@
   * {
     @apply border-border;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* One consistent focus treatment across every interactive element. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring/60 ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    @apply bg-primary/25 text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-headline tracking-tight;
+    text-wrap: balance;
+  }
+
+  /* Long descriptive copy reads better without orphans. */
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Slimmer, theme-aware scrollbars for the many scroll regions in the app. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-[3px] border-solid border-transparent bg-border bg-clip-content;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/45 bg-clip-content;
+  }
+
+  /* Date inputs: make the native picker icon follow the theme. */
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  .dark input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.65);
+  }
+}
+
+@layer components {
+  /* Skeleton sheen — used by <Skeleton /> and table loading rows. */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .skeleton-shimmer::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-foreground/[0.06] to-transparent;
+    content: '';
+  }
+
+  /* Tables that scroll inside a card keep their header pinned. */
+  .table-sticky-head thead th {
+    @apply sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80;
+  }
+
+  /* Staggered list/card entrances without per-item inline styles. */
+  .stagger-children > * {
+    @apply animate-fade-in-up;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 45ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 90ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 135ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 180ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 225ms; }
+}
+
+@layer utilities {
+  /* Horizontal scrollers (mobile nav, wide tables) without a visible bar. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
