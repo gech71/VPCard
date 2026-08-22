@@ -6,7 +6,6 @@ import { encryptCardData } from "@/lib/card-encryption";
 import { z } from "zod";
 import { fetchPss } from "@/lib/pss-fetch";
 import { buildPssVirtualCardInitiator } from "@/lib/pss-virtual-card";
-import { activatePssEcommerce } from "@/lib/pss-ecommerce-activation";
 import {
   fetchPssCardListByCustomerId,
   resolveCustomertypeFromCardBins,
@@ -103,10 +102,9 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      const ecommerceActivationUrl = process.env.ECOMMERCE_ACTIVATION_URL || "";
-      const ecommerceActivationBankCode =
-        process.env.CARD_LIST_BANK_CODE || cardListInstitution || "";
-      const ecommerceActivationKey = process.env.ECOMMERCE_ACTIVATION_KEY || "";
+      // NOTE: e-commerce activation is intentionally NOT performed here. Approval
+      // only creates the card at PSS and leaves `ecommerceActivated` false. A
+      // checker activates it separately via POST /api/ecommerce-activation/[id].
 
       const allPrograms = await prisma.cardProgram.findMany({
         select: { bin: true },
@@ -187,40 +185,6 @@ export async function PATCH(request: NextRequest) {
             );
           }
 
-          if (!ecommerceActivationBankCode) {
-            return NextResponse.json(
-              {
-                error: "Server configuration error for ecommerce activation",
-              },
-              { status: 500 },
-            );
-          }
-
-          const activationDelayMs = 3000;
-
-          await new Promise((resolve) =>
-            setTimeout(resolve, activationDelayMs),
-          );
-
-          try {
-            await activatePssEcommerce({
-              url: ecommerceActivationUrl,
-              apiKey: ecommerceActivationKey,
-              idmsg,
-              bankcode: ecommerceActivationBankCode,
-              card: panPlaintext,
-            });
-          } catch (err) {
-            return NextResponse.json(
-              {
-                error:
-                  "PSS Ecommerce Activation Error: " +
-                  (err instanceof Error ? err.message : "Unknown error"),
-              },
-              { status: 400 },
-            );
-          }
-
           // Encrypt PAN and expiryDate before storage (PCI DSS Requirement 3.4)
           const encryptionSecret = process.env.ENCRYPTION_SECRET_KEY || "";
 
@@ -235,116 +199,6 @@ export async function PATCH(request: NextRequest) {
           // CVV is intentionally NOT stored - PCI DSS strictly prohibits storing CVV after authorization
           // CVV should only exist in memory briefly and be discarded
         } else {
-          if (
-            statusObj?.errordesc ===
-            "Customer has already card with the same card program"
-          ) {
-            const listCards1 = await fetchPssCardListByCustomerId({
-              customerId: String(cardRequest.customerId),
-              institution: String(cardListInstitution),
-              cardListUrl,
-              apiKey,
-              idmsg,
-            });
-
-            const matchingCard = listCards1.find((card) =>
-              String(card.clearpan).startsWith("52624735"),
-            );
-
-            if (!matchingCard) {
-              return NextResponse.json(
-                {
-                  error: "No card found with clearpan starting with 52624735",
-                },
-                { status: 400 },
-              );
-            }
-
-            // Extract the PAN and expiry
-            const panPlaintext1 = matchingCard.clearpan;
-            const expiryDatePlaintext1 = matchingCard.expiry;
-
-            console.log({
-              matchingCard,
-              panPlaintext1,
-              expiryDatePlaintext1,
-            });
-
-            try {
-              const ecommerceActivationUrl1 =
-                process.env.ECOMMERCE_ACTIVATION_URL || "";
-
-              const ecommerceActivationBankCode1 =
-                process.env.CARD_LIST_BANK_CODE || cardListInstitution || "";
-
-              const ecommerceActivationKey1 =
-                process.env.ECOMMERCE_ACTIVATION_KEY || "";
-
-              await activatePssEcommerce({
-                url: ecommerceActivationUrl1,
-                apiKey: ecommerceActivationKey1,
-                idmsg,
-                bankcode: ecommerceActivationBankCode1,
-                card: panPlaintext1,
-              });
-
-              const encryptionSecret1 = process.env.ENCRYPTION_SECRET_KEY || "";
-
-              pan = panPlaintext1
-                ? encryptCardData(panPlaintext1, encryptionSecret1)
-                : null;
-
-              expiryDate = expiryDatePlaintext1
-                ? encryptCardData(expiryDatePlaintext1, encryptionSecret1)
-                : null;
-
-              // Update the request
-              const updatedRequest = await prisma.cardRequest.update({
-                where: { id: requestId },
-                data: {
-                  status: action === "APPROVE" ? "APPROVED" : "REJECTED",
-                  reviewedBy: currentUser.userId,
-                  reviewedAt: new Date(),
-                  reviewNotes,
-                  pan,
-                  expiryDate,
-                },
-              });
-
-              // Create audit log
-              const auditAction =
-                action === "APPROVE" ? "APPROVE_REQUEST" : "REJECT_REQUEST";
-
-              await createAuditLog({
-                actorType: "USER", // Checker is a USER actor
-                actorId: currentUser.userId,
-                actorEmail: currentUser.email,
-                action: auditAction,
-                entityType: "CARD_REQUEST",
-                entityId: cardRequest.id,
-                cardRequestId: cardRequest.id,
-                details: {
-                  accountNumber: cardRequest.accountNumber,
-                  customerName: cardRequest.customerName,
-                  reviewNotes,
-                },
-              });
-
-              return NextResponse.json({
-                success: true,
-                request: updatedRequest,
-              });
-            } catch (err) {
-              return NextResponse.json(
-                {
-                  error:
-                    "PSS Ecommerce Activation Error: " +
-                    (err instanceof Error ? err.message : "Unknown error"),
-                },
-                { status: 400 },
-              );
-            }
-          } else {
             return NextResponse.json(
               {
                 error:
@@ -352,7 +206,6 @@ export async function PATCH(request: NextRequest) {
               },
               { status: 400 },
             );
-          }
         }
       } catch (err) {
         return NextResponse.json(

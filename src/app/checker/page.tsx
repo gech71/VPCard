@@ -29,7 +29,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AppHeader from "@/components/app-header";
 import PageHeader from "@/components/page-header";
 import StatCard from "@/components/stat-card";
 import StatusBadge from "@/components/status-badge";
@@ -231,19 +230,11 @@ export default function CheckerDashboard() {
   ).length;
 
   return (
-    <div className="min-h-dvh bg-background">
-      <AppHeader
-        title="NIB Prepaid Card"
-        subtitle="Checker dashboard"
-        role="Checker"
-        showLogout
+    <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <PageHeader
+        title="Card requests"
+        description="Review the prepaid card requests assigned to you and approve or reject them. E-commerce activation is handled separately."
       />
-
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <PageHeader
-          title="Checker dashboard"
-          description="Review the prepaid card requests assigned to you and approve or reject them."
-        />
 
         <div className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
@@ -705,7 +696,6 @@ export default function CheckerDashboard() {
             </form>
           </DialogContent>
         </Dialog>
-      </main>
-    </div>
+    </main>
   );
 }

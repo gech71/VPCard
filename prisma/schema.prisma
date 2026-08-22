@@ -92,7 +92,14 @@ model CardRequest {
   pan             String?
   // CVV removed - PCI DSS prohibits storing CVV after authorization
   expiryDate      String?
-  
+
+  // E-commerce activation - deliberately decoupled from card approval.
+  // Approval creates the card at PSS and leaves this false; a checker then
+  // activates e-commerce explicitly from the dedicated activation screen.
+  ecommerceActivated   Boolean   @default(false)
+  ecommerceActivatedAt DateTime?
+  ecommerceActivatedBy String?
+
   // Maker who created the request
   makerId         String
   maker           User          @relation("MakerRequests", fields: [makerId], references: [id])

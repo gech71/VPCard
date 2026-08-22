@@ -65,6 +65,9 @@ CREATE TABLE "card_requests" (
     "reviewNotes" TEXT,
     "pan" TEXT,
     "expiryDate" TEXT,
+    "ecommerceActivated" BOOLEAN NOT NULL DEFAULT false,
+    "ecommerceActivatedAt" TIMESTAMP(3),
+    "ecommerceActivatedBy" TEXT,
     "makerId" TEXT NOT NULL,
     "checkerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -125,6 +128,18 @@ CREATE TABLE "customer_lookups" (
 );
 
 -- CreateTable
+CREATE TABLE "currencies" (
+    "id" TEXT NOT NULL,
+    "curIde" TEXT NOT NULL,
+    "curLabel" TEXT NOT NULL,
+    "curAlphaCode" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "currencies_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "customer_id_mappings" (
     "id" TEXT NOT NULL,
     "nibCusId" TEXT NOT NULL,
@@ -146,6 +161,9 @@ CREATE UNIQUE INDEX "settings_key_key" ON "settings"("key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "revoked_tokens_token_key" ON "revoked_tokens"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "currencies_curIde_key" ON "currencies"("curIde");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "customer_id_mappings_nibCusId_pssCusId_key" ON "customer_id_mappings"("nibCusId", "pssCusId");
