@@ -34,6 +34,22 @@ export function readPaymentEnv(): PaymentEnv | null {
       : "");
 
   if (!paymentUrl || !accountNo || !companyName || !paymentKey || !callbackUrl) {
+    // Named in the log so a 503 points straight at what is unset, without
+    // leaking configuration to the Guest.
+    const missing = [
+      ["NIB_PAYMENT_URL", paymentUrl],
+      ["NIB_PAYMENT_ACCOUNT_NO", accountNo],
+      ["NIB_PAYMENT_COMPANY_NAME", companyName],
+      ["NIB_PAYMENT_KEY", paymentKey],
+      ["NIB_PAYMENT_CALLBACK_URL (or NEXT_PUBLIC_BASE_URL)", callbackUrl],
+    ]
+      .filter(([, v]) => !v)
+      .map(([k]) => k);
+
+    console.error(
+      `[nib-payment] payments are not configured; missing: ${missing.join(", ")}`,
+    );
+
     return null;
   }
 
@@ -77,7 +93,14 @@ export function buildPaymentSignature(input: {
 
 export type InitiatePaymentResult =
   | { ok: true; paymentToken: string; transactionId: string; transactionTime: string; amount: string }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /** HTTP status from the bank, when it answered at all. */
+      status?: number;
+      /** The bank's own words, for the server log. Never shown to the Guest. */
+      detail?: string;
+    };
 
 /** Step 3: request a payment token for `amount` on behalf of the Guest. */
 export async function requestPaymentToken(input: {
@@ -123,7 +146,33 @@ export async function requestPaymentToken(input: {
     });
 
     if (!response.ok) {
-      return { ok: false, error: `Payment service returned ${response.status}` };
+      // Read the body: a bare status code is not enough to tell an expired
+      // token from a bad signature from a wrong account number.
+      const detail = await response.text().catch(() => "");
+
+      console.error(
+        `[nib-payment] payment token request failed: ${response.status} ${response.statusText}`,
+        {
+          url: env.paymentUrl,
+          accountNo: env.accountNo,
+          companyName: env.companyName,
+          callBackURL: env.callbackUrl,
+          transactionId,
+          transactionTime,
+          amount,
+          // Enough to spot a truncated or prefixed token without logging it.
+          tokenLength: token.length,
+          tokenPreview: `${token.slice(0, 6)}…${token.slice(-4)}`,
+          response: detail.slice(0, 500),
+        },
+      );
+
+      return {
+        ok: false,
+        error: `Payment service returned ${response.status}`,
+        status: response.status,
+        detail,
+      };
     }
 
     const data = await response.json();
@@ -134,7 +183,11 @@ export async function requestPaymentToken(input: {
     }
 
     return { ok: true, paymentToken, transactionId, transactionTime, amount };
-  } catch {
+  } catch (err) {
+    console.error("[nib-payment] could not reach the payment service", {
+      url: env.paymentUrl,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return { ok: false, error: "Could not reach the payment service" };
   }
 }

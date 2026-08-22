@@ -102,10 +102,25 @@ export async function getDecryptedMiniAppToken(): Promise<string | null> {
   if (!cookie?.value) return null;
 
   try {
-    return decrypt(cookie.value) || null;
+    const raw = decrypt(cookie.value);
+    if (!raw) return null;
+
+    // Defensive: an earlier build stored the header verbatim, prefix and all.
+    // Stripping it here means a cookie written by that build heals itself
+    // instead of sending "Bearer Bearer <token>" and drawing a 401.
+    return raw.replace(/^Bearer\s+/i, "").trim() || null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Drops the stored MiniApp token. Called when the bank rejects it, so the next
+ * page load captures a fresh one rather than retrying a token we know is bad.
+ */
+export async function clearMiniAppTokenCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(TOKEN_COOKIE_NAME, "", { maxAge: 0, path: "/" });
 }
 
 export async function getDecryptedPhoneFromCookie(): Promise<string | null> {
