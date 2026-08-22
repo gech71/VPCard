@@ -47,6 +47,7 @@ import EmptyState from "@/components/empty-state";
 import StatusBadge from "@/components/status-badge";
 import DataPagination from "@/components/data-pagination";
 import { usePagination } from "@/hooks/use-pagination";
+import TermsAgreement, { type PublishedTerms } from "@/components/terms-agreement";
 import {
   ChevronDown,
   FileText,
@@ -109,6 +110,12 @@ export default function MakerDashboard() {
   const [makerPhone, setMakerPhone] = useState("");
   const [makerEmail, setMakerEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Terms & Conditions gate for the create-request dialog. When nothing is
+  // published there is nothing to agree to and the dialog behaves as before.
+  const [terms, setTerms] = useState<PublishedTerms | null>(null);
+  const [termsLoaded, setTermsLoaded] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [cardPrograms, setCardPrograms] = useState<ProgramOption[]>([]);
   const [selectedCardProgram, setSelectedCardProgram] = useState("");
 
@@ -305,6 +312,8 @@ export default function MakerDashboard() {
           checkerId: selectedChecker,
           cardProgramCode: selectedCardProgram,
           notes: requestNotes,
+          termsAccepted: terms ? termsAccepted : undefined,
+          termsVersionId: terms?.id,
         }),
       });
 
@@ -332,6 +341,8 @@ export default function MakerDashboard() {
       setMakerPhone("");
       setMakerEmail("");
       setSelectedCardProgram("");
+      // Each request needs its own explicit agreement.
+      setTermsAccepted(false);
       fetchRequests();
     } catch (error) {
       toast({
@@ -603,7 +614,14 @@ export default function MakerDashboard() {
         </div>
 
         {/* Create Request Dialog */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog
+          open={isCreateOpen}
+          onOpenChange={(open) => {
+            setIsCreateOpen(open);
+            // Reopening the dialog must ask for the agreement again.
+            if (!open) setTermsAccepted(false);
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create card request</DialogTitle>
@@ -723,6 +741,17 @@ export default function MakerDashboard() {
                 />
               </div>
 
+              <TermsAgreement
+                accepted={termsAccepted}
+                onAcceptedChange={setTermsAccepted}
+                onTermsLoaded={(t) => {
+                  setTerms(t);
+                  setTermsLoaded(true);
+                }}
+                disabled={submitting}
+                className="border-t border-border pt-5"
+              />
+
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
@@ -737,7 +766,11 @@ export default function MakerDashboard() {
                     submitting ||
                     !selectedChecker ||
                     !selectedCardProgram ||
-                    cardPrograms.length === 0
+                    cardPrograms.length === 0 ||
+                    // Hold submission until the terms have loaded, then until
+                    // they are actually agreed to.
+                    !termsLoaded ||
+                    (terms !== null && !termsAccepted)
                   }
                 >
                   {submitting ? (

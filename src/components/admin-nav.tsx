@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ClipboardList,
+  FileText,
   CreditCard,
   LayoutDashboard,
   ScrollText,
@@ -19,6 +20,7 @@ const links = [
   { href: "/admin/requests", label: "Card Requests", icon: CreditCard },
   { href: "/admin/audit", label: "Audit Logs", icon: ScrollText },
   { href: "/admin/customer-mapping", label: "Customer Mapping", icon: ClipboardList },
+  { href: "/admin/terms", label: "Terms & Conditions", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 

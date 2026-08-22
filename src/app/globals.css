@@ -193,6 +193,74 @@
 }
 
 @layer components {
+  /*
+   * Terms & Conditions typography. Shared by the Super Admin editor, the
+   * preview, and the block requesters read before submitting - one rule set,
+   * so what an author sees while writing is what a requester gets.
+   */
+  .terms-prose {
+    @apply text-sm leading-relaxed text-foreground;
+  }
+
+  .terms-prose > * + * {
+    @apply mt-3;
+  }
+
+  .terms-prose h1 {
+    @apply mt-6 font-headline text-xl font-bold tracking-tight first:mt-0;
+  }
+
+  .terms-prose h2 {
+    @apply mt-5 font-headline text-lg font-semibold tracking-tight first:mt-0;
+  }
+
+  .terms-prose h3 {
+    @apply mt-4 text-base font-semibold first:mt-0;
+  }
+
+  .terms-prose p {
+    @apply leading-relaxed;
+  }
+
+  .terms-prose ul {
+    @apply list-disc space-y-1 pl-6;
+  }
+
+  .terms-prose ol {
+    @apply list-decimal space-y-1 pl-6;
+  }
+
+  .terms-prose li > ul,
+  .terms-prose li > ol {
+    @apply mt-1;
+  }
+
+  .terms-prose a {
+    @apply font-medium text-primary underline underline-offset-2 hover:text-primary/80;
+  }
+
+  .terms-prose strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .terms-prose blockquote {
+    @apply border-l-2 border-border pl-4 italic text-muted-foreground;
+  }
+
+  .terms-prose hr {
+    @apply my-5 border-border;
+  }
+
+  .terms-prose code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.8125rem];
+  }
+
+  /* ProseMirror placeholder for a document with nothing in it yet. */
+  .terms-prose p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground/70;
+    content: attr(data-placeholder);
+  }
+
   /* Skeleton sheen — used by <Skeleton /> and table loading rows. */
   .skeleton-shimmer {
     @apply relative overflow-hidden;

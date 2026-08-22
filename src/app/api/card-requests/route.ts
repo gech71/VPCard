@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
+import { resolveTermsAcceptance } from "@/lib/terms";
 import { z } from "zod";
 import {
   assertCardProgramAllowed,
@@ -32,6 +33,10 @@ const createRequestSchema = z.object({
     .min(1, "Card program is required")
     .regex(/^\d+$/, "Invalid card program code"),
   notes: z.string().optional(),
+  // Agreement to the Terms & Conditions in force. Enforced server-side -
+  // the checkbox on the form is a convenience, not the control.
+  termsAccepted: z.boolean().optional(),
+  termsVersionId: z.string().optional(),
 });
 
 // Create a new card request (Maker only)
@@ -69,7 +74,18 @@ export async function POST(request: NextRequest) {
       checkerId,
       cardProgramCode,
       notes,
+      termsAccepted,
+      termsVersionId,
     } = validation.data;
+
+    // Refuse the request outright unless the submitter agreed to the terms
+    // currently in force. Returns the columns that record which version was
+    // accepted and when.
+    const terms = await resolveTermsAcceptance({ termsAccepted, termsVersionId });
+
+    if (!terms.ok) {
+      return NextResponse.json({ error: terms.error }, { status: 400 });
+    }
 
     const programAllowed = await assertCardProgramAllowed(
       cardProgramCode,
@@ -172,6 +188,7 @@ export async function POST(request: NextRequest) {
         branchCode: pssMeta.branchcode || null,
         genderCode: pssMeta.gender,
         title: pssMeta.title || null,
+        ...terms.data,
       },
     });
 
@@ -197,6 +214,24 @@ export async function POST(request: NextRequest) {
       cardRequestId: cardRequest.id,
       details: { assignedTo: checker.email },
     });
+
+    // Surface the agreement in the audit trail as well as on the request row.
+    if (terms.data.termsVersionId) {
+      await createAuditLog({
+        actorType: "USER",
+        actorId: currentUser.userId,
+        actorEmail: currentUser.email,
+        action: "ACCEPT_TERMS",
+        entityType: "TERMS",
+        entityId: terms.data.termsVersionId,
+        cardRequestId: cardRequest.id,
+        details: {
+          event: "ACCEPT_TERMS",
+          termsVersion: terms.data.termsVersionNo,
+          acceptedAt: terms.data.termsAcceptedAt?.toISOString(),
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

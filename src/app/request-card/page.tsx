@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
+import TermsAgreement, { type PublishedTerms } from "@/components/terms-agreement";
 
 function RequestCardForm() {
   const router = useRouter();
@@ -38,6 +39,12 @@ function RequestCardForm() {
   const [selectedCardProgram, setSelectedCardProgram] = useState("");
   const [allowSelfRequest, setAllowSelfRequest] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
+
+  // Terms & Conditions gate. When nothing is published there is nothing to
+  // agree to, so the submit button is not held hostage to a missing document.
+  const [terms, setTerms] = useState<PublishedTerms | null>(null);
+  const [termsLoaded, setTermsLoaded] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!accountNumber) {
@@ -135,6 +142,8 @@ function RequestCardForm() {
             customerPhone: normalizedPhone,
             cardProgramCode: selectedCardProgram,
             notes,
+            termsAccepted: terms ? termsAccepted : undefined,
+            termsVersionId: terms?.id,
         }),
       });
 
@@ -303,6 +312,17 @@ function RequestCardForm() {
                 disabled={fieldsDisabled}
               />
             </div>
+
+            <TermsAgreement
+              accepted={termsAccepted}
+              onAcceptedChange={setTermsAccepted}
+              onTermsLoaded={(t) => {
+                setTerms(t);
+                setTermsLoaded(true);
+              }}
+              disabled={fieldsDisabled}
+              className="border-t border-border pt-5"
+            />
           </CardContent>
 
           <CardFooter className="pt-2">
@@ -315,7 +335,11 @@ function RequestCardForm() {
                 !allowSelfRequest ||
                 hasPendingRequest ||
                 cardPrograms.length === 0 ||
-                !selectedCardProgram
+                !selectedCardProgram ||
+                // Hold submission until the terms have loaded, then until
+                // they are actually agreed to.
+                !termsLoaded ||
+                (terms !== null && !termsAccepted)
               }
             >
               {isSubmitting ? (

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/jwt-auth";
 import { getDecryptedPhoneFromCookie } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { resolveTermsAcceptance } from "@/lib/terms";
 import { z } from "zod";
 import {
   assertCardProgramAllowed,
@@ -33,6 +34,10 @@ const selfRequestSchema = z.object({
     return phone;
   }, z.string().regex(/^\+251(9|7)\d{8}$/, "Invalid phone format")).optional(),
   notes: z.string().optional(),
+  // Agreement to the Terms & Conditions in force. Enforced server-side -
+  // the checkbox on the form is a convenience, not the control.
+  termsAccepted: z.boolean().optional(),
+  termsVersionId: z.string().optional(),
 });
 
 // Create a self-initiated card request
@@ -105,7 +110,18 @@ export async function POST(request: NextRequest) {
       customerPhone: providedPhone,
       notes,
       cardProgramCode,
+      termsAccepted,
+      termsVersionId,
     } = validation.data;
+
+    // Refuse the request outright unless the submitter agreed to the terms
+    // currently in force. Returns the columns that record which version was
+    // accepted and when.
+    const terms = await resolveTermsAcceptance({ termsAccepted, termsVersionId });
+
+    if (!terms.ok) {
+      return NextResponse.json({ error: terms.error }, { status: 400 });
+    }
 
     const programAllowed = await assertCardProgramAllowed(
       cardProgramCode,
@@ -221,6 +237,7 @@ export async function POST(request: NextRequest) {
         branchCode: pssMeta.branchcode || null,
         genderCode: pssMeta.gender,
         title: pssMeta.title || null,
+        ...terms.data,
       },
     });
 
@@ -245,6 +262,24 @@ export async function POST(request: NextRequest) {
         authType: currentUser ? "JWT" : "PHONE",
       },
     });
+    // Surface the agreement in the audit trail as well as on the request row.
+    if (terms.data.termsVersionId) {
+      await createAuditLog({
+        actorType,
+        actorId: logUserId || "PHONE_USER",
+        actorEmail: currentUser?.email || phoneNumber || "unknown",
+        action: "ACCEPT_TERMS",
+        entityType: "TERMS",
+        entityId: terms.data.termsVersionId,
+        cardRequestId: cardRequest.id,
+        details: {
+          event: "ACCEPT_TERMS",
+          termsVersion: terms.data.termsVersionNo,
+          acceptedAt: terms.data.termsAcceptedAt?.toISOString(),
+          isSelfRequest: true,
+        },
+      });
+    }
 
     await createAuditLog({
       actorType,

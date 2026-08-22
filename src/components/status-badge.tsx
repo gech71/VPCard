@@ -1,7 +1,9 @@
 import {
+  Archive,
   CheckCircle2,
   CircleDot,
   Clock,
+  PenLine,
   ShieldAlert,
   XCircle,
 } from "lucide-react";
@@ -31,6 +33,10 @@ const TONES: Record<string, { tone: Tone; icon?: typeof Clock }> = {
   SUPER_ADMIN: { tone: "danger", icon: ShieldAlert },
   MAKER: { tone: "success" },
   CHECKER: { tone: "info" },
+  // Terms & Conditions lifecycle
+  DRAFT: { tone: "warning", icon: PenLine },
+  PUBLISHED: { tone: "success", icon: CheckCircle2 },
+  ARCHIVED: { tone: "neutral", icon: Archive },
   // Import rows
   VALID: { tone: "success" },
   DUPLICATE: { tone: "warning" },

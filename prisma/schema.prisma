@@ -18,6 +18,12 @@ enum RequestStatus {
   REJECTED
 }
 
+enum TermsStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -118,6 +124,14 @@ model CardRequest {
   ecommerceActivatedAt DateTime?
   ecommerceActivatedBy String?
 
+  // Terms & Conditions accepted when this request was submitted. Recorded per
+  // request so the exact wording someone agreed to stays recoverable after the
+  // terms are later edited or superseded.
+  termsVersionId  String?
+  termsVersion    TermsVersion? @relation(fields: [termsVersionId], references: [id])
+  termsVersionNo  Int?
+  termsAcceptedAt DateTime?
+
   // Maker who created the request
   makerId         String
   maker           User          @relation("MakerRequests", fields: [makerId], references: [id])
@@ -170,6 +184,29 @@ model Settings {
   createdAt DateTime @default(now())
 
   @@map("settings")
+}
+
+/// Versioned Terms & Conditions shown before a card request is submitted.
+/// Content is a ProseMirror document, not HTML: the editor schema is the
+/// allowlist, so nothing outside the supported nodes and marks can round-trip
+/// into a requester browser. Published rows are immutable - changing the terms
+/// means publishing a new version, which keeps every acceptance meaningful.
+model TermsVersion {
+  id          String      @id @default(uuid())
+  /// Assigned on publish, so drafts do not consume a number.
+  version     Int?        @unique
+  title       String
+  content     Json
+  status      TermsStatus @default(DRAFT)
+  createdBy   String?
+  publishedBy String?
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  acceptances CardRequest[]
+
+  @@map("terms_versions")
 }
 
 model RevokedToken {

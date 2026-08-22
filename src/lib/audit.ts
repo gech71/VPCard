@@ -11,6 +11,11 @@ export type AuditAction =
   | "CHANGE_PASSWORD"
   | "REQUEST_EMAIL_CHANGE"
   | "CHANGE_EMAIL"
+  | "CREATE_TERMS"
+  | "UPDATE_TERMS"
+  | "PUBLISH_TERMS"
+  | "DELETE_TERMS"
+  | "ACCEPT_TERMS"
   | "CREATE_REQUEST"
   | "SELF_REQUEST"
   | "ASSIGN_REQUEST"
@@ -24,7 +29,12 @@ export type AuditAction =
   | "VIEW_LIMITS"
   | "VIEW_TRANSACTIONS";
 
-export type AuditEntityType = "USER" | "CARD_REQUEST" | "AUTH" | "CARD";
+export type AuditEntityType =
+  | "USER"
+  | "CARD_REQUEST"
+  | "AUTH"
+  | "CARD"
+  | "TERMS";
 export type AuditActorType = "USER" | "SYSTEM" | "ADMIN";
 
 interface AuditLogParams {
