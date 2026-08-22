@@ -128,6 +128,9 @@ export async function POST() {
           // The bank's own words, surfaced in Audit Logs so a Super Admin can
           // diagnose this without shell access to the server.
           bankResponse: result.detail?.slice(0, 500),
+          // The exact signed text, key masked. Compare field by field with NIB
+          // when the bank reports a signature problem.
+          signatureBase: result.signatureBase,
           paymentUrl: env.paymentUrl,
           accountNo: env.accountNo,
           companyName: env.companyName,

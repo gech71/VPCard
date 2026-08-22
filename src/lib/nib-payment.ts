@@ -22,18 +22,29 @@ export type PaymentEnv = {
 };
 
 export function readPaymentEnv(): PaymentEnv | null {
-  const paymentUrl = process.env.NIB_PAYMENT_URL || "";
-  const accountNo = process.env.NIB_PAYMENT_ACCOUNT_NO || "";
-  const companyName = process.env.NIB_PAYMENT_COMPANY_NAME || "";
-  const paymentKey = process.env.NIB_PAYMENT_KEY || "";
+  // Trimmed because every one of these is signed verbatim: a trailing space or
+  // stray CR in the .env file changes the hash and the bank rejects the call
+  // with "Invalid data signature", giving no clue that whitespace is to blame.
+  const env = (name: string) => (process.env[name] || "").trim();
+
+  const paymentUrl = env("NIB_PAYMENT_URL");
+  const accountNo = env("NIB_PAYMENT_ACCOUNT_NO");
+  const companyName = env("NIB_PAYMENT_COMPANY_NAME");
+  const paymentKey = env("NIB_PAYMENT_KEY");
 
   const callbackUrl =
-    process.env.NIB_PAYMENT_CALLBACK_URL ||
-    (process.env.NEXT_PUBLIC_BASE_URL
-      ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/payments/callback`
+    env("NIB_PAYMENT_CALLBACK_URL") ||
+    (env("NEXT_PUBLIC_BASE_URL")
+      ? `${env("NEXT_PUBLIC_BASE_URL")}/api/payments/callback`
       : "");
 
-  if (!paymentUrl || !accountNo || !companyName || !paymentKey || !callbackUrl) {
+  if (
+    !paymentUrl ||
+    !accountNo ||
+    !companyName ||
+    !paymentKey ||
+    !callbackUrl
+  ) {
     // Named in the log so a 503 points straight at what is unset, without
     // leaking configuration to the Guest.
     const missing = [
@@ -59,14 +70,26 @@ export function readPaymentEnv(): PaymentEnv | null {
     companyName,
     callbackUrl,
     paymentKey,
-    statusUrl: process.env.NIB_PAYMENT_STATUS_URL || undefined,
-    validateUrl: process.env.TOKEN_VALIDATION_ENDPOINT || undefined,
+    statusUrl: env("NIB_PAYMENT_STATUS_URL") || undefined,
+    validateUrl: env("TOKEN_VALIDATION_ENDPOINT") || undefined,
   };
 }
 
 /**
- * The step 3 signature. Field order is fixed by the integration guideline and
- * must not be re-sorted - the bank rebuilds this exact string to verify.
+ * Renders the amount exactly as the guideline's `String(amount)` does: 500
+ * becomes "500", 99.5 becomes "99.5". No thousands separators, no forced
+ * decimals, and never exponent notation - the signed text and the sent text
+ * have to be byte-identical to what the bank re-derives.
+ */
+export function formatPaymentAmount(amount: number): string {
+  // Deliberately the guideline's own expression, not a reformatting of it.
+  return String(amount);
+}
+
+/**
+ * The step 3 signature. Field order and capitalization are fixed by the
+ * integration guideline - `callBackURL` and `Key` are cased exactly as shown -
+ * and must not be re-sorted, because the bank rebuilds this exact string.
  */
 export function buildPaymentSignature(input: {
   env: PaymentEnv;
@@ -77,22 +100,67 @@ export function buildPaymentSignature(input: {
 }): string {
   const { env, amount, token, transactionId, transactionTime } = input;
 
-  const signatureString = [
+  const signatureString = buildSignatureBase({
+    env,
+    amount,
+    token,
+    transactionId,
+    transactionTime,
+    key: env.paymentKey,
+  });
+
+  return crypto
+    .createHash("sha256")
+    .update(signatureString, "utf8")
+    .digest("hex");
+}
+
+/**
+ * The exact text that gets hashed. Split out so the failure path can log it
+ * with the key redacted - when the bank says "Invalid data signature" the only
+ * way to find the offending field is to compare this string against theirs.
+ */
+function buildSignatureBase(input: {
+  env: PaymentEnv;
+  amount: string;
+  token: string;
+  transactionId: string;
+  transactionTime: string;
+  key: string;
+}): string {
+  const { env, amount, token, transactionId, transactionTime, key } = input;
+
+  return [
     `accountNo=${env.accountNo}`,
     `amount=${amount}`,
     `callBackURL=${env.callbackUrl}`,
     `companyName=${env.companyName}`,
-    `Key=${env.paymentKey}`,
+    `Key=${key}`,
     `token=${token}`,
     `transactionId=${transactionId}`,
     `transactionTime=${transactionTime}`,
   ].join("&");
+}
 
-  return crypto.createHash("sha256").update(signatureString, "utf8").digest("hex");
+/** The signature base with the shared key masked, safe to log. */
+export function redactedSignatureBase(input: {
+  env: PaymentEnv;
+  amount: string;
+  token: string;
+  transactionId: string;
+  transactionTime: string;
+}): string {
+  return buildSignatureBase({ ...input, key: "<KEY>" });
 }
 
 export type InitiatePaymentResult =
-  | { ok: true; paymentToken: string; transactionId: string; transactionTime: string; amount: string }
+  | {
+      ok: true;
+      paymentToken: string;
+      transactionId: string;
+      transactionTime: string;
+      amount: string;
+    }
   | {
       ok: false;
       error: string;
@@ -100,6 +168,8 @@ export type InitiatePaymentResult =
       status?: number;
       /** The bank's own words, for the server log. Never shown to the Guest. */
       detail?: string;
+      /** The signed text with the key masked, for diagnosing a bad signature. */
+      signatureBase?: string;
     };
 
 /** Step 3: request a payment token for `amount` on behalf of the Guest. */
@@ -111,7 +181,10 @@ export async function requestPaymentToken(input: {
 }): Promise<InitiatePaymentResult> {
   const { env, token } = input;
 
-  const amount = input.amount.toFixed(2);
+  // The guideline signs and sends `String(amount)`, so 500 is "500" - NOT
+  // "500.00". The bank rebuilds the signature over that exact text, so padding
+  // the decimals here produces a different hash and "Invalid data signature."
+  const amount = formatPaymentAmount(input.amount);
   const transactionId = crypto.randomUUID();
   const transactionTime = format(new Date(), "yyyyMMddHHmmss");
 
@@ -133,7 +206,6 @@ export async function requestPaymentToken(input: {
     transactionTime,
     signature,
   };
-
   try {
     const response = await fetch(env.paymentUrl, {
       method: "POST",
@@ -164,6 +236,13 @@ export async function requestPaymentToken(input: {
           tokenLength: token.length,
           tokenPreview: `${token.slice(0, 6)}…${token.slice(-4)}`,
           response: detail.slice(0, 500),
+          signatureBase: redactedSignatureBase({
+            env,
+            amount,
+            token,
+            transactionId,
+            transactionTime,
+          }),
         },
       );
 
@@ -172,6 +251,13 @@ export async function requestPaymentToken(input: {
         error: `Payment service returned ${response.status}`,
         status: response.status,
         detail,
+        signatureBase: redactedSignatureBase({
+          env,
+          amount,
+          token,
+          transactionId,
+          transactionTime,
+        }),
       };
     }
 
@@ -179,7 +265,10 @@ export async function requestPaymentToken(input: {
     const paymentToken = data?.token;
 
     if (!paymentToken || typeof paymentToken !== "string") {
-      return { ok: false, error: "Payment service did not return a payment token" };
+      return {
+        ok: false,
+        error: "Payment service did not return a payment token",
+      };
     }
 
     return { ok: true, paymentToken, transactionId, transactionTime, amount };
@@ -209,7 +298,9 @@ export async function checkTransactionStatus(input: {
 
   if (!env.statusUrl) return null;
 
-  const base = env.statusUrl.endsWith("/") ? env.statusUrl : `${env.statusUrl}/`;
+  const base = env.statusUrl.endsWith("/")
+    ? env.statusUrl
+    : `${env.statusUrl}/`;
 
   try {
     const response = await fetch(`${base}${encodeURIComponent(reference)}`, {
@@ -231,7 +322,9 @@ export async function checkTransactionStatus(input: {
     if (["SUCCESS", "SUCCESSFUL", "COMPLETED", "PAID", "000"].includes(raw)) {
       return "SUCCESS";
     }
-    if (["FAILED", "FAILURE", "DECLINED", "CANCELLED", "CANCELED"].includes(raw)) {
+    if (
+      ["FAILED", "FAILURE", "DECLINED", "CANCELLED", "CANCELED"].includes(raw)
+    ) {
       return "FAILED";
     }
     if (raw) return "PENDING";
