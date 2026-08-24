@@ -17,11 +17,21 @@ export type PublishedTerms = {
   publishedAt: string | null;
 };
 
+/**
+ * "none" (nothing is published) and "failed" (we could not find out) both mean
+ * no terms are on screen, but they must not be treated the same: skipping a
+ * step because nothing is published is correct, skipping it because the fetch
+ * broke would let someone through a gate that was never opened.
+ */
+export type TermsStatus = "loading" | "ready" | "none" | "failed";
+
 type TermsAgreementProps = {
   accepted: boolean;
   onAcceptedChange: (accepted: boolean) => void;
   /** Reports the version on screen so the submitter can echo it back. */
   onTermsLoaded?: (terms: PublishedTerms | null) => void;
+  /** Distinguishes "nothing published" from "could not load". */
+  onStatusChange?: (status: TermsStatus) => void;
   disabled?: boolean;
   className?: string;
 };
@@ -35,6 +45,7 @@ export default function TermsAgreement({
   accepted,
   onAcceptedChange,
   onTermsLoaded,
+  onStatusChange,
   disabled,
   className,
 }: TermsAgreementProps) {
@@ -54,15 +65,18 @@ export default function TermsAgreement({
         if (!res.ok) {
           setFailed(true);
           onTermsLoaded?.(null);
+          onStatusChange?.("failed");
           return;
         }
 
         setTerms(data.terms ?? null);
         onTermsLoaded?.(data.terms ?? null);
+        onStatusChange?.(data.terms ? "ready" : "none");
       } catch {
         if (!cancelled) {
           setFailed(true);
           onTermsLoaded?.(null);
+          onStatusChange?.("failed");
         }
       } finally {
         if (!cancelled) setLoading(false);

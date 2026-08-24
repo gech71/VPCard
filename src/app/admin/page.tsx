@@ -9,6 +9,7 @@ import {
   Shield,
   ShieldCheck,
   Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,6 +36,12 @@ const QUICK_ACTIONS = [
     label: "Manage requests",
     description: "Search and export every card request",
     icon: CreditCard,
+  },
+  {
+    href: "/admin/payments",
+    label: "Payment history",
+    description: "Track card request fees collected from Guests",
+    icon: Wallet,
   },
   {
     href: "/admin/audit",

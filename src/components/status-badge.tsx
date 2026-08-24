@@ -28,7 +28,10 @@ const TONES: Record<string, { tone: Tone; icon?: typeof Clock }> = {
   FROZEN: { tone: "info", icon: CircleDot },
   // Transactions
   COMPLETED: { tone: "success" },
-  FAILED: { tone: "danger" },
+  FAILED: { tone: "danger", icon: XCircle },
+  // Card-request fee payments
+  SUCCESS: { tone: "success", icon: CheckCircle2 },
+  CANCELLED: { tone: "neutral", icon: XCircle },
   // Roles
   SUPER_ADMIN: { tone: "danger", icon: ShieldAlert },
   MAKER: { tone: "success" },

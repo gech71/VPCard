@@ -10,6 +10,7 @@ import {
   ScrollText,
   Settings,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "User Management", icon: Users },
   { href: "/admin/requests", label: "Card Requests", icon: CreditCard },
+  { href: "/admin/payments", label: "Payments", icon: Wallet },
   { href: "/admin/audit", label: "Audit Logs", icon: ScrollText },
   { href: "/admin/customer-mapping", label: "Customer Mapping", icon: ClipboardList },
   { href: "/admin/terms", label: "Terms & Conditions", icon: FileText },
