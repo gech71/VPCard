@@ -13,15 +13,19 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  getSuperAppChannel,
+  sendPaymentToken,
+  waitForSuperAppChannel,
+} from "@/lib/superapp-channel";
 
-declare global {
-  interface Window {
-    /** Channel opened by the NIBtera Super App when it launches the MiniApp. */
-    myJsChannel?: { postMessage: (message: unknown) => void };
-  }
-}
-
-type Phase = "idle" | "requesting" | "awaiting" | "success" | "failed";
+type Phase =
+  | "idle"
+  | "requesting"
+  | "connecting"
+  | "awaiting"
+  | "success"
+  | "failed";
 
 type CardRequestPaymentProps = {
   amount: number;
@@ -53,6 +57,32 @@ export default function CardRequestPayment({
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAt = useRef<number>(0);
+
+  // A payment opened with the bank whose token never reached the Super App.
+  // Retrying delivers *this* token rather than opening a second transaction -
+  // the first one was never handed to anybody, so there is nothing to replace.
+  const undelivered = useRef<{ transactionId: string; paymentToken: string } | null>(
+    null,
+  );
+
+  // Grab the channel as early as we can, and again whenever the WebView brings
+  // this page back to the front: after the Super App's payment sheet closes the
+  // host reloads and re-injects it, and the sighting is what gets remembered.
+  useEffect(() => {
+    getSuperAppChannel();
+
+    const recapture = () => void getSuperAppChannel();
+
+    window.addEventListener("pageshow", recapture);
+    window.addEventListener("focus", recapture);
+    document.addEventListener("visibilitychange", recapture);
+
+    return () => {
+      window.removeEventListener("pageshow", recapture);
+      window.removeEventListener("focus", recapture);
+      document.removeEventListener("visibilitychange", recapture);
+    };
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
@@ -102,8 +132,57 @@ export default function CardRequestPayment({
     [onPaid, stopPolling],
   );
 
+  /**
+   * Step 4: hand the payment token to the Super App and start polling.
+   *
+   * The channel is waited for rather than tested once. The Super App reloads
+   * this WebView when its payment sheet closes and injects the channel again
+   * shortly after the document loads, so a Guest who cancels a payment and
+   * immediately tries a second one can otherwise click Pay inside the gap and
+   * be told, wrongly, to reopen the mini app.
+   */
+  async function handOff(transactionId: string, paymentToken: string) {
+    setPhase("connecting");
+
+    const channel = await waitForSuperAppChannel();
+
+    if (!channel || !sendPaymentToken(channel, paymentToken)) {
+      // Keep the token: the bank has already opened this transaction and
+      // nothing has consumed it, so the next attempt should deliver it rather
+      // than open another one.
+      undelivered.current = { transactionId, paymentToken };
+      setPhase("failed");
+      setError(
+        "Could not reach the NIBtera payment app. Please open this page from the NIBtera app and try again.",
+      );
+      return;
+    }
+
+    undelivered.current = null;
+    setPhase("awaiting");
+    startedAt.current = Date.now();
+    pollTimer.current = setTimeout(
+      () => void poll(transactionId),
+      POLL_INTERVAL_MS,
+    );
+  }
+
   async function handlePay() {
     setError(null);
+
+    // Retry of a handoff that failed: deliver the token we already hold.
+    const pending = undelivered.current;
+
+    if (pending) {
+      try {
+        await handOff(pending.transactionId, pending.paymentToken);
+      } catch {
+        setPhase("failed");
+        setError("An unexpected error occurred. Please try again.");
+      }
+      return;
+    }
+
     setPhase("requesting");
 
     try {
@@ -125,23 +204,7 @@ export default function CardRequestPayment({
         return;
       }
 
-      // Step 4: hand the payment token to the Super App.
-      if (typeof window !== "undefined" && window.myJsChannel?.postMessage) {
-        window.myJsChannel.postMessage({ token: data.paymentToken });
-      } else {
-        setPhase("failed");
-        setError(
-          "Could not reach the NIBtera payment app. Please open this page from the NIBtera app and try again.",
-        );
-        return;
-      }
-
-      setPhase("awaiting");
-      startedAt.current = Date.now();
-      pollTimer.current = setTimeout(
-        () => void poll(data.transactionId),
-        POLL_INTERVAL_MS,
-      );
+      await handOff(data.transactionId, data.paymentToken);
     } catch {
       setPhase("failed");
       setError("An unexpected error occurred. Please try again.");
@@ -171,7 +234,8 @@ export default function CardRequestPayment({
     );
   }
 
-  const busy = phase === "requesting" || phase === "awaiting";
+  const busy =
+    phase === "requesting" || phase === "connecting" || phase === "awaiting";
 
   return (
     <div
@@ -227,12 +291,13 @@ export default function CardRequestPayment({
           </div>
         </div>
 
-        {phase === "awaiting" && (
+        {(phase === "connecting" || phase === "awaiting") && (
           <div className="flex items-start gap-2.5 rounded-lg border border-info/25 bg-info-muted p-3 text-sm text-info-muted-foreground">
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <p>
-              Waiting for your confirmation in the NIBtera app. Keep this page
-              open.
+              {phase === "connecting"
+                ? "Opening the NIBtera payment app…"
+                : "Waiting for your confirmation in the NIBtera app. Keep this page open."}
             </p>
           </div>
         )}
@@ -255,6 +320,11 @@ export default function CardRequestPayment({
             <>
               <Loader2 className="animate-spin" />
               Starting payment&hellip;
+            </>
+          ) : phase === "connecting" ? (
+            <>
+              <Loader2 className="animate-spin" />
+              Opening NIBtera&hellip;
             </>
           ) : phase === "awaiting" ? (
             <>

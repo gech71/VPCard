@@ -359,3 +359,61 @@ export async function validateMiniAppToken(
     return null;
   }
 }
+
+/**
+ * The callback's token as the bank actually sends it.
+ *
+ * Observed in pre-production, the step 5 body carries the payment token as
+ * `"{token: eyJhbGciOi...}"` - a stringified object literal, braces and label
+ * included - rather than the bare JWT. Taking it verbatim makes every later
+ * comparison fail, so the wrapper is peeled off here once. Also accepts a
+ * `Bearer ` prefix, so the same helper serves the Authorization header.
+ */
+export function normalizeCallbackToken(
+  raw: string | null | undefined,
+): string | null {
+  if (!raw) return null;
+
+  let value = String(raw).trim();
+
+  if (/^bearer\s+/i.test(value)) value = value.slice(value.indexOf(" ") + 1).trim();
+
+  // "{token: eyJ...}" or "{"token":"eyJ..."}" - both seen from the bank.
+  const wrapped = value.match(/^\{\s*["']?token["']?\s*:\s*["']?([^"'}\s]+)["']?\s*\}$/i);
+  if (wrapped) value = wrapped[1];
+
+  value = value.replace(/^["']|["']$/g, "").trim();
+
+  return value || null;
+}
+
+/**
+ * The claims of a JWT, without verifying its signature.
+ *
+ * The bank signs its tokens with a secret we do not hold, so this can never be
+ * a trust decision on its own - it is only used to *match* a callback against a
+ * payment we already created, alongside the stored token comparison.
+ */
+export function decodeTokenClaims(
+  token: string | null | undefined,
+): Record<string, unknown> | null {
+  if (!token) return null;
+
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const json = Buffer.from(parts[1], "base64url").toString("utf8");
+    const claims = JSON.parse(json);
+    return claims && typeof claims === "object" ? claims : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The token with its middle removed, safe to put in a log or an audit entry. */
+export function redactToken(token: string | null | undefined): string | null {
+  if (!token) return null;
+  if (token.length <= 12) return "<token>";
+  return `${token.slice(0, 8)}…${token.slice(-6)} (len ${token.length})`;
+}
