@@ -19,6 +19,10 @@ import {
   extractPssFieldsFromCustDetail,
 } from "@/lib/cust-detail";
 import { cacheCustomerIdMappings } from "@/lib/customer-id-cache";
+import {
+  VERIFICATION_TTL_MS,
+  normaliseEmail,
+} from "@/lib/server/email-otp";
 
 const selfRequestSchema = z.object({
   accountNumber: z.coerce.string().regex(/^7000\d{9}$/, "Account number must start with 7000 and be exactly 13 digits"),
@@ -197,6 +201,45 @@ export async function POST(request: NextRequest) {
       paidPaymentId = payment.id;
     }
 
+    // The email on a Guest request must have been proved reachable. The code
+    // exchange happens on its own endpoints; this is the control - a client
+    // that skips the whole dance still cannot submit.
+    let emailVerificationId: string | null = null;
+
+    if (isGuest) {
+      // isGuest already implies a phone number; checked again so the guard
+      // fails closed rather than querying with a null subject.
+      if (!phoneNumber) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      const verifiedEmail = normaliseEmail(customerEmail);
+
+      const verification = await prisma.emailVerification.findFirst({
+        where: {
+          phoneNumber,
+          email: verifiedEmail,
+          verifiedAt: { not: null, gt: new Date(Date.now() - VERIFICATION_TTL_MS) },
+          consumedAt: null,
+        },
+        orderBy: { verifiedAt: "desc" },
+        select: { id: true },
+      });
+
+      if (!verification) {
+        return NextResponse.json(
+          {
+            error:
+              "Verify your email address before submitting this card request.",
+            emailVerificationRequired: true,
+          },
+          { status: 403 },
+        );
+      }
+
+      emailVerificationId = verification.id;
+    }
+
     const programAllowed = await assertCardProgramAllowed(
       cardProgramCode,
       "self",
@@ -338,6 +381,15 @@ export async function POST(request: NextRequest) {
         );
       }
       throw err;
+    }
+
+    // Spent, so the same proof cannot authorise a second request. Scoped to a
+    // still-unconsumed row, so a racing submission finds nothing to spend.
+    if (emailVerificationId) {
+      await prisma.emailVerification.updateMany({
+        where: { id: emailVerificationId, consumedAt: null },
+        data: { consumedAt: new Date() },
+      });
     }
 
     // Create audit logs

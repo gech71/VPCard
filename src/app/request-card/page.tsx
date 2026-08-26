@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
 import {
   resolveBlocker,
@@ -31,6 +32,7 @@ import TermsAgreement, {
 } from "@/components/terms-agreement";
 import TermsContent from "@/components/terms-content";
 import CardRequestPayment from "@/components/card-request-payment";
+import EmailVerificationField from "@/components/email-verification-field";
 import {
   Dialog,
   DialogContent,
@@ -47,20 +49,11 @@ import { BadgeCheck } from "lucide-react";
  * agreed to - and be able to read it again - without the agreement itself
  * becoming re-editable after they have paid against it.
  */
-function TermsAcceptedStrip({
-  terms,
-  onReview,
-}: {
-  terms: PublishedTerms;
-  onReview: () => void;
-}) {
+function TermsAcceptedStrip({ onReview }: { onReview: () => void }) {
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-success/25 bg-success-muted px-3 py-2.5 text-sm text-success-muted-foreground">
       <BadgeCheck className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1">
-        Terms &amp; Conditions
-        {terms.version !== null ? ` (version ${terms.version})` : ""} accepted.
-      </span>
+      <span className="min-w-0 flex-1">Terms &amp; Conditions accepted.</span>
       <button
         type="button"
         onClick={onReview}
@@ -81,6 +74,12 @@ function RequestCardForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
   const [email, setEmail] = useState("");
+  /**
+   * The address a one-time code has actually been confirmed for. Held as the
+   * address rather than a flag, so editing the field after verifying drops the
+   * proof instead of leaving a tick beside something else.
+   */
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loadingUser, setLoadingUser] = useState(true);
   const [cardPrograms, setCardPrograms] = useState<
@@ -203,6 +202,16 @@ function RequestCardForm() {
       return;
     }
 
+    if (verifiedEmail !== email.trim().toLowerCase()) {
+      toast({
+        variant: "destructive",
+        title: "Email not verified",
+        description:
+          "Send yourself a code and enter it to confirm this email address.",
+      });
+      return;
+    }
+
     if (!selectedCardProgram) {
       toast({
         variant: "destructive",
@@ -293,6 +302,13 @@ function RequestCardForm() {
   // request with no published terms never advertises a step it will skip.
   const steps = resolveSteps({ termsStatus, paymentRequired });
   const currentStepIndex = steps.findIndex((s) => s.key === stage);
+  const showSteps =
+    steps.length > 1 && stage !== "loading" && stage !== "blocked";
+
+  // CardContent is pt-0 by design: it normally sits under a CardHeader that
+  // already provides the gap. The step bar breaks that assumption, so the
+  // padding is put back only when the bar is actually between them.
+  const stageTopPadding = showSteps ? "pt-5 sm:pt-6" : "";
 
   return (
     <div className="mx-auto max-w-2xl animate-fade-in-up">
@@ -323,21 +339,33 @@ function RequestCardForm() {
           </CardDescription>
         </CardHeader>
 
-        {steps.length > 1 && stage !== "loading" && stage !== "blocked" && (
+        {showSteps && (
           <div className="border-b border-border bg-muted/30 px-6 py-3">
-            <ol className="flex items-center gap-2">
+            <ol className="flex items-start">
               {steps.map((step, index) => {
                 const done = index < currentStepIndex;
                 const active = index === currentStepIndex;
                 return (
-                  <li key={step.key} className="flex min-w-0 items-center gap-2">
+                  <li
+                    key={step.key}
+                    className="relative flex flex-1 flex-col items-center gap-1.5 text-center"
+                  >
+                    {/* Runs from the centre of this marker to the centre of the
+                        next, so the rule stays level with the circles rather
+                        than with the stacked column as a whole. */}
+                    {index < steps.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-1/2 top-3 h-px w-full bg-border"
+                      />
+                    )}
                     <span
                       className={
                         done
-                          ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground"
+                          ? "relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground"
                           : active
-                            ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-                            : "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+                            ? "relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                            : "relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
                       }
                     >
                       {done ? (
@@ -349,18 +377,12 @@ function RequestCardForm() {
                     <span
                       className={
                         active
-                          ? "truncate text-sm font-semibold text-foreground"
-                          : "truncate text-sm text-muted-foreground"
+                          ? "px-1 text-xs font-semibold leading-tight text-foreground"
+                          : "px-1 text-xs leading-tight text-muted-foreground"
                       }
                     >
                       {step.label}
                     </span>
-                    {index < steps.length - 1 && (
-                      <span
-                        aria-hidden="true"
-                        className="mx-1 h-px w-4 shrink-0 bg-border sm:w-8"
-                      />
-                    )}
                   </li>
                 );
               })}
@@ -417,7 +439,7 @@ function RequestCardForm() {
           </CardContent>
         ) : stage === "terms" ? (
           /* Step 1: agree to the terms in force before anything is charged. */
-          <CardContent className="space-y-5">
+          <CardContent className={cn("space-y-5", stageTopPadding)}>
             <TermsAgreement
               key={termsAttempt}
               accepted={termsAccepted}
@@ -452,12 +474,9 @@ function RequestCardForm() {
           </CardContent>
         ) : stage === "payment" ? (
           /* Step 2: the fee must clear before the form is reachable. */
-          <CardContent className="space-y-4">
+          <CardContent className={cn("space-y-4", stageTopPadding)}>
             {terms && (
-              <TermsAcceptedStrip
-                terms={terms}
-                onReview={() => setReviewingTerms(true)}
-              />
+              <TermsAcceptedStrip onReview={() => setReviewingTerms(true)} />
             )}
             <CardRequestPayment
               amount={feeAmount}
@@ -467,7 +486,7 @@ function RequestCardForm() {
           </CardContent>
         ) : (
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6">
+          <CardContent className={cn("space-y-6", stageTopPadding)}>
             {paymentRequired ? (
               <div className="flex items-center gap-2.5 rounded-lg border border-success/25 bg-success-muted px-3 py-2.5 text-sm text-success-muted-foreground">
                 <BadgeCheck className="h-4 w-4 shrink-0" />
@@ -486,10 +505,7 @@ function RequestCardForm() {
               </div>
             )}
             {terms && (
-              <TermsAcceptedStrip
-                terms={terms}
-                onReview={() => setReviewingTerms(true)}
-              />
+              <TermsAcceptedStrip onReview={() => setReviewingTerms(true)} />
             )}
 
             <div className="space-y-2">
@@ -535,24 +551,13 @@ function RequestCardForm() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email address <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="h-11"
-                required
-                disabled={fieldsDisabled}
-              />
-              <p className="text-xs text-muted-foreground">
-                We will send card notifications to this address.
-              </p>
-            </div>
+            <EmailVerificationField
+              email={email}
+              onEmailChange={setEmail}
+              verifiedEmail={verifiedEmail}
+              onVerifiedEmailChange={setVerifiedEmail}
+              disabled={fieldsDisabled}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="notes">Additional notes</Label>
@@ -579,6 +584,9 @@ function RequestCardForm() {
                 hasPendingRequest ||
                 cardPrograms.length === 0 ||
                 !selectedCardProgram ||
+                // The address has to be proved reachable first; the server
+                // refuses the submission either way.
+                verifiedEmail !== email.trim().toLowerCase() ||
                 // Belt and braces: the terms gate is a step of its own now, so
                 // this can only fail if that step was somehow bypassed.
                 (terms !== null && !termsAccepted)
@@ -603,9 +611,7 @@ function RequestCardForm() {
           <DialogHeader>
             <DialogTitle>{terms?.title ?? "Terms & Conditions"}</DialogTitle>
             <DialogDescription>
-              {terms?.version !== null && terms?.version !== undefined
-                ? `Version ${terms.version} — the version you accepted for this request.`
-                : "The version you accepted for this request."}
+              The Terms &amp; Conditions you accepted for this request.
             </DialogDescription>
           </DialogHeader>
           {terms && <TermsContent content={terms.content} />}

@@ -28,7 +28,11 @@ export type TermsStatus = "loading" | "ready" | "none" | "failed";
 type TermsAgreementProps = {
   accepted: boolean;
   onAcceptedChange: (accepted: boolean) => void;
-  /** Reports the version on screen so the submitter can echo it back. */
+  /**
+   * Reports the document that was displayed so the submitter can echo its
+   * version back. Not shown to the reader - the server still rejects an
+   * agreement to a version that has since been superseded.
+   */
   onTermsLoaded?: (terms: PublishedTerms | null) => void;
   /** Distinguishes "nothing published" from "could not load". */
   onStatusChange?: (status: TermsStatus) => void;
@@ -126,18 +130,14 @@ export default function TermsAgreement({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">
-            {terms.title}
-          </span>
-        </div>
-        {terms.version !== null && (
-          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
-            Version {terms.version}
-          </span>
-        )}
+      {/* Title and content only. The version is still pinned to the submission
+          and recorded against the request - it is simply not something the
+          reader needs on screen. */}
+      <div className="flex items-center gap-2">
+        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">
+          {terms.title}
+        </span>
       </div>
 
       <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-muted/30 p-4">
@@ -156,8 +156,7 @@ export default function TermsAgreement({
           htmlFor="acceptTerms"
           className="cursor-pointer text-sm font-normal leading-relaxed text-foreground"
         >
-          I have read and agree to the Terms &amp; Conditions
-          {terms.version !== null ? ` (version ${terms.version})` : ""}.
+          I have read and agree to the Terms &amp; Conditions.
         </Label>
       </div>
     </div>

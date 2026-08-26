@@ -298,3 +298,33 @@ model CustomerIdMapping {
   @@unique([nibCusId, pssCusId])
   @@map("customer_id_mappings")
 }
+/// One-time codes proving a Guest controls the email address they put on a
+/// card request.
+///
+/// A Guest is not a User row - the MiniApp identifies them by the phone number
+/// its token resolves to - so verification is keyed on that phone number and
+/// bound to the exact address that was challenged. Changing the address means
+/// starting again, which is the whole point of the check.
+model EmailVerification {
+  id          String    @id @default(uuid())
+  phoneNumber String
+  email       String
+  /// HMAC of the six-digit code, keyed with the server secret. A plain hash of
+  /// six digits is trivially reversible from a database dump; an HMAC is not,
+  /// without the key.
+  codeHash    String
+  expiresAt   DateTime
+  /// Wrong guesses so far. The code dies once this hits the attempt limit, so
+  /// the million-code space cannot be walked.
+  attempts    Int       @default(0)
+  /// When the correct code was entered.
+  verifiedAt  DateTime?
+  /// When a card request was actually submitted against it. Set once, so one
+  /// verification cannot authorise a second request.
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phoneNumber, email])
+  @@index([createdAt])
+  @@map("email_verifications")
+}

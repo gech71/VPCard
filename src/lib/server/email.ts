@@ -128,3 +128,49 @@ export const sendEmailChangeNoticeEmail = async (
     return false;
   }
 };
+
+/**
+ * The one-time code that proves a Guest controls the address they put on a
+ * card request. Sent as text in the body rather than a link: the Guest is on a
+ * phone inside the NIBtera app, where switching to a mail client and back is
+ * the whole friction a code avoids.
+ */
+export const sendCardRequestOtpEmail = async (
+  email: string,
+  code: string,
+  expiresInMinutes: number,
+) => {
+  const mailOptions = {
+    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
+    to: email,
+    subject: `${code} is your card request verification code`,
+    html: `
+      <div style="font-family: inherit; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #333; text-align: center;">Verify your email address</h2>
+        <p style="color: #555;">
+          Enter this code in the NIB Prepaid Card app to confirm this address for
+          your card request. It expires in ${expiresInMinutes} minutes.
+        </p>
+        <p style="text-align: center; margin: 28px 0;">
+          <span style="display: inline-block; padding: 14px 28px; font-size: 30px; font-weight: bold; letter-spacing: 8px; color: #333; background-color: #f4f4f5; border-radius: 6px;">
+            ${code}
+          </span>
+        </p>
+        <p style="color: #777; font-size: 14px;">
+          If you did not request a prepaid card, ignore this email - no card will
+          be issued and nobody can use this code but you.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    // Logged, because a Guest cannot proceed without this mail and a silent
+    // false here would be indistinguishable from a wrong address.
+    console.error("[email] could not send the card request OTP", error);
+    return false;
+  }
+};
