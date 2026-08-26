@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
 import EmptyState from "@/components/empty-state";
@@ -51,6 +52,34 @@ interface CardRequest {
   expiryDate: string | null;
   maker: { email: string };
   checker: { email: string } | null;
+  /** Terms & Conditions acceptance recorded when this request was submitted. */
+  termsAccepted: boolean;
+  termsVersionNo: number | null;
+  termsAcceptedAt: string | null;
+}
+
+/**
+ * How the acceptance reads on screen. A request submitted before any terms were
+ * published is not a refusal - there was nothing to accept - so it is labelled
+ * distinctly rather than as a failure to agree.
+ */
+function termsRecord(req: CardRequest) {
+  if (req.termsAccepted) {
+    return {
+      label:
+        req.termsVersionNo !== null
+          ? `Accepted · v${req.termsVersionNo}`
+          : "Accepted",
+      tone: "success" as const,
+      at: req.termsAcceptedAt,
+    };
+  }
+
+  return {
+    label: "No terms in force",
+    tone: "neutral" as const,
+    at: null,
+  };
 }
 
 // Helper to mask PAN for display
@@ -183,7 +212,21 @@ function AdminRequestsContent() {
   const exportToCSV = () => {
     if (requests.length === 0) return;
 
-    const headers = ["Date", "Account", "Name", "Phone", "Email", "Status", "Checker", "PAN", "CVV", "Expiry"];
+    const headers = [
+      "Date",
+      "Account",
+      "Name",
+      "Phone",
+      "Email",
+      "Status",
+      "Checker",
+      "PAN",
+      "Expiry",
+      // The acceptance record, so an export is evidence of what was agreed.
+      "Terms accepted",
+      "Terms version",
+      "Terms accepted at",
+    ];
     const rows = requests.map(req => [
       new Date(req.createdAt).toLocaleDateString(),
       req.accountNumber,
@@ -193,7 +236,10 @@ function AdminRequestsContent() {
       req.status,
       req.checker?.email || "N/A",
       req.pan || "",
-      req.expiryDate || ""
+      req.expiryDate || "",
+      req.termsAccepted ? "Yes" : "No terms in force",
+      req.termsVersionNo !== null ? String(req.termsVersionNo) : "",
+      req.termsAcceptedAt ? new Date(req.termsAcceptedAt).toLocaleString() : "",
     ]);
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -333,11 +379,12 @@ function AdminRequestsContent() {
                   <TableHead>Customer info</TableHead>
                   <TableHead>Account details</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Terms accepted</TableHead>
                   <TableHead>Assignment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableSkeleton columns={5} rows={8} />
+                <TableSkeleton columns={6} rows={8} />
               </TableBody>
             </Table>
           ) : requests.length === 0 ? (
@@ -369,6 +416,7 @@ function AdminRequestsContent() {
                       <TableHead>Customer info</TableHead>
                       <TableHead>Account details</TableHead>
                       <TableHead className="w-[8rem]">Status</TableHead>
+                      <TableHead className="w-[11rem]">Terms accepted</TableHead>
                       <TableHead>Assignment</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -398,6 +446,23 @@ function AdminRequestsContent() {
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={req.status} withIcon />
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const record = termsRecord(req);
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={record.tone} className="w-fit">
+                                  {record.label}
+                                </Badge>
+                                {record.at && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {new Date(record.at).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col text-xs text-muted-foreground">
@@ -442,6 +507,15 @@ function AdminRequestsContent() {
                       <div className="min-w-0">
                         <dt className="text-muted-foreground">Checker</dt>
                         <dd className="truncate text-foreground">{req.checker?.email.split('@')[0] || "Unassigned"}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-muted-foreground">Terms accepted</dt>
+                        <dd className="text-foreground">
+                          {termsRecord(req).label}
+                          {req.termsAcceptedAt
+                            ? ` · ${new Date(req.termsAcceptedAt).toLocaleString()}`
+                            : ""}
+                        </dd>
                       </div>
                     </dl>
                     <p className="text-xs text-muted-foreground">

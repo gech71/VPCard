@@ -134,6 +134,10 @@ model CardRequest {
   // Terms & Conditions accepted when this request was submitted. Recorded per
   // request so the exact wording someone agreed to stays recoverable after the
   // terms are later edited or superseded.
+  /// Whether the submitter accepted. Recorded explicitly rather than inferred
+  /// from the timestamp, so "accepted" and "no terms were in force when this
+  /// was submitted" stay distinguishable in the record for ever after.
+  termsAccepted   Boolean       @default(false)
   termsVersionId  String?
   termsVersion    TermsVersion? @relation(fields: [termsVersionId], references: [id])
   termsVersionNo  Int?

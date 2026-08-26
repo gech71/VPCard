@@ -142,7 +142,15 @@ export async function resolveTermsAcceptance(input: {
   termsVersionId?: string;
 }):
   | Promise<
-      | { ok: true; data: { termsVersionId: string | null; termsVersionNo: number | null; termsAcceptedAt: Date | null } }
+      | {
+          ok: true;
+          data: {
+            termsAccepted: boolean;
+            termsVersionId: string | null;
+            termsVersionNo: number | null;
+            termsAcceptedAt: Date | null;
+          };
+        }
       | { ok: false; error: string }
     > {
   const published = await getPublishedTerms();
@@ -150,7 +158,14 @@ export async function resolveTermsAcceptance(input: {
   if (!published) {
     return {
       ok: true,
-      data: { termsVersionId: null, termsVersionNo: null, termsAcceptedAt: null },
+      // Nothing was in force, so nothing was accepted - recorded as such
+      // rather than left ambiguous.
+      data: {
+        termsAccepted: false,
+        termsVersionId: null,
+        termsVersionNo: null,
+        termsAcceptedAt: null,
+      },
     };
   }
 
@@ -174,6 +189,7 @@ export async function resolveTermsAcceptance(input: {
   return {
     ok: true,
     data: {
+      termsAccepted: true,
       termsVersionId: published.id,
       termsVersionNo: published.version,
       // Server clock, never the client's - this is the record of record.

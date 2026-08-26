@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import CardDisplay from "@/components/card-display";
 import CardDetailsView from "@/components/card-details-view";
 import type { CardDetails, Transaction } from "@/lib/data";
+import { lastFourDigits } from "@/lib/pan";
 import TransactionHistory from "@/components/transaction-history";
 import { getCardTransactions } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -140,7 +141,9 @@ export default function DashboardClient({
                   type="button"
                   role="tab"
                   aria-selected={current === index}
-                  aria-label={`Card ending in ${card.maskedNumber.slice(-4)}`}
+                  aria-label={`Card ending in ${lastFourDigits(
+                    card.fullNumber || card.maskedNumber,
+                  )}`}
                   onClick={() => handleDotClick(index)}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

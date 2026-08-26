@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import type { CardDetails } from "@/lib/data";
+import { groupCardNumber, lastFourDigits, maskPanForDisplay } from "@/lib/pan";
 
 type CardDisplayProps = {
   card: CardDetails;
@@ -13,7 +14,7 @@ type CardDisplayProps = {
 function formatPanForDisplay(value: string): string {
   const digits = value.replace(/\D/g, "");
   if (!digits) return value;
-  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+  return groupCardNumber(digits);
 }
 
 /** Display expiry as MM/YY (common on payment cards). */
@@ -61,9 +62,15 @@ function CardField({
 export default function CardDisplay({ card }: CardDisplayProps) {
   const [isRevealed, setIsRevealed] = useState(false);
 
-  const panDisplay = formatPanForDisplay(
-    isRevealed ? card.fullNumber : card.maskedNumber,
-  );
+  // Masked from the full number rather than trusting whatever masking the card
+  // provider applied, so the card face always shows the same first six and last
+  // four. The provider's own masked value is the fallback when no full number
+  // came back.
+  const maskedPan = maskPanForDisplay(card.fullNumber || card.maskedNumber);
+
+  const panDisplay = isRevealed
+    ? formatPanForDisplay(card.fullNumber)
+    : groupCardNumber(maskedPan);
   const cardholderName = (card.cardholderName || "CARDHOLDER").toUpperCase();
   const validThru = formatValidThru(card.expiryDate);
   const showCvc = Boolean(card.cvv);
@@ -73,7 +80,9 @@ export default function CardDisplay({ card }: CardDisplayProps) {
       <div
         className="group relative aspect-[1.586] w-full overflow-hidden rounded-xl shadow-lg transition-all duration-300 ease-smooth hover:-translate-y-1 hover:shadow-xl"
         role="img"
-        aria-label={`${card.cardTypeNetwork || card.type} prepaid card ending in ${card.maskedNumber.slice(-4)}`}
+        aria-label={`${card.cardTypeNetwork || card.type} prepaid card ending in ${lastFourDigits(
+          card.fullNumber || card.maskedNumber,
+        )}`}
       >
         <Image
           src="/Virtual-Card.jpeg"
