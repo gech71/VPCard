@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { COOKIE_NAME, TOKEN_COOKIE_NAME, encrypt } from "@/lib/auth";
-import { verifyToken } from "@/lib/jwt-auth";
+import { cookieMaxAgeFor, generateToken, verifyToken } from "@/lib/jwt-auth";
 
 // Public paths that don't require authentication
 const publicPaths = [
@@ -90,12 +90,31 @@ export async function proxy(request: NextRequest) {
         request: { headers: requestHeaders },
       });
 
-      // Sliding session: reset cookie expiration on every activity
-      response.cookies.set("auth-token", authToken, {
+      // Sliding session: re-sign the token on every authenticated request so
+      // its exp tracks activity, then set the cookie to match.
+      //
+      // Re-setting the cookie around the *same* token (as this did before)
+      // slides nothing. verifyToken() enforces the JWT's own exp, so the
+      // session still died at a fixed moment no matter how active the user
+      // was - the cookie just outlived, or underlived, the thing it carried.
+      // Signing a fresh token is what makes this an idle timeout rather than
+      // an absolute one, which is also what PCI DSS 8.2.8 actually asks for.
+      //
+      // tokenVersion is carried across unchanged: renewing a session is not
+      // establishing a new one, so it must not evict the other devices that
+      // single-session enforcement cares about.
+      const renewedToken = generateToken({
+        userId: payload.userId,
+        email: payload.email,
+        role: payload.role,
+        tokenVersion: payload.tokenVersion,
+      });
+
+      response.cookies.set("auth-token", renewedToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60, // 15 minutes inactivity timeout
+        maxAge: cookieMaxAgeFor(renewedToken),
         path: "/",
       });
 

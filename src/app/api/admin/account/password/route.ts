@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import {
   getCurrentUser,
   hashPassword,
+  removeAuthCookie,
   validatePassword,
   verifyPassword,
 } from "@/lib/jwt-auth";
@@ -106,19 +107,29 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hashPassword(newPassword);
 
-    // Rotate the password and burn any outstanding reset links in one go - a
-    // link issued before the change must not still work afterwards. This
-    // mirrors resetPasswordAction().
+    // Rotate the password, burn any outstanding reset links, and end every
+    // active session in one go - a link issued before the change must not still
+    // work afterwards, and neither must a session opened with the old
+    // password. This mirrors resetPasswordAction().
     await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          tokenVersion: { increment: 1 },
+        },
       }),
       prisma.passwordResetToken.updateMany({
         where: { userId: user.id, used: false },
         data: { used: true },
       }),
     ]);
+
+    // The bump above invalidated every session for this account, this caller's
+    // included, and we deliberately do not hand back a replacement: changing a
+    // credential forces re-authentication with it. Clear the cookie so the
+    // browser is not left presenting a token that can no longer verify.
+    await removeAuthCookie();
 
     await createAuditLog({
       actorType: "ADMIN",
@@ -133,6 +144,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      // Tells the caller its session is gone and it should route to the login
+      // screen rather than let the next request fail with a bare 401.
+      reauthRequired: true,
       message: "Password changed successfully",
     });
   } catch (error) {

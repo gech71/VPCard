@@ -84,21 +84,16 @@ export default function ConfirmEmailChangeForm({
             <span className="font-medium text-foreground">
               {state.newEmail}
             </span>
-            . Use it to sign in from now on.
+            . For your security you have been signed out everywhere — sign in
+            again with the new address.
           </p>
         </div>
-        {state.sessionRefreshed ? (
-          <Button asChild className="w-full">
-            <Link href="/admin/settings">
-              Back to Settings
-              <ArrowRight />
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild className="w-full">
-            <Link href="/login">Go to login</Link>
-          </Button>
-        )}
+        <Button asChild className="w-full">
+          <Link href="/login">
+            Go to login
+            <ArrowRight />
+          </Link>
+        </Button>
       </div>
     );
   }

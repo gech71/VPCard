@@ -1,5 +1,7 @@
 import * as XLSX from "xlsx";
 
+import { MAX_SHEET_ROWS, openSpreadsheet } from "@/lib/spreadsheet-safe";
+
 export type CurrencyImportRowStatus = "valid" | "invalid" | "duplicate";
 
 export type CurrencyImportRow = {
@@ -70,7 +72,16 @@ export function buildCurrencyTemplateBuffer(): Buffer {
 }
 
 export function parseAndValidateCurrencyFile(buffer: Buffer): CurrencyParseResult {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const opened = openSpreadsheet(buffer);
+  if (!opened.workbook) {
+    return {
+      rows: [],
+      summary: { totalRows: 0, validRows: 0, failedRows: 0, duplicateRows: 0 },
+      fileError: opened.error,
+    };
+  }
+
+  const workbook = opened.workbook;
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     return {
@@ -84,6 +95,15 @@ export function parseAndValidateCurrencyFile(buffer: Buffer): CurrencyParseResul
     header: 1,
     defval: "",
   });
+
+  // Refuse rather than silently import a truncated file.
+  if (matrix.length > MAX_SHEET_ROWS) {
+    return {
+      rows: [],
+      summary: { totalRows: 0, validRows: 0, failedRows: 0, duplicateRows: 0 },
+      fileError: `That file has more than ${MAX_SHEET_ROWS.toLocaleString()} rows. Split it into smaller files and import them in turn.`,
+    };
+  }
 
   if (matrix.length === 0) {
     return {

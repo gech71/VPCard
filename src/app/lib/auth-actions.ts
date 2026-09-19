@@ -5,6 +5,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { validatePassword } from "@/lib/jwt-auth";
 import { sendPasswordResetEmail } from "@/lib/server/email";
 
 const ForgotPasswordSchema = z.object({
@@ -18,15 +19,15 @@ const ForgotPasswordSchema = z.object({
  */
 const RESEND_COOLDOWN_MS = 60 * 1000;
 
+// Shape only. The policy itself is validatePassword(), called below, so this
+// path cannot drift from the change-password and registration paths again -
+// it previously accepted 8 characters with no uppercase, no symbol and no
+// blocklist, which let "Test@123" through a flow the other two would refuse.
 const ResetPasswordSchema = z
   .object({
     token: z.string().min(1, "Token is required."),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters.")
-      .regex(/[a-zA-Z]/, "Must contain letters")
-      .regex(/[0-9]/, "Must contain numbers"),
-    confirmPassword: z.string().min(8, "Confirm password is required."),
+    password: z.string().min(1, "Password is required."),
+    confirmPassword: z.string().min(1, "Confirm password is required."),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",
@@ -150,6 +151,14 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
   }
 
   const { token: rawToken, password } = validatedFields.data;
+
+  // Same policy as registration and self-service change - a reset link must not
+  // be a way round the password rules.
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.isValid) {
+    return { errors: { password: [passwordValidation.error!] } };
+  }
+
   const hashedToken = crypto
     .createHash("sha256")
     .update(rawToken)
@@ -168,13 +177,18 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
   // Generate new hashed password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Update the password, consume this link, and revoke every other outstanding
-  // link for the account — a link issued before the password changed must not
-  // still work afterwards.
+  // Update the password, consume this link, revoke every other outstanding
+  // link for the account, and end every active session — a link issued before
+  // the password changed must not still work afterwards, and neither must a
+  // session opened with the old one. Someone resetting a password they believe
+  // is compromised is doing it precisely to evict whoever else is logged in.
   await prisma.$transaction([
     prisma.user.update({
       where: { id: resetToken.userId },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+        tokenVersion: { increment: 1 },
+      },
     }),
     prisma.passwordResetToken.updateMany({
       where: { userId: resetToken.userId, used: false },

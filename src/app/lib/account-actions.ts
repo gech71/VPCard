@@ -3,13 +3,7 @@
 import crypto from "crypto";
 
 import prisma from "@/lib/prisma";
-import {
-  generateToken,
-  getAuthCookie,
-  setAuthCookie,
-  revokeToken,
-  verifyToken,
-} from "@/lib/jwt-auth";
+import { removeAuthCookie } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
 import { sendEmailChangeNoticeEmail } from "@/lib/server/email";
 
@@ -82,8 +76,6 @@ export async function inspectEmailChangeToken(
 type ConfirmEmailChangeState = {
   success?: boolean;
   newEmail?: string;
-  /** True when this browser's session was re-issued against the new address. */
-  sessionRefreshed?: boolean;
   error?: string;
 } | null;
 
@@ -143,13 +135,19 @@ export async function confirmEmailChangeAction(
     };
   }
 
-  // Move the address and retire every outstanding link for the account in one
-  // transaction - a link issued against the old address must not survive the
-  // change that supersedes it.
+  // Move the address, retire every outstanding link for the account, and end
+  // every active session, in one transaction. A link issued against the old
+  // address must not survive the change that supersedes it - and neither must a
+  // session opened before it. The email address *is* the login identifier here,
+  // so changing it is a credential change and gets the same treatment as a
+  // password change: everyone signs in again, with the new address.
   await prisma.$transaction([
     prisma.user.update({
       where: { id: changeToken.userId },
-      data: { email: newEmail },
+      data: {
+        email: newEmail,
+        tokenVersion: { increment: 1 },
+      },
     }),
     prisma.emailChangeToken.updateMany({
       where: { userId: changeToken.userId, used: false },
@@ -157,34 +155,18 @@ export async function confirmEmailChangeAction(
     }),
   ]);
 
-  // If this same browser is signed in as the account that just moved, re-issue
-  // the session so the JWT's email claim (used for audit attribution) matches
-  // the new address. Confirming from anywhere else simply leaves that session
-  // to lapse on its own inactivity timeout.
+  // The bump above already invalidated every session for this account. If this
+  // browser was holding one, clear the cookie too, so it is not left presenting
+  // a token that can no longer verify - the user signs in again with the new
+  // address, which also proves they can still reach the account.
+  //
   // Guarded: the address has already been committed above, so a cookie store
-  // that refuses to co-operate must not surface as a failed email change.
-  let sessionRefreshed = false;
-
+  // that refuses to co-operate must not surface as a failed email change. A
+  // stale cookie is harmless here; the token inside it no longer verifies.
   try {
-    const authToken = await getAuthCookie();
-
-    if (authToken) {
-      const payload = await verifyToken(authToken);
-
-      if (payload && payload.userId === changeToken.userId) {
-        await revokeToken(authToken);
-        await setAuthCookie(
-          generateToken({
-            userId: payload.userId,
-            email: newEmail,
-            role: payload.role,
-          }),
-        );
-        sessionRefreshed = true;
-      }
-    }
+    await removeAuthCookie();
   } catch {
-    sessionRefreshed = false;
+    // Intentionally ignored - see above.
   }
 
   await createAuditLog({
@@ -202,5 +184,5 @@ export async function confirmEmailChangeAction(
   // failed courtesy notice must not report the change as failed.
   await sendEmailChangeNoticeEmail(previousEmail, newEmail);
 
-  return { success: true, newEmail, sessionRefreshed };
+  return { success: true, newEmail };
 }

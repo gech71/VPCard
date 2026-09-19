@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Check,
@@ -61,6 +62,7 @@ function SectionIcon({ icon: Icon }: { icon: typeof Mail }) {
 
 export default function AccountSecurity() {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [currentEmail, setCurrentEmail] = useState("");
@@ -227,8 +229,13 @@ export default function AccountSecurity() {
       setConfirmPassword("");
       toast({
         title: "Password changed",
-        description: "Use your new password the next time you sign in.",
+        description:
+          "You have been signed out on every device. Sign in again with your new password.",
       });
+
+      // The server ended this session along with the others, so move to the
+      // login screen rather than leaving the page up with a dead cookie.
+      router.replace("/login");
     } catch {
       setPasswordError("An unexpected error occurred. Please try again.");
       toast({

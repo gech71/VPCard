@@ -93,20 +93,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Reset failed attempts on successful login
-    await prisma.user.update({
+    // Reset failed attempts, and bump tokenVersion to enforce a single active
+    // session per account: every token signed against the previous value stops
+    // verifying the moment this one is issued, so signing in here signs the
+    // account out of any other browser or device it was left open on.
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         failedLoginAttempts: 0,
         lockoutUntil: null,
+        tokenVersion: { increment: 1 },
       },
     });
 
-    // Generate JWT token
+    // Generate JWT token — signed at the version the bump above just produced,
+    // so this is the one session that survives.
     const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      tokenVersion: updatedUser.tokenVersion,
     });
 
     // Set auth cookie

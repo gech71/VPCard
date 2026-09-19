@@ -82,17 +82,20 @@ export default function ResetPasswordForm({
           id="password"
           name="password"
           required
-          minLength={8}
+          minLength={10}
           autoComplete="new-password"
           aria-invalid={state?.errors?.password ? true : undefined}
           aria-describedby="password-rules"
           startIcon={Lock}
           className="h-11"
-          placeholder="At least 8 characters"
+          placeholder="At least 10 characters"
         />
-        {/* State the policy up front — the server enforces all three rules. */}
+        {/* State the policy up front — the server enforces every rule here,
+            plus a blocklist that rejects common words dressed up with digits. */}
         <p id="password-rules" className="text-xs text-muted-foreground">
-          Must be at least 8 characters and include a letter and a number.
+          At least 10 characters with an uppercase letter, a lowercase letter, a
+          number and a symbol. Avoid common words — a long, unrelated passphrase
+          is stronger than a predictable word with numbers on the end.
         </p>
         {state?.errors?.password && (
           <p className="text-sm font-medium text-destructive">
@@ -107,7 +110,7 @@ export default function ResetPasswordForm({
           id="confirmPassword"
           name="confirmPassword"
           required
-          minLength={8}
+          minLength={10}
           autoComplete="new-password"
           aria-invalid={state?.errors?.confirmPassword ? true : undefined}
           startIcon={Lock}

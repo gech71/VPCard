@@ -38,6 +38,13 @@ model User {
   role      Role     @default(MAKER)
   failedLoginAttempts Int      @default(0)
   lockoutUntil        DateTime?
+  /// Bumped to invalidate every outstanding session for this account at once.
+  /// Each issued JWT carries the value it was signed with; verifyToken() rejects
+  /// any token whose value no longer matches, so a single increment logs the
+  /// account out everywhere. This is what the revoked_tokens blacklist cannot
+  /// do - that table is keyed on an exact token string, so it can only revoke a
+  /// token we are physically holding.
+  tokenVersion        Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
