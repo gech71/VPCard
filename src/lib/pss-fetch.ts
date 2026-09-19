@@ -7,6 +7,8 @@ import {
   type RequestInit as UndiciRequestInit,
 } from "undici";
 
+import { recordPssCall } from "@/lib/pss-api-log";
+
 /** Hostname for PSS / card APIs that require the corporate CA (`certs/pss.crt`). */
 const PSS_HOST = process.env.PSS_HOST ?? "";
 
@@ -61,18 +63,49 @@ export async function fetchPss(
   init?: RequestInit,
 ): Promise<Response> {
   const agent = getPssTlsAgent();
+  const startedAt = Date.now();
 
-  if (!isPssBackendUrl(url) || !agent) {
-    return fetch(url, init);
+  // Log every call made through this function, not only those matching
+  // PSS_HOST. This is the PSS boundary by construction - each of its callers is
+  // a PSS service - whereas PSS_HOST only decides which TLS settings apply, and
+  // is empty in environments where the corporate CA is not installed. Keying
+  // the audit trail off it would silently log nothing in exactly those
+  // environments.
+  const record = (response?: Response, error?: unknown) =>
+    recordPssCall({
+      url,
+      method: init?.method ?? "GET",
+      requestHeaders: init?.headers,
+      requestBody: init?.body,
+      startedAt,
+      response,
+      error,
+    });
+
+  const useAgent = isPssBackendUrl(url) && agent;
+
+  try {
+    let response: Response;
+
+    if (useAgent) {
+      const { next: _omitNext, ...rest } = (init ?? {}) as RequestInit & {
+        next?: unknown;
+      };
+
+      response = (await undiciFetch(url, {
+        ...rest,
+        dispatcher: agent,
+      } as UndiciRequestInit)) as unknown as Response;
+    } else {
+      response = await fetch(url, init);
+    }
+
+    await record(response);
+    return response;
+  } catch (error) {
+    // Record the failure, then rethrow untouched: callers already handle
+    // transport errors and must keep seeing the original.
+    await record(undefined, error);
+    throw error;
   }
-
-  const { next: _omitNext, ...rest } = (init ?? {}) as RequestInit & {
-    next?: unknown;
-  };
-
-  const res = await undiciFetch(url, {
-    ...rest,
-    dispatcher: agent,
-  } as UndiciRequestInit);
-  return res as unknown as Response;
 }

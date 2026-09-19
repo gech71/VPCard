@@ -339,3 +339,44 @@ model EmailVerification {
   @@index([createdAt])
   @@map("email_verifications")
 }
+
+/// One request/response exchange with a PSS API, kept for troubleshooting,
+/// audit and integration monitoring.
+///
+/// Every payload here has already been through redactPayload() on the way in -
+/// see lib/pss-redact.ts. Redaction happens before the write, not on display,
+/// so a dump of this table cannot yield a live credential, a full PAN, a PIN or
+/// a one-time code. Nothing reading this model should assume otherwise, and
+/// nothing writing to it should bypass the redactor.
+model PssApiLog {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+
+  /// Human-readable service, derived from the endpoint path (e.g. "CardList").
+  serviceName     String
+  endpoint        String
+  method          String
+  /// Deployment the call was made from, when the runtime declares one.
+  environment     String?
+
+  /// Null when the request never produced a response - a timeout or a
+  /// connection failure - which is exactly the case worth finding later.
+  statusCode      Int?
+  success         Boolean
+  durationMs      Int
+
+  /// Any identifier that lets one exchange be matched to the bank's own trace.
+  correlationId   String?
+
+  requestHeaders  Json?
+  requestBody     Json?
+  responseHeaders Json?
+  responseBody    Json?
+  errorMessage    String?
+
+  @@index([createdAt])
+  @@index([serviceName])
+  @@index([success])
+  @@index([correlationId])
+  @@map("pss_api_logs")
+}
