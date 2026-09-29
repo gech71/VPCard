@@ -10,6 +10,12 @@ import {
   verifyPassword,
 } from "@/lib/jwt-auth";
 import { createAuditLog } from "@/lib/audit";
+import {
+  PASSWORD_REUSE_MESSAGE,
+  isPasswordPreviouslyUsed,
+  recordRetiredPassword,
+  trimPasswordHistory,
+} from "@/lib/password-history";
 
 const changePasswordSchema = z
   .object({
@@ -95,12 +101,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Reject a no-op rotation - reusing the same secret is not a change.
-    const isSamePassword = await verifyPassword(newPassword, user.password);
-
-    if (isSamePassword) {
+    // 3. Reject a no-op rotation, and any return to a password already used.
+    // Checked here rather than only in the browser: the rule is worth nothing
+    // if it can be skipped by posting straight to this endpoint.
+    if (await isPasswordPreviouslyUsed(user.id, newPassword, user.password)) {
       return NextResponse.json(
-        { error: "New password must be different from your current password" },
+        { error: PASSWORD_REUSE_MESSAGE },
         { status: 400 },
       );
     }
@@ -119,11 +125,16 @@ export async function POST(request: NextRequest) {
           tokenVersion: { increment: 1 },
         },
       }),
+      // The outgoing hash joins the history in the same commit as its
+      // replacement, so the two can never disagree about what was used.
+      recordRetiredPassword(user.id, user.password),
       prisma.passwordResetToken.updateMany({
         where: { userId: user.id, used: false },
         data: { used: true },
       }),
     ]);
+
+    await trimPasswordHistory(user.id);
 
     // The bump above invalidated every session for this account, this caller's
     // included, and we deliberately do not hand back a replacement: changing a

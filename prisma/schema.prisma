@@ -54,6 +54,7 @@ model User {
   auditLogs          AuditLog[]
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
+  passwordHistory     PasswordHistory[]
 
   @@map("users")
 }
@@ -379,4 +380,23 @@ model PssApiLog {
   @@index([success])
   @@index([correlationId])
   @@map("pss_api_logs")
+}
+
+/// Hashes of passwords this account has already used, so a rotation cannot
+/// return to one that was previously in circulation (VA-016).
+///
+/// Only the hash is kept, and the check is a bcrypt comparison against each
+/// entry rather than a lookup by value - a salted hash cannot be searched for,
+/// which is the point. A row is written when a password is replaced, carrying
+/// the *outgoing* hash; the incoming one lives on User.password and is compared
+/// separately, so the current password needs no row of its own.
+model PasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("password_history")
 }

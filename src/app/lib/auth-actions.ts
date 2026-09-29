@@ -6,6 +6,12 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { validatePassword } from "@/lib/jwt-auth";
+import {
+  PASSWORD_REUSE_MESSAGE,
+  isPasswordPreviouslyUsed,
+  recordRetiredPassword,
+  trimPasswordHistory,
+} from "@/lib/password-history";
 import { sendPasswordResetEmail } from "@/lib/server/email";
 
 const ForgotPasswordSchema = z.object({
@@ -174,6 +180,21 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
     return { error: "Invalid or expired password reset token." };
   }
 
+  // Same history rule as the change-password form. A reset link is issued by a
+  // Super Admin as well as by the user, so this is also what stops an
+  // administrator-initiated reset being used to return to an old password.
+  if (
+    await isPasswordPreviouslyUsed(
+      resetToken.userId,
+      password,
+      resetToken.user.password,
+    )
+  ) {
+    return { errors: { password: [PASSWORD_REUSE_MESSAGE] } };
+  }
+
+  const retiredHash = resetToken.user.password;
+
   // Generate new hashed password
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -190,11 +211,14 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
         tokenVersion: { increment: 1 },
       },
     }),
+    recordRetiredPassword(resetToken.userId, retiredHash),
     prisma.passwordResetToken.updateMany({
       where: { userId: resetToken.userId, used: false },
       data: { used: true },
     }),
   ]);
+
+  await trimPasswordHistory(resetToken.userId);
 
   // Log action
   await createAuditLog({
