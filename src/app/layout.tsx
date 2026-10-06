@@ -6,6 +6,23 @@ import { cookies } from "next/headers";
 import { COOKIE_NAME } from "@/lib/auth";
 import { ShieldAlert } from "lucide-react";
 
+/**
+ * Next.js publishes its exact release on `window.next.version`. Nothing in the
+ * production runtime reads it - it exists for devtools and for fingerprinting
+ * extensions such as Wappalyzer, which use it to report the precise version
+ * deployed here, and therefore which advisories apply.
+ *
+ * This runs inline in <head>, so it executes during parsing and ahead of
+ * Next's bootstrap chunk. It installs a setter on `window.next` that drops the
+ * version as Next assigns the object, leaving every other field intact. Doing
+ * it at assignment rather than deleting afterwards means there is no moment at
+ * which the version is readable.
+ *
+ * The string is a constant, so dangerouslySetInnerHTML carries no input.
+ */
+const STRIP_FRAMEWORK_VERSION =
+  '(function(){try{var v;Object.defineProperty(window,"next",{configurable:true,enumerable:true,get:function(){return v},set:function(n){if(n&&typeof n==="object"){try{delete n.version}catch(e){}}v=n}})}catch(e){}})();';
+
 export const metadata: Metadata = {
   title: "Nib Prepaid Card",
   description: "Manage your prepaid cards with ease.",
@@ -33,6 +50,15 @@ export default async function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* Production only: development tooling may read the version. Must
+            stay first in <head> so it runs before anything assigns window.next. */}
+        {process.env.NODE_ENV === "production" && (
+          <script
+            nonce={nonce}
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: STRIP_FRAMEWORK_VERSION }}
+          />
+        )}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
