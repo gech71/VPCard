@@ -70,7 +70,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
           className={cn(
             "absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md",
             "text-muted-foreground transition-colors hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/40",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >

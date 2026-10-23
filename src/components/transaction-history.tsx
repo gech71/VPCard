@@ -159,10 +159,10 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[10rem]">Date</TableHead>
+                    <TableHead className="w-40">Date</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-[8rem]">Status</TableHead>
-                    <TableHead className="w-[10rem] text-right">Amount</TableHead>
+                    <TableHead className="w-32">Status</TableHead>
+                    <TableHead className="w-40 text-right">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

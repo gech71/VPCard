@@ -306,7 +306,7 @@ export default function AdminTermsPage() {
           <Skeleton className="h-4 w-96 max-w-full" />
         </div>
         <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-[32rem] w-full rounded-xl" />
+        <Skeleton className="h-128 w-full rounded-xl" />
       </main>
     );
   }
@@ -421,7 +421,7 @@ export default function AdminTermsPage() {
               id="termsTitle"
               value={editor.title}
               disabled={busy}
-              placeholder="e.g. Prepaid Card Terms &amp; Conditions"
+              placeholder="e.g. Virtual Card Terms &amp; Conditions"
               className="max-w-xl"
               onChange={(e) => {
                 setEditor((s) => ({ ...s, title: e.target.value }));

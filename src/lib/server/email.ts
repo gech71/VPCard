@@ -22,7 +22,7 @@ export const sendPasswordResetEmail = async (
   const resetLink = `${baseUrl}/reset-password/${resetToken}`;
 
   const mailOptions = {
-    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
+    from: `"Virtual Card System" <${process.env.MAIL_FROM_EMAIL}>`,
     to: email,
     subject: "Password Reset Request",
     html: `
@@ -63,14 +63,14 @@ export const sendEmailChangeVerificationEmail = async (
   const verifyLink = `${baseUrl}/verify-email-change/${verificationToken}`;
 
   const mailOptions = {
-    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
+    from: `"Virtual Card System" <${process.env.MAIL_FROM_EMAIL}>`,
     to: newEmail,
     subject: "Verify your new email address",
     html: `
       <div style="font-family: inherit; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
         <h2 style="color: #333;">Verify your new email address</h2>
         <p style="color: #555; text-align: left;">
-          A request was made to change the email address of the Prepaid Card System
+          A request was made to change the email address of the Virtual Card System
           account currently registered as <strong>${currentEmail}</strong> to this
           address. Confirm below to complete the change. This link will expire in 1 hour.
         </p>
@@ -103,14 +103,14 @@ export const sendEmailChangeNoticeEmail = async (
   newEmail: string,
 ) => {
   const mailOptions = {
-    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
+    from: `"Virtual Card System" <${process.env.MAIL_FROM_EMAIL}>`,
     to: previousEmail,
     subject: "Your account email address was changed",
     html: `
       <div style="font-family: inherit; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #333; text-align: center;">Account email changed</h2>
         <p style="color: #555;">
-          The email address for your Prepaid Card System account was changed from
+          The email address for your Virtual Card System account was changed from
           <strong>${previousEmail}</strong> to <strong>${newEmail}</strong>.
           Sign in with the new address from now on.
         </p>
@@ -141,14 +141,14 @@ export const sendCardRequestOtpEmail = async (
   expiresInMinutes: number,
 ) => {
   const mailOptions = {
-    from: `"Prepaid Card System" <${process.env.MAIL_FROM_EMAIL}>`,
+    from: `"Virtual Card System" <${process.env.MAIL_FROM_EMAIL}>`,
     to: email,
     subject: `${code} is your card request verification code`,
     html: `
       <div style="font-family: inherit; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #333; text-align: center;">Verify your email address</h2>
         <p style="color: #555;">
-          Enter this code in the NIB Prepaid Card app to confirm this address for
+          Enter this code in the NIB Virtual Card app to confirm this address for
           your card request. It expires in ${expiresInMinutes} minutes.
         </p>
         <p style="text-align: center; margin: 28px 0;">
@@ -157,7 +157,7 @@ export const sendCardRequestOtpEmail = async (
           </span>
         </p>
         <p style="color: #777; font-size: 14px;">
-          If you did not request a prepaid card, ignore this email - no card will
+          If you did not request a virtual card, ignore this email - no card will
           be issued and nobody can use this code but you.
         </p>
       </div>

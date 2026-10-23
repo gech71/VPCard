@@ -90,7 +90,7 @@ export default function CardDetailsView({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-grow flex-col justify-between gap-6">
+      <CardContent className="flex grow flex-col justify-between gap-6">
         <div className="space-y-5">
           {/* Balance */}
           <div className="rounded-lg border border-border bg-muted/40 p-4">
@@ -111,7 +111,7 @@ export default function CardDetailsView({
                 {isBalanceVisible ? <EyeOff /> : <Eye />}
               </Button>
             </div>
-            <div className="mt-1 min-h-[2.75rem]">
+            <div className="mt-1 min-h-11">
               {isLoading ? (
                 <Skeleton className="h-9 w-44" />
               ) : (

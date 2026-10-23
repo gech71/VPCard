@@ -21,7 +21,7 @@ export default function TableSkeleton({
           {Array.from({ length: columns }).map((__, colIndex) => (
             <TableCell key={colIndex}>
               <Skeleton
-                className={widths?.[colIndex] ?? "h-4 w-full max-w-[10rem]"}
+                className={widths?.[colIndex] ?? "h-4 w-full max-w-40"}
               />
             </TableCell>
           ))}

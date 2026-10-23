@@ -80,7 +80,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
       <div
         className="group relative aspect-[1.586] w-full overflow-hidden rounded-xl shadow-lg transition-all duration-300 ease-smooth hover:-translate-y-1 hover:shadow-xl"
         role="img"
-        aria-label={`${card.cardTypeNetwork || card.type} prepaid card ending in ${lastFourDigits(
+        aria-label={`${card.cardTypeNetwork || card.type} virtual card ending in ${lastFourDigits(
           card.fullNumber || card.maskedNumber,
         )}`}
       >
@@ -94,7 +94,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
         />
 
         {/* Reveal affordance — visible on hover/focus so the card stays clean. */}
-        <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-neutral-900/70 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+        <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-neutral-900/70 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 backdrop-blur-xs transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
           {isRevealed ? (
             <>
               <EyeOff className="h-3 w-3" />
@@ -113,7 +113,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
             <button
               type="button"
               onClick={() => setIsRevealed((v) => !v)}
-              className="w-full min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left font-mono text-sm font-bold leading-tight tabular-nums tracking-[0.16em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.65)] transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30 focus-visible:ring-offset-1 sm:text-base sm:tracking-[0.18em] md:text-lg md:tracking-[0.2em]"
+              className="w-full min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left font-mono text-sm font-bold leading-tight tabular-nums tracking-[0.16em] text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.65)] transition-opacity hover:opacity-80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neutral-900/30 focus-visible:ring-offset-1 sm:text-base sm:tracking-[0.18em] md:text-lg md:tracking-[0.2em]"
               style={{ wordSpacing: "0.28em" }}
               aria-label={
                 isRevealed

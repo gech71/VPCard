@@ -58,7 +58,7 @@ function LimitsPageContent() {
 
   return (
     <div className="min-h-dvh w-full bg-background">
-      <AppHeader title="NIB Prepaid Card" subtitle="Limit settings" homeHref="/" />
+      <AppHeader title="NIB Virtual Card" subtitle="Limit settings" homeHref="/" />
 
       <main className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
@@ -121,10 +121,10 @@ function LimitsPageContent() {
 function LimitsPageFallback() {
   return (
     <div className="min-h-dvh w-full bg-background">
-      <AppHeader title="NIB Prepaid Card" subtitle="Limit settings" homeHref="/" />
+      <AppHeader title="NIB Virtual Card" subtitle="Limit settings" homeHref="/" />
       <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6 lg:p-8">
         <Skeleton className="h-9 w-40" />
-        <Skeleton className="h-[26rem] w-full rounded-xl" />
+        <Skeleton className="h-104 w-full rounded-xl" />
       </main>
     </div>
   );

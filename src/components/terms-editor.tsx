@@ -48,7 +48,7 @@ function ToolbarButton({
       title={label}
       className={cn(
         "flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/40",
         "disabled:pointer-events-none disabled:opacity-40",
         isActive
           ? "bg-primary text-primary-foreground"
@@ -219,7 +219,7 @@ export default function TermsEditor({
       editorProps: {
         attributes: {
           class:
-            "terms-prose min-h-[22rem] px-4 py-3 focus:outline-none",
+            "terms-prose min-h-88 px-4 py-3 focus:outline-hidden",
           "aria-label": "Terms and Conditions content",
         },
       },

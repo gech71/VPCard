@@ -481,17 +481,17 @@ function AdminPaymentsContent() {
           ) : (
             <>
               <Table
-                containerClassName="max-h-[40rem] overflow-y-auto"
+                containerClassName="max-h-160 overflow-y-auto"
                 className="table-sticky-head"
               >
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="min-w-[11rem]">Started</TableHead>
-                    <TableHead className="min-w-[10rem]">Guest</TableHead>
-                    <TableHead className="min-w-[9rem]">Amount</TableHead>
-                    <TableHead className="min-w-[9rem]">Status</TableHead>
-                    <TableHead className="min-w-[14rem]">References</TableHead>
-                    <TableHead className="min-w-[12rem]">Card request</TableHead>
+                    <TableHead className="min-w-44">Started</TableHead>
+                    <TableHead className="min-w-40">Guest</TableHead>
+                    <TableHead className="min-w-36">Amount</TableHead>
+                    <TableHead className="min-w-36">Status</TableHead>
+                    <TableHead className="min-w-56">References</TableHead>
+                    <TableHead className="min-w-48">Card request</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
@@ -538,7 +538,7 @@ function AdminPaymentsContent() {
                       <TableCell>
                         <StatusBadge status={payment.status} withIcon />
                         {payment.failureReason && (
-                          <span className="mt-1 block max-w-[12rem] text-xs text-muted-foreground">
+                          <span className="mt-1 block max-w-48 text-xs text-muted-foreground">
                             {payment.failureReason}
                           </span>
                         )}

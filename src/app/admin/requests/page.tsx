@@ -263,7 +263,7 @@ function AdminRequestsContent() {
     <main className="mx-auto max-w-[100rem] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <PageHeader
         title="All card requests"
-        description="Search, review and export every prepaid card request raised in the system."
+        description="Search, review and export every virtual card request raised in the system."
         actions={
           <>
             <Button
@@ -412,11 +412,11 @@ function AdminRequestsContent() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[8rem]">Date</TableHead>
+                      <TableHead className="w-32">Date</TableHead>
                       <TableHead>Customer info</TableHead>
                       <TableHead>Account details</TableHead>
-                      <TableHead className="w-[8rem]">Status</TableHead>
-                      <TableHead className="w-[11rem]">Terms accepted</TableHead>
+                      <TableHead className="w-32">Status</TableHead>
+                      <TableHead className="w-44">Terms accepted</TableHead>
                       <TableHead>Assignment</TableHead>
                     </TableRow>
                   </TableHeader>

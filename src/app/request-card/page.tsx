@@ -334,7 +334,7 @@ function RequestCardForm() {
             </CardTitle>
           </div>
           <CardDescription>
-            Submit a request for a new prepaid card. Your request will be
+            Submit a request for a new virtual card. Your request will be
             reviewed by a bank official.
           </CardDescription>
         </CardHeader>
@@ -625,7 +625,7 @@ function RequestCardFallback() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Skeleton className="h-9 w-40" />
-      <Skeleton className="h-[36rem] w-full rounded-xl" />
+      <Skeleton className="h-144 w-full rounded-xl" />
     </div>
   );
 }

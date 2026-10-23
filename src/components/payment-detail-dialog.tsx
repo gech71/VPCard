@@ -252,7 +252,7 @@ export default function PaymentDetailDialog({
                     <li key={event.id} className="relative">
                       <span
                         aria-hidden
-                        className="absolute -left-[1.3125rem] top-1.5 h-2 w-2 rounded-full bg-border ring-4 ring-background"
+                        className="absolute -left-5.25 top-1.5 h-2 w-2 rounded-full bg-border ring-4 ring-background"
                       />
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={eventTone(event.action)}>

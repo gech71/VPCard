@@ -146,7 +146,7 @@ export default function DashboardClient({
                   )}`}
                   onClick={() => handleDotClick(index)}
                   className={cn(
-                    "h-2 rounded-full transition-all duration-300 ease-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "h-2 rounded-full transition-all duration-300 ease-smooth focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     current === index
                       ? "w-6 bg-primary"
                       : "w-2 bg-muted hover:bg-muted-foreground/40",

@@ -19,7 +19,7 @@ export default async function CheckerLayout({
   return (
     <div className="min-h-dvh bg-background">
       <AppHeader
-        title="NIB Prepaid Card"
+        title="NIB Virtual Card"
         subtitle="Checker"
         role="Checker"
         userEmail={user.email}

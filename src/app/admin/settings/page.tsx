@@ -637,7 +637,7 @@ export default function AdminSettings() {
                       <TableCell className="font-mono text-sm">
                         {row.curIde || "—"}
                       </TableCell>
-                      <TableCell className="max-w-[14rem] truncate text-sm">
+                      <TableCell className="max-w-56 truncate text-sm">
                         {row.curLabel || "—"}
                       </TableCell>
                       <TableCell className="font-mono text-sm">

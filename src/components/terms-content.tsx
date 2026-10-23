@@ -64,7 +64,7 @@ export default function TermsContent({ content, className }: TermsContentProps) 
     // Next renders this on the server first; ProseMirror needs a real DOM.
     immediatelyRender: false,
     editorProps: {
-      attributes: { class: "terms-prose focus:outline-none" },
+      attributes: { class: "terms-prose focus:outline-hidden" },
     },
   });
 

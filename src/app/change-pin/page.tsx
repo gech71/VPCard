@@ -17,7 +17,7 @@ function ChangePinPageContent() {
 
   return (
     <div className="min-h-dvh w-full bg-background">
-      <AppHeader title="NIB Prepaid Card" subtitle="Change PIN" homeHref="/" />
+      <AppHeader title="NIB Virtual Card" subtitle="Change PIN" homeHref="/" />
 
       <main className="mx-auto max-w-xl p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
@@ -64,7 +64,7 @@ function ChangePinPageContent() {
 function ChangePinFallback() {
   return (
     <div className="min-h-dvh w-full bg-background">
-      <AppHeader title="NIB Prepaid Card" subtitle="Change PIN" homeHref="/" />
+      <AppHeader title="NIB Virtual Card" subtitle="Change PIN" homeHref="/" />
       <main className="mx-auto max-w-xl space-y-6 p-4 sm:p-6 lg:p-8">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-96 w-full rounded-xl" />

@@ -478,11 +478,11 @@ export default function PssLogsPage() {
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors focus:outline-none focus-visible:bg-muted",
+                        "cursor-pointer transition-colors focus:outline-hidden focus-visible:bg-muted",
                         // A failed call is the reason anyone opens this screen,
                         // so it is marked in the row itself, not just an icon.
                         !log.success &&
-                          "bg-destructive/[0.03] hover:bg-destructive/[0.07]",
+                          "bg-destructive/3 hover:bg-destructive/[0.07]",
                       )}
                     >
                       <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">

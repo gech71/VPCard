@@ -25,7 +25,7 @@ type AppHeaderProps = {
  * admin). Server-component safe: logout stays a plain form POST.
  */
 export default function AppHeader({
-  title = "NIB Prepaid Card",
+  title = "NIB Virtual Card",
   subtitle,
   role,
   userEmail,
@@ -55,7 +55,7 @@ export default function AppHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70",
+        "sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur-sm supports-backdrop-filter:bg-card/70",
         className
       )}
     >

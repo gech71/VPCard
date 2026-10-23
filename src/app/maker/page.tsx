@@ -384,7 +384,7 @@ export default function MakerDashboard() {
   return (
     <div className="min-h-dvh bg-background">
       <AppHeader
-        title="NIB Prepaid Card"
+        title="NIB Virtual Card"
         subtitle="Maker dashboard"
         role="Maker"
         showLogout
@@ -393,7 +393,7 @@ export default function MakerDashboard() {
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <PageHeader
           title="Maker dashboard"
-          description="Look up a customer by account number, then raise a prepaid card request for a checker to review."
+          description="Look up a customer by account number, then raise a virtual card request for a checker to review."
         />
 
         <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
@@ -484,7 +484,7 @@ export default function MakerDashboard() {
                               <dt className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                 {key.replace(/([A-Z])/g, " $1").trim()}
                               </dt>
-                              <dd className="break-words text-sm font-medium text-foreground">
+                              <dd className="wrap-break-word text-sm font-medium text-foreground">
                                 {String(value)}
                               </dd>
                             </div>
@@ -583,11 +583,11 @@ export default function MakerDashboard() {
                             <div className="flex flex-col items-start gap-1.5">
                               <StatusBadge status={req.status} withIcon />
                               {req.status === "REJECTED" && req.reviewNotes && (
-                                <details className="group w-full max-w-[15rem]">
-                                  <summary className="cursor-pointer select-none text-xs font-medium text-destructive outline-none transition-colors hover:text-destructive/80">
+                                <details className="group w-full max-w-60">
+                                  <summary className="cursor-pointer select-none text-xs font-medium text-destructive outline-hidden transition-colors hover:text-destructive/80">
                                     View reason
                                   </summary>
-                                  <p className="mt-1.5 break-words rounded-md border border-destructive/20 bg-destructive-muted p-2 text-xs text-destructive-muted-foreground">
+                                  <p className="mt-1.5 wrap-break-word rounded-md border border-destructive/20 bg-destructive-muted p-2 text-xs text-destructive-muted-foreground">
                                     {req.reviewNotes}
                                   </p>
                                 </details>
@@ -626,7 +626,7 @@ export default function MakerDashboard() {
             <DialogHeader>
               <DialogTitle>Create card request</DialogTitle>
               <DialogDescription>
-                Create a new prepaid card request for the customer.
+                Create a new virtual card request for the customer.
               </DialogDescription>
             </DialogHeader>
 

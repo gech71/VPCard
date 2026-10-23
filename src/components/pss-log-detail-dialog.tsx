@@ -135,7 +135,7 @@ function JsonPanel({
         <pre
           className={cn(
             "overflow-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground",
-            tall ? "max-h-[32rem]" : "max-h-72",
+            tall ? "max-h-128" : "max-h-72",
           )}
         >
           {text}
@@ -258,7 +258,7 @@ export default function PssLogDetailDialog({
                     <p className="text-xs font-semibold uppercase tracking-wide text-destructive">
                       Error
                     </p>
-                    <p className="mt-1 break-words text-sm text-foreground">
+                    <p className="mt-1 wrap-break-word text-sm text-foreground">
                       {log.errorMessage}
                     </p>
                   </div>

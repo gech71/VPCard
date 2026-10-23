@@ -173,17 +173,17 @@ export default function AuditLogsPage() {
             />
           ) : (
             <>
-              <Table containerClassName="max-h-[36rem] overflow-y-auto" className="table-sticky-head">
+              <Table containerClassName="max-h-144 overflow-y-auto" className="table-sticky-head">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="min-w-[11rem]">Timestamp</TableHead>
-                    <TableHead className="min-w-[13rem]">Actor</TableHead>
-                    <TableHead className="min-w-[10rem]">Action</TableHead>
-                    <TableHead className="min-w-[10rem]">
+                    <TableHead className="min-w-44">Timestamp</TableHead>
+                    <TableHead className="min-w-52">Actor</TableHead>
+                    <TableHead className="min-w-40">Action</TableHead>
+                    <TableHead className="min-w-40">
                       Target / entity
                     </TableHead>
-                    <TableHead className="min-w-[14rem]">Details</TableHead>
-                    <TableHead className="min-w-[8rem]">IP address</TableHead>
+                    <TableHead className="min-w-56">Details</TableHead>
+                    <TableHead className="min-w-32">IP address</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

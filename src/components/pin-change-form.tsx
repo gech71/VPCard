@@ -59,7 +59,7 @@ function PinField({
         name={id}
         revealLabel="PIN"
         centered
-        wrapperClassName="max-w-[12rem]"
+        wrapperClassName="max-w-48"
         inputMode="numeric"
         pattern="[0-9]*"
         maxLength={4}

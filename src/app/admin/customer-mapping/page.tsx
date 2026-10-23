@@ -387,7 +387,7 @@ export default function CustomerMappingImportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Table containerClassName="max-h-[30rem] overflow-y-auto" className="table-sticky-head">
+            <Table containerClassName="max-h-120 overflow-y-auto" className="table-sticky-head">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-16">Row</TableHead>
@@ -491,7 +491,7 @@ export default function CustomerMappingImportPage() {
             />
           ) : (
             <>
-              <Table containerClassName="max-h-[30rem] overflow-y-auto" className="table-sticky-head">
+              <Table containerClassName="max-h-120 overflow-y-auto" className="table-sticky-head">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead>NIBCusID</TableHead>
