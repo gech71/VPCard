@@ -50,7 +50,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.475.0",
     "next": "^16.4.2",
-    "nodemailer": "^10.0.12",
+    "nodemailer": "^10.2.1",
     "pg": "^8.20.0",
     "prisma": "^7.7.0",
     "react": "^19.2.1",
@@ -62,7 +62,7 @@
     "undici": "^7.29.1",
     "uuid": "^14.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.24.2",
+    "zod": "^4.6.7",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -80,7 +80,7 @@
     "typescript": "^5"
   },
   "comments": {
-    "overrides": "Transitive-only security pins. The hono/fast-uri/mysql2/deepmerge-ts/valibot entries all come from the Prisma CLI tree (prisma -> @prisma/config, @prisma/dev) and exist so we can patch them without downgrading Prisma 7 to 6. Re-check on each Prisma upgrade and drop any entry Prisma has caught up with. sharp is pinned for Next.js's image optimizer (librsvg CVE)."
+    "overrides": "Transitive-only security pins. The hono/fast-uri/mysql2/deepmerge-ts/valibot entries all come from the Prisma CLI tree (prisma -> @prisma/config, @prisma/dev) and exist so we can patch them without downgrading Prisma 7 to 6. Re-check on each Prisma upgrade and drop any entry Prisma has caught up with. fast-uri is forced to v4 although ajv (via @prisma/streams-local) still declares ^3; v4's only runtime change is an escaping fix and ajv's parse/resolve/serialize usage is unaffected. sharp is pinned for Next.js's image optimizer (librsvg CVE)."
   },
   "overrides": {
     "lodash": ">=4.17.24",
@@ -92,7 +92,7 @@
     "hono": "^4.13.13",
     "@hono/node-server": "^2.1.1",
     "mysql2": "^3.24.4",
-    "fast-uri": "^3.1.8",
+    "fast-uri": "^4.2.3",
     "deepmerge-ts": "^8.0.2",
     "valibot": "^1.4.2"
   }
