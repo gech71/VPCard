@@ -21,13 +21,15 @@ function getPssTlsAgent(): Agent | null {
     process.env.PSS_CA_CERT_PATH ??
     path.join(process.cwd(), "certs", "pss.crt");
 
-  if (!fs.existsSync(certPath)) {
+  // The cert is read from disk at runtime (the path can come from the
+  // environment), so keep Turbopack from tracing the whole project for it.
+  if (!fs.existsSync(/* turbopackIgnore: true */ certPath)) {
     cachedAgent = null;
     return null;
   }
 
   try {
-    const extra = fs.readFileSync(certPath);
+    const extra = fs.readFileSync(/* turbopackIgnore: true */ certPath);
     const ca = Buffer.concat([
       Buffer.from(tls.rootCertificates.join("\n") + "\n"),
       extra,

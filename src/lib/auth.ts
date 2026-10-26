@@ -10,6 +10,7 @@ export const COOKIE_NAME = "user-phone";
  */
 export const TOKEN_COOKIE_NAME = "miniapp-token";
 const ALGORITHM = "aes-256-gcm";
+const AUTH_TAG_LENGTH = 16;
 
 if (!ENCRYPTION_SECRET_KEY) {
   throw new Error("ENCRYPTION_SECRET_KEY must be set in .env");
@@ -43,7 +44,12 @@ export function decrypt(encryptedText: string): string {
     const [ivHex, tagHex, ciphertext] = parts;
     const iv = Buffer.from(ivHex, "hex");
     const tag = Buffer.from(tagHex, "hex");
-    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+    // The cookie is client-controlled, so pin the tag length: without it a
+    // truncated tag is accepted, and a 4-byte tag is cheap to brute-force
+    // (Node 24 DEP0182).
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv, {
+      authTagLength: AUTH_TAG_LENGTH,
+    });
     decipher.setAuthTag(tag);
 
     let decrypted = decipher.update(ciphertext, "hex", "utf8");

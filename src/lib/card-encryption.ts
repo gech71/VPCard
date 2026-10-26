@@ -15,7 +15,7 @@ function deriveKey(secret: string): Buffer {
     throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
   }
   
-  const salt = Buffer.from(encryptionSecret, 'hex').slice(0, SALT_LENGTH);
+  const salt = Buffer.from(encryptionSecret, 'hex').subarray(0, SALT_LENGTH);
   return scryptSync(secret, salt, KEY_LENGTH);
 }
 
@@ -65,7 +65,11 @@ export function decryptCardData(encryptedData: string, keySecret: string): strin
   const iv = Buffer.from(ivB64, 'base64');
   const authTag = Buffer.from(authTagB64, 'base64');
   
-  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  // Pin the tag length so a truncated tag is rejected rather than accepted
+  // (Node 24 DEP0182).
+  const decipher = createDecipheriv(ALGORITHM, key, iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
   decipher.setAuthTag(authTag);
   
   let decrypted = decipher.update(ciphertext, 'base64', 'utf8');
