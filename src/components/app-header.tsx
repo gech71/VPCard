@@ -25,7 +25,7 @@ type AppHeaderProps = {
  * admin). Server-component safe: logout stays a plain form POST.
  */
 export default function AppHeader({
-  title = "NIB Virtual Card",
+  title = "NIB Prepaid Card",
   subtitle,
   role,
   userEmail,

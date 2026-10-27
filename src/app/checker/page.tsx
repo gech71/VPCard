@@ -233,7 +233,7 @@ export default function CheckerDashboard() {
     <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <PageHeader
         title="Card requests"
-        description="Review the virtual card requests assigned to you and approve or reject them. E-commerce activation is handled separately."
+        description="Review the prepaid card requests assigned to you and approve or reject them. E-commerce activation is handled separately."
       />
 
         <div className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -421,7 +421,7 @@ export default function AdminTermsPage() {
               id="termsTitle"
               value={editor.title}
               disabled={busy}
-              placeholder="e.g. Virtual Card Terms &amp; Conditions"
+              placeholder="e.g. Prepaid Card Terms &amp; Conditions"
               className="max-w-xl"
               onChange={(e) => {
                 setEditor((s) => ({ ...s, title: e.target.value }));

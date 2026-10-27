@@ -24,8 +24,8 @@ const STRIP_FRAMEWORK_VERSION =
   '(function(){try{var v;Object.defineProperty(window,"next",{configurable:true,enumerable:true,get:function(){return v},set:function(n){if(n&&typeof n==="object"){try{delete n.version}catch(e){}}v=n}})}catch(e){}})();';
 
 export const metadata: Metadata = {
-  title: "NIB Virtual Card",
-  description: "Manage your virtual cards with ease.",
+  title: "NIB Prepaid Card",
+  description: "Manage your prepaid cards with ease.",
 };
 
 export const viewport: Viewport = {

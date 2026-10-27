@@ -18,7 +18,7 @@ export default async function AdminLayout({
   return (
     <div className="min-h-dvh bg-background">
       <AppHeader
-        title="NIB Virtual Card"
+        title="NIB Prepaid Card"
         subtitle="Administration"
         role="Super Admin"
         userEmail={user.email}

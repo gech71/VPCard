@@ -384,7 +384,7 @@ export default function MakerDashboard() {
   return (
     <div className="min-h-dvh bg-background">
       <AppHeader
-        title="NIB Virtual Card"
+        title="NIB Prepaid Card"
         subtitle="Maker dashboard"
         role="Maker"
         showLogout
@@ -393,7 +393,7 @@ export default function MakerDashboard() {
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <PageHeader
           title="Maker dashboard"
-          description="Look up a customer by account number, then raise a virtual card request for a checker to review."
+          description="Look up a customer by account number, then raise a prepaid card request for a checker to review."
         />
 
         <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
@@ -626,7 +626,7 @@ export default function MakerDashboard() {
             <DialogHeader>
               <DialogTitle>Create card request</DialogTitle>
               <DialogDescription>
-                Create a new virtual card request for the customer.
+                Create a new prepaid card request for the customer.
               </DialogDescription>
             </DialogHeader>
 

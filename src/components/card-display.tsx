@@ -80,7 +80,7 @@ export default function CardDisplay({ card }: CardDisplayProps) {
       <div
         className="group relative aspect-[1.586] w-full overflow-hidden rounded-xl shadow-lg transition-all duration-300 ease-smooth hover:-translate-y-1 hover:shadow-xl"
         role="img"
-        aria-label={`${card.cardTypeNetwork || card.type} virtual card ending in ${lastFourDigits(
+        aria-label={`${card.cardTypeNetwork || card.type} prepaid card ending in ${lastFourDigits(
           card.fullNumber || card.maskedNumber,
         )}`}
       >

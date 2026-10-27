@@ -50,7 +50,8 @@ const COMMON_BASE_WORDS = new Set([
   "september", "october", "november", "december",
   // Terms specific to this deployment - an attacker targeting this bank tries
   // these first, and they are precisely what "CompanyName@123" is built from.
-  "nib", "nibbank", "nibinternational", "vcard", "virtualcard", "prepaid",
+  "nib", "nibbank", "nibinternational", "vcard", "virtualcard", "pcard",
+  "prepaid", "prepaidcard",
   "bank", "banking", "ethiopia", "ethiopian", "addis", "addisababa",
 ]);
 

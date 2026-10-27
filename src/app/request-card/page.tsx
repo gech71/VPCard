@@ -334,7 +334,7 @@ function RequestCardForm() {
             </CardTitle>
           </div>
           <CardDescription>
-            Submit a request for a new virtual card. Your request will be
+            Submit a request for a new prepaid card. Your request will be
             reviewed by a bank official.
           </CardDescription>
         </CardHeader>

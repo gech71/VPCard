@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
 
       if (!pssUrl || !apiKey || !idmsg) {
         return NextResponse.json(
-          { error: "Server configuration error for virtual card creation" },
+          { error: "Server configuration error for prepaid card creation" },
           { status: 500 },
         );
       }
@@ -210,7 +210,7 @@ export async function PATCH(request: NextRequest) {
       } catch (err) {
         return NextResponse.json(
           {
-            error: "Failed to connect to PSS virtual card system",
+            error: "Failed to connect to PSS prepaid card system",
           },
           { status: 500 },
         );

@@ -19,7 +19,7 @@ export default async function LoginPage() {
 
   return (
     <AuthShell
-      title="Virtual Card Admin"
+      title="Prepaid Card Admin"
       description="Sign in to your account"
       footer="For Super Admin access, contact your system administrator."
     >

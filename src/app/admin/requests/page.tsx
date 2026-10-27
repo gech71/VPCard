@@ -263,7 +263,7 @@ function AdminRequestsContent() {
     <main className="mx-auto max-w-[100rem] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <PageHeader
         title="All card requests"
-        description="Search, review and export every virtual card request raised in the system."
+        description="Search, review and export every prepaid card request raised in the system."
         actions={
           <>
             <Button
