@@ -24,6 +24,8 @@ type Phase =
   | "requesting"
   | "connecting"
   | "awaiting"
+  /** Confirming a payment opened before the Super App reloaded this page. */
+  | "checking"
   | "success"
   | "failed";
 
@@ -32,11 +34,23 @@ type CardRequestPaymentProps = {
   currency: string;
   /** Handed back once the bank confirms, to be sent with the card request. */
   onPaid: (transactionId: string) => void;
+  /**
+   * A payment this Guest already opened that the bank has not settled yet.
+   * The Super App reloads the page when its payment sheet closes, usually
+   * before the confirmation arrives, so this picks that payment back up and
+   * keeps checking it instead of offering a second charge.
+   */
+  resumeTransactionId?: string | null;
   className?: string;
 };
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+/**
+ * A resumed payment gets less time: a Guest who cancelled in the Super App
+ * should not sit behind a spinner for five minutes before they can pay again.
+ */
+const RESUME_POLL_TIMEOUT_MS = 60 * 1000;
 
 /**
  * The Guest payment screen: steps 3 and 4 of the MiniApp integration.
@@ -51,12 +65,16 @@ export default function CardRequestPayment({
   amount,
   currency,
   onPaid,
+  resumeTransactionId,
   className,
 }: CardRequestPaymentProps) {
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase, setPhase] = useState<Phase>(
+    resumeTransactionId ? "checking" : "idle",
+  );
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedAt = useRef<number>(0);
+  const pollTimeout = useRef<number>(POLL_TIMEOUT_MS);
 
   // A payment opened with the bank whose token never reached the Super App.
   // Retrying delivers *this* token rather than opening a second transaction -
@@ -115,7 +133,7 @@ export default function CardRequestPayment({
           return;
         }
 
-        if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) {
+        if (Date.now() - startedAt.current > pollTimeout.current) {
           stopPolling();
           setPhase("failed");
           setError(
@@ -131,6 +149,22 @@ export default function CardRequestPayment({
     },
     [onPaid, stopPolling],
   );
+
+  // Pick up a payment opened before the reload. Started from a timer rather
+  // than called directly so the effect's cleanup can cancel it, which keeps a
+  // single polling chain when React mounts the component twice in development.
+  useEffect(() => {
+    if (!resumeTransactionId) return;
+
+    setPhase("checking");
+    startedAt.current = Date.now();
+    pollTimeout.current = RESUME_POLL_TIMEOUT_MS;
+    pollTimer.current = setTimeout(() => void poll(resumeTransactionId), 0);
+
+    return stopPolling;
+    // Only on arrival: later polls are scheduled by poll itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeTransactionId]);
 
   /**
    * Step 4: hand the payment token to the Super App and start polling.
@@ -161,6 +195,7 @@ export default function CardRequestPayment({
     undelivered.current = null;
     setPhase("awaiting");
     startedAt.current = Date.now();
+    pollTimeout.current = POLL_TIMEOUT_MS;
     pollTimer.current = setTimeout(
       () => void poll(transactionId),
       POLL_INTERVAL_MS,
@@ -235,7 +270,10 @@ export default function CardRequestPayment({
   }
 
   const busy =
-    phase === "requesting" || phase === "connecting" || phase === "awaiting";
+    phase === "requesting" ||
+    phase === "connecting" ||
+    phase === "awaiting" ||
+    phase === "checking";
 
   return (
     <div
@@ -291,13 +329,17 @@ export default function CardRequestPayment({
           </div>
         </div>
 
-        {(phase === "connecting" || phase === "awaiting") && (
+        {(phase === "connecting" ||
+          phase === "awaiting" ||
+          phase === "checking") && (
           <div className="flex items-start gap-2.5 rounded-lg border border-info/25 bg-info-muted p-3 text-sm text-info-muted-foreground">
             <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
             <p>
               {phase === "connecting"
                 ? "Opening the NIBtera payment app…"
-                : "Waiting for your confirmation in the NIBtera app. Keep this page open."}
+                : phase === "checking"
+                  ? "Confirming your payment with NIB Bank…"
+                  : "Waiting for your confirmation in the NIBtera app. Keep this page open."}
             </p>
           </div>
         )}
@@ -330,6 +372,11 @@ export default function CardRequestPayment({
             <>
               <Loader2 className="animate-spin" />
               Awaiting confirmation&hellip;
+            </>
+          ) : phase === "checking" ? (
+            <>
+              <Loader2 className="animate-spin" />
+              Checking payment&hellip;
             </>
           ) : phase === "failed" ? (
             "Try payment again"

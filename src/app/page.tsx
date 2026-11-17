@@ -16,9 +16,31 @@ import {
   SearchX,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { filterProgramsNotOwnedByCustomerPans } from "@/lib/allowed-card-bins";
+import {
+  clearCardRequestResume,
+  readCardRequestResume,
+} from "@/lib/card-request-resume";
+
+/**
+ * Whether this Guest has a card-request payment on the line: paid and not yet
+ * spent, or opened moments ago and still being settled by the bank.
+ */
+async function hasPaymentInFlight(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/card-request-fee");
+    if (!res.ok) return false;
+    const data = await res.json();
+    return Boolean(
+      data.existingPayment?.transactionId || data.pendingPayment?.transactionId,
+    );
+  } catch {
+    return false;
+  }
+}
 
 interface CardResponse {
   cards: CardDetails[];
@@ -86,9 +108,19 @@ export default function Home() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchInitialData() {
+      // Set when this page is opened by the Super App's reload after its
+      // payment sheet closes, mid card request. Checked alongside the cards so
+      // a Guest who just paid is not shown the dashboard first.
+      const resume = readCardRequestResume();
+      const paymentCheck = resume ? hasPaymentInFlight() : null;
+      // Keeps the skeleton up while navigating away, instead of flashing the
+      // dashboard the Guest is being sent past.
+      let redirecting = false;
+
       try {
         setIsLoading(true);
         const response = await fetch("/api/get-cards");
@@ -100,6 +132,35 @@ export default function Home() {
           throw new Error(data.error);
         }
         const selfServiceEnabled = data.allowSelfRequest === true;
+
+        if (resume && paymentCheck) {
+          const ownsAccount = (data.accounts || []).some(
+            (a: { accountNumber?: string }) =>
+              a.accountNumber === resume.accountNumber,
+          );
+          const alreadySubmitted = (
+            data.pendingCardRequestAccountNumbers || []
+          ).includes(resume.accountNumber);
+
+          if (
+            selfServiceEnabled &&
+            ownsAccount &&
+            !alreadySubmitted &&
+            (await paymentCheck)
+          ) {
+            // Straight back to the request: it works out that the terms and
+            // payment are done and opens on "Your details". Replace, so Back
+            // does not return here and bounce them forward again.
+            redirecting = true;
+            router.replace(
+              `/request-card?accountNumber=${encodeURIComponent(resume.accountNumber)}`,
+            );
+            return;
+          }
+
+          clearCardRequestResume();
+        }
+
         setAllowSelfRequest(selfServiceEnabled);
         setCards(data.cards || []);
         const list = data.accounts || [];
@@ -136,11 +197,11 @@ export default function Home() {
           description: e.message || "Failed to load your cards.",
         });
       } finally {
-        setIsLoading(false);
+        if (!redirecting) setIsLoading(false);
       }
     }
     fetchInitialData();
-  }, [toast]);
+  }, [toast, router]);
 
   const showNoCardsMessage =
     !isLoading && accounts.length > 0 && (!cards || cards.length === 0);

@@ -34,6 +34,12 @@ import TermsContent from "@/components/terms-content";
 import CardRequestPayment from "@/components/card-request-payment";
 import EmailVerificationField from "@/components/email-verification-field";
 import {
+  type CardRequestResume,
+  clearCardRequestResume,
+  readCardRequestResume,
+  saveCardRequestResume,
+} from "@/lib/card-request-resume";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -110,6 +116,16 @@ function RequestCardForm() {
   const [paymentTransactionId, setPaymentTransactionId] = useState<string | null>(
     null,
   );
+  /** A payment opened but not yet settled by the bank, to keep checking. */
+  const [pendingTransactionId, setPendingTransactionId] = useState<
+    string | null
+  >(null);
+  /**
+   * Set when this Guest is coming back to a request they already agreed to and
+   * paid (or started paying) for - typically after the Super App reloaded the
+   * page when its payment sheet closed. See card-request-resume.
+   */
+  const [resume, setResume] = useState<CardRequestResume | null>(null);
 
   useEffect(() => {
     if (!accountNumber) {
@@ -167,8 +183,22 @@ function RequestCardForm() {
         setFeeCurrency(data.currency || "ETB");
 
         // A fee already paid for an attempt that was never finished.
-        if (data.existingPayment?.transactionId) {
-          setPaymentTransactionId(data.existingPayment.transactionId);
+        const paidId: string | undefined = data.existingPayment?.transactionId;
+        // Or one still being settled when the Super App reloaded the page.
+        const pendingId: string | undefined =
+          data.pendingPayment?.transactionId;
+
+        if (paidId) {
+          setPaymentTransactionId(paidId);
+        } else if (pendingId) {
+          setPendingTransactionId(pendingId);
+        }
+
+        // Only a Guest with money already on the line skips back in: the
+        // marker alone just says this device was mid-request.
+        const marker = readCardRequestResume();
+        if (marker && marker.accountNumber === accountNumber && (paidId || pendingId)) {
+          setResume(marker);
         }
       } catch {
         /* the gate below stays closed until the fee is known */
@@ -241,7 +271,7 @@ function RequestCardForm() {
             customerPhone: normalizedPhone,
             cardProgramCode: selectedCardProgram,
             notes,
-            termsAccepted: terms ? termsAccepted : undefined,
+            termsAccepted: terms ? effectiveTermsAccepted : undefined,
             termsVersionId: terms?.id,
             paymentTransactionId: paymentTransactionId ?? undefined,
         }),
@@ -263,6 +293,7 @@ function RequestCardForm() {
         description: "Your card request has been submitted successfully.",
       });
 
+      clearCardRequestResume();
       router.push("/");
     } catch (error) {
       toast({
@@ -275,9 +306,18 @@ function RequestCardForm() {
     }
   }
 
-  if (!accountNumber) return null;
-
   const fieldsDisabled = loadingUser || !allowSelfRequest || hasPendingRequest;
+
+  // Returning after the Super App's reload: the Guest agreed to these exact
+  // terms before paying, so they are not asked again. A version published in
+  // the meantime does not match, and the terms step is shown as normal.
+  const resumedTerms =
+    resume !== null &&
+    termsStatus === "ready" &&
+    terms !== null &&
+    terms.id === resume.termsVersionId;
+  const effectiveTermsAccepted = termsAccepted || resumedTerms;
+  const effectiveTermsConfirmed = termsConfirmed || resumedTerms;
 
   // Flow: agree to the terms, then pay, then fill in the request. See
   // resolveStage for why blockers are checked before either gate.
@@ -293,10 +333,27 @@ function RequestCardForm() {
     loadingUser,
     blocker,
     termsStatus,
-    termsConfirmed,
+    termsConfirmed: effectiveTermsConfirmed,
     paymentRequired,
     paymentTransactionId,
   });
+
+  // Reaching the payment step means the terms are behind them. Remember that
+  // before the Super App takes over, because its reload on closing the payment
+  // sheet wipes this page and drops the Guest on the dashboard.
+  const acceptedTermsId = terms?.id ?? null;
+  useEffect(() => {
+    if (stage !== "payment" || !accountNumber) return;
+    saveCardRequestResume({ accountNumber, termsVersionId: acceptedTermsId });
+  }, [stage, accountNumber, acceptedTermsId]);
+
+  if (!accountNumber) return null;
+
+  // Leaving on purpose: the dashboard must not bounce them straight back.
+  function backToDashboard() {
+    clearCardRequestResume();
+    router.push("/");
+  }
 
   // Only the steps that actually apply to this Guest are shown, so a free
   // request with no published terms never advertises a step it will skip.
@@ -316,7 +373,7 @@ function RequestCardForm() {
         variant="ghost"
         size="sm"
         className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
-        onClick={() => router.push("/")}
+        onClick={backToDashboard}
       >
         <ArrowLeft />
         Back to dashboard
@@ -432,7 +489,7 @@ function RequestCardForm() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => router.push("/")}
+              onClick={backToDashboard}
             >
               Back to dashboard
             </Button>
@@ -482,6 +539,7 @@ function RequestCardForm() {
               amount={feeAmount}
               currency={feeCurrency}
               onPaid={setPaymentTransactionId}
+              resumeTransactionId={pendingTransactionId}
             />
           </CardContent>
         ) : (
@@ -589,7 +647,7 @@ function RequestCardForm() {
                 verifiedEmail !== email.trim().toLowerCase() ||
                 // Belt and braces: the terms gate is a step of its own now, so
                 // this can only fail if that step was somehow bypassed.
-                (terms !== null && !termsAccepted)
+                (terms !== null && !effectiveTermsAccepted)
               }
             >
               {isSubmitting ? (
